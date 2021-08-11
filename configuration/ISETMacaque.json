@@ -1,0 +1,93 @@
+[
+	{
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "configuration/ISETMacaqueLocalHookTemplate.m",
+		"name": "ISETMacaque",
+		"pathPlacement": "append",
+		"subfolder": ["toolbox", "tutorials", "compute", "validations"],
+		"toolboxRoot": "",
+		"type": "git",
+		"update": "",
+		"url": "https://github.com/isetbio/ISETMacaque.git"
+	},
+    {
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "optim",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "installed",
+		"update": "",
+		"url": ""
+	},
+    {
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "robotics",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "installed",
+		"update": "",
+		"url": ""
+	},
+	{
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "parallel",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "installed",
+		"update": "",
+		"url": ""
+	},
+	{
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "isetbio",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "include",
+		"update": "",
+		"url": ""
+	},
+    {
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "ISETBioCSFGenerator",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "include",
+		"update": "",
+		"url": ""
+	},
+	{
+		"flavor": "",
+		"hook": "",
+		"importance": "",
+		"localHookTemplate": "",
+		"name": "Palamedes_1.8.2",
+		"pathPlacement": "append",
+		"subfolder": "",
+		"toolboxRoot": "",
+		"type": "webget",
+		"update": "never",
+		"url": "http://palamedestoolbox.org/sitebuildercontent/sitebuilderfiles/palamedes1_8_2.zip"
+	}
+]
