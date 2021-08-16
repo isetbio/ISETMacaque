@@ -1,10 +1,12 @@
-% Regenerate Figure 6 of McGregor et al (2018) "Functional architecture of the
-% foveola revealed in the living primate", doi: 10.1371/journal.pone.0207102
-%
+% Regenerate Figure 6 of McGregor et al (2018)
+%  
 % Syntax:
 %   regenerateFigure6();
 %
-% Description:
+% Description: Regenerate Figure 6 of McGregor et al (2018) "Functional architecture of the
+% foveola revealed in the living primate", doi: 10.1371/journal.pone.0207102
+% Also contrast the measured density to the density achieved by the ISETBio
+% synthesized mosaic .
 %     
 %
 
@@ -20,23 +22,28 @@ function regenerateFigure6()
     [xGridMicrons, yGridMicrons] = meshgrid(xMicrons, yMicrons);
     xGridDegs = xGridMicrons / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
     yGridDegs = yGridMicrons / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-    coneDensityLevelsConesPerMM2 = 100000:18200:250000;
     
-    figure(1); clf;
+    coneDensityLevelsConesPerMM2 = 100000:18200:250000;
+    %coneDensityLevelsConesPerMM2 = 40000:18200:250000;
+    
+    hFig = figure(1); clf;
+    set(hFig, 'Position', [10 10 1050 1400]);
     % Plot the cone density map in retinal microns
-    subplot(1,2,1);
+    subplot(2,1,2);
     contourf(xGridMicrons, yGridMicrons, coneDensityMapConesPerMM2, coneDensityLevelsConesPerMM2 );
     hold on;
     plot([xGridMicrons(1) xGridMicrons(end)], [0 0], 'k-');
     plot([0 0], [yGridMicrons(1) yGridMicrons(end)], 'k-');
-    set(gca, 'XTick', -200:50:200, 'YTick', -200:50:200, 'FontSize', 14);
-    xlabel('retinal eccentricity (microns)');
-    ylabel('retinal eccentricity (microns)');
     axis 'image'
+    set(gca, 'XTick', -200:50:200, 'YTick', -200:50:200, 'FontSize', 14, 'XLim', 120*[-1 1], 'YLim', 120*[-1 1]);
+    xlabel('(nasal retina)  < ----- eccentricity (microns)  ---- > (temporal retina)');
+    ylabel('(ingerior retina)  < ------- eccentricity (microns)    -----> (superior retina)');
+    title('measured density data, central segment (m401)');
+    
     colorbar
     
     % Plot the cone density map in degrees
-    subplot(1,2,2)
+    subplot(2,1,1)
     contourf(xGridDegs,yGridDegs, coneDensityMapConesPerMM2, coneDensityLevelsConesPerMM2);
     hold on;
     plot([xGridDegs(1) xGridDegs(end)], [0 0], 'k-');
@@ -44,10 +51,41 @@ function regenerateFigure6()
     xtickDegs = round((-200:50:200)/WilliamsLabData.constants.micronsPerDegreeRetinalConversion *100)/100;
     ytickDegs = round((-200:50:200)/WilliamsLabData.constants.micronsPerDegreeRetinalConversion *100)/100;
     set(gca, 'XTick', xtickDegs, 'YTick', ytickDegs, 'FontSize', 14);
-    xlabel('retinal eccentricity (degrees)');
-    ylabel('retinal eccentricity (degrees)');
+    xlabel('(nasal retina)  < ----- eccentricity (degrees)  ---- > (temporal retina)');
+    ylabel('(inferior retina)  < ------- eccentricity (degrees)    -----> (superior retina)');
     colorbar
     axis 'image'
+    title('measured density data, full range (m401)');
+    
+    rootDirName = ISETmacaqueRootPath();
+    mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
+    load(mosaicFileName, 'cm');
+    
+    hFig = figure(2); clf;
+    set(hFig, 'Position', [10 10 1050 1400]);
+    % Plot the cone density map in retinal microns
+    ax = subplot(2,1,1);
+    
+    % Visualize the generated mosaic
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
+        'domainVisualizationLimits', [-120 120 -120 120], ...
+        'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
+        'labelCones', true, 'plotTitle', 'synthesized mosaic (based on M401 density data)');
+    
+    % Visualize the achieved density map
+    ax = subplot(2,1,2);
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax,  'domain', 'microns', ...
+                'domainVisualizationLimits', [-120 120 -120 120], ...
+                'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
+                'densityContourOverlay',true, ...
+                'labelCones', false, ...
+                'crossHairsOnFovea', true, ...
+                'densityContourLevels', coneDensityLevelsConesPerMM2, ...
+                'densityContourLevelLabelsDisplay', true, ...
+                'densityColorMap', colormap(), ...
+                'verticalDensityColorBar', true, ...
+                'plotTitle', 'density plot of synthesized mosaic');
+            
     
 end
 
@@ -64,7 +102,10 @@ function [xMicrons, yMicrons, coneDensityMapConesPerMM2] = getData()
     coneDensity = RGCmodels.Watson.convert.spacingToDensityForHexGrid( coneSpacingMicrons/1e3);
     
     % Interpolate density map on a uniform grid
-    F = scatteredInterpolant(horizontalEccMicrons,verticalEccMicrons, coneDensity);
+    interpolationMethod = 'linear';
+    extrapolationMethod = 'linear';
+    F = scatteredInterpolant(horizontalEccMicrons,verticalEccMicrons, coneDensity, ...
+        interpolationMethod, extrapolationMethod);
     
     % Spatial support
     xMicrons = -200:4:200; yMicrons = -150:4:150;
