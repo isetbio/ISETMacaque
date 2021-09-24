@@ -17,6 +17,7 @@ function generateMacaqueM401Mosaic
         'sizeDegs', [1.2 1.2], ...                                          % SIZE: x=1.2 degs, y=1.2 degs
         'eccentricityDegs', [0.0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
         'computeMeshFromScratch', true, ...                                 % generate mesh on-line
+        'customMinRFspacing', minConeSpacingMicrons(), ...
         'customRFspacingFunction', @Williams401_spacingFunction, ...        % custom cone spacing function
         'customDegsToMMsConversionFunction', @Williams401_rhoDegsToMMs, ... % custom visual degs -> retinal mm conversion function
         'customMMsToDegsConversionFunction', @Williams401_rhoMMsToDegs, ... % customretinal  mm -> visual degs conversion function
@@ -52,6 +53,21 @@ function generateMacaqueM401Mosaic
                 'verticalDensityColorBar', true);
 end
 
+
+function minSpacingMicrons = minConeSpacingMicrons
+    % Load tabulated data for Williams lab monkey 401
+    load('cone_data_M401_OS_2015.mat', 'cone_locxy_diameter');
+    horizontalEccMicrons = cone_locxy_diameter(:,1);
+    verticalEccMicrons = cone_locxy_diameter(:,2);
+    medianConeDiameterMicronsRawData = cone_locxy_diameter(:,3);
+    
+    % Spacing is 5% larger than diameters
+    medianConeSpacingMicronsRawData = 1.05 * medianConeDiameterMicronsRawData;
+    
+    [minSpacingMicrons, idx] = min(medianConeSpacingMicronsRawData );
+    fprintf('Min cone spacing of raw data is at ecc: %f %f microns\n', horizontalEccMicrons(idx), verticalEccMicrons(idx));
+    
+end
 
 % Custom cone spacing function specific to monkey 401 from the Williams lab
 function [rfSpacingMicrons, eccentricitiesMicrons] = Williams401_spacingFunction(rfPosMicrons, whichEye, useParfor)
