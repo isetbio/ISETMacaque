@@ -13,46 +13,74 @@ function generateMacaqueM401Mosaic
 % History:
 %    08/16/21  NPC  ISETBIO TEAM, 2021
 
-    cm = cMosaic(...
-        'sizeDegs', [1.2 1.2], ...                                          % SIZE: x=1.2 degs, y=1.2 degs
-        'eccentricityDegs', [0.0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
-        'computeMeshFromScratch', true, ...                                 % generate mesh on-line
-        'customMinRFspacing', minConeSpacingMicrons(), ...
-        'customRFspacingFunction', @Williams401_spacingFunction, ...        % custom cone spacing function
-        'customDegsToMMsConversionFunction', @Williams401_rhoDegsToMMs, ... % custom visual degs -> retinal mm conversion function
-        'customMMsToDegsConversionFunction', @Williams401_rhoMMsToDegs, ... % customretinal  mm -> visual degs conversion function
-        'micronsPerDegree', WilliamsLabData.constants.micronsPerDegreeRetinalConversion, ...   % custom mean microns per degree for macaque retina
-        'coneDensities',  [0.48 0.48 0.04], ...                             % macaque cone density
-        'tritanopicRadiusDegs', 0.0, ...                                    % no tritanopic area
-        'randomSeed', randi(9999999), ...                                   % set the random seed, so at to generate a different mosaic each time
-        'maxMeshIterations', 1000 ...                                       % stop iterative procedure after this many iterations
-    );
+    reComputeMosaic = false;
+    if (reComputeMosaic)
+        sizeDegs = 1.2;  
+        
+        cm = cMosaic(...
+            'sizeDegs', sizeDegs*[1.0 1.0], ...                                 % SIZE: x=1.2 degs, y=1.2 degs
+            'eccentricityDegs', [0.0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
+            'computeMeshFromScratch', true, ...                                 % generate mesh on-line
+            'customMinRFspacing', minConeSpacingMicrons(), ...
+            'customRFspacingFunction', @Williams401_spacingFunction, ...        % custom cone spacing function
+            'customDegsToMMsConversionFunction', @Williams401_rhoDegsToMMs, ... % custom visual degs -> retinal mm conversion function
+            'customMMsToDegsConversionFunction', @Williams401_rhoMMsToDegs, ... % customretinal  mm -> visual degs conversion function
+            'micronsPerDegree', WilliamsLabData.constants.micronsPerDegreeRetinalConversion, ...   % custom mean microns per degree for macaque retina
+            'coneDensities',  [0.48 0.48 0.04], ...                             % macaque cone density
+            'tritanopicRadiusDegs', 0.0, ...                                    % no tritanopic area
+            'randomSeed', randi(9999999), ...                                   % set the random seed, so at to generate a different mosaic each time
+            'maxMeshIterations', 1000 ...                                       % stop iterative procedure after this many iterations
+        );
 
-    % Save the generated mosaic
-    rootDirName = ISETmacaqueRootPath();
-    mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
-    save(mosaicFileName, 'cm');
+        % Save the generated mosaic
+        rootDirName = ISETmacaqueRootPath();
+        mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
+        save(mosaicFileName, 'cm');
+    
+   else
+        rootDirName = ISETmacaqueRootPath();
+        mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
+        load(mosaicFileName, 'cm');
+    end
+    
+    % Contrast the measured and the model cone diameters
+    load('cone_data_M401_OS_2015.mat', 'cone_locxy_diameter');
+    measuredConeDiameterData.horizontalEccMicrons = cone_locxy_diameter(:,1);
+    measuredConeDiameterData.verticalEccMicrons = cone_locxy_diameter(:,2);
+    measuredConeDiameterData.medianConeDiametersMicrons = cone_locxy_diameter(:,3);
+    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
     
     % Visualize the generated mosaic
-    cm.visualize('domain', 'microns', ...
-        'domainVisualizationLimits', [-150 150 -100 100], ...
-        'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
+    visualizationLimits = 130 * [-1 1 -1 1];
+    domainVisualizationTicks =  struct(...
+        'x', -150:50:150, ...
+        'y', -150:50:150);
+    
+    hFig = figure(1);
+    set(hFig, 'Color', [1 1 1], 'Position', [100 100 1000 500]);
+    ax = subplot('Position', [0.07 0.05 0.4 0.9]);
+    
+
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
+        'domainVisualizationLimits', visualizationLimits, ...
+        'domainVisualizationTicks', domainVisualizationTicks, ...
         'labelCones', true, 'plotTitle', 'ISETBio modeling of M401');
     
+    ax = subplot('Position', [0.56 0.05 0.4 0.9]);
     % Visualize the achieved density map
     coneDensityLevelsConesPerMM2 = 100000:18200:250000;
-    cm.visualize('domain', 'microns', ...
-                'domainVisualizationLimits', [-150 150 -100 100], ...
-                'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
+                'domainVisualizationLimits', visualizationLimits, ...
+                'domainVisualizationTicks', domainVisualizationTicks, ...
                 'densityContourOverlay',true, ...
-                'labelCones', false, ...
+                'visualizeCones', false, ...
                 'crossHairsOnFovea', true, ...
                 'densityContourLevels', coneDensityLevelsConesPerMM2, ...
                 'densityContourLevelLabelsDisplay', true, ...
                 'densityColorMap', colormap(), ...
-                'verticalDensityColorBar', true);
+                'verticalDensityColorBar', true, ...
+                'plotTitle', 'cone density map in ISETBio model of M401');
 end
-
 
 function minSpacingMicrons = minConeSpacingMicrons
     % Load tabulated data for Williams lab monkey 401
@@ -62,7 +90,7 @@ function minSpacingMicrons = minConeSpacingMicrons
     medianConeDiameterMicronsRawData = cone_locxy_diameter(:,3);
     
     % Spacing is 5% larger than diameters
-    medianConeSpacingMicronsRawData = 1.05 * medianConeDiameterMicronsRawData;
+    medianConeSpacingMicronsRawData = medianConeDiameterMicronsRawData;
     
     [minSpacingMicrons, idx] = min(medianConeSpacingMicronsRawData );
     fprintf('Min cone spacing of raw data is at ecc: %f %f microns\n', horizontalEccMicrons(idx), verticalEccMicrons(idx));

@@ -13,13 +13,9 @@ function generateMacaqueM838Mosaic
 % History:
 %    09/23/21  NPC  ISETBIO TEAM, 2021
 
-    if (1==1)
-        sizeDegs = 1.2;  
-        %sizeDegs = 1.1;  
-        %sizeDegs = 1.0;  
-        %sizeDegs = 0.85;
-        %sizeDegs = 0.75; 
-        %sizeDegs = 0.5;  
+    reComputeMosaic = false;
+    if (reComputeMosaic)
+        sizeDegs = 1.3;  
         
         cm = cMosaic(...
             'sizeDegs', sizeDegs*[1.0 1.0], ...                                          % SIZE: x=1.2 degs, y=1.2 degs
@@ -47,84 +43,43 @@ function generateMacaqueM838Mosaic
         load(mosaicFileName, 'cm');
     end
     
-    contrastConeDiameters(cm);
-    
-        
-    visualizationLimits = [-100 100 -100 100];
-    domainVisualizationTicks =  struct(...
-        'x', visualizationLimits(1):50:visualizationLimits(2), ...
-        'y', visualizationLimits(3):50:visualizationLimits(4));
+    % Contrast the measured and the model cone diameters
+    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
+    measuredConeDiameterData.horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
+    measuredConeDiameterData.verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
+    measuredConeDiameterData.medianConeDiametersMicrons = cone_locxy_diameter_838OD(:,3);
+    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
     
     % Visualize the generated mosaic
-    cm.visualize('domain', 'microns', ...
+    visualizationLimits = 130 * [-1 1 -1 1];
+    domainVisualizationTicks =  struct(...
+        'x', -150:50:150, ...
+        'y', -150:50:150);
+    
+    hFig = figure(1);
+    set(hFig, 'Color', [1 1 1], 'Position', [100 100 1000 500]);
+    ax = subplot('Position', [0.07 0.05 0.4 0.9]);
+    
+    
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
         'domainVisualizationLimits', visualizationLimits, ...
         'domainVisualizationTicks', domainVisualizationTicks, ...
-        'labelCones', true, 'plotTitle', 'ISETBio modeling of M401');
+        'labelCones', true, 'plotTitle', 'ISETBio modeling of M838');
     
+    ax = subplot('Position', [0.56 0.05 0.4 0.9]);
     % Visualize the achieved density map
     coneDensityLevelsConesPerMM2 = 70000:18200:290000;
-    cm.visualize('domain', 'microns', ...
+    cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
                 'domainVisualizationLimits', visualizationLimits, ...
                 'domainVisualizationTicks', domainVisualizationTicks, ...
                 'densityContourOverlay',true, ...
-                'labelCones', false, ...
+                'visualizeCones', false, ...
                 'crossHairsOnFovea', true, ...
                 'densityContourLevels', coneDensityLevelsConesPerMM2, ...
                 'densityContourLevelLabelsDisplay', true, ...
                 'densityColorMap', colormap(), ...
-                'verticalDensityColorBar', true);
-end
-
-
-function contrastConeDiameters(cm)
-     % Load tabulated data for Williams lab monkey 838
-    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
-    horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
-    verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
-    medianConeDiameterMicronsRawData = cone_locxy_diameter_838OD(:,3);
-    medianConeDiameterMicronsModel = zeros(1, numel(medianConeDiameterMicronsRawData));
-    
-    roiWidthMicrons = 5;
-    roiHeightMicrons = 5;
-    
-    for iPos = 1:numel(horizontalEccMicrons)
-        xoMicrons = horizontalEccMicrons(iPos);
-        yoMicrons = verticalEccMicrons(iPos);
-            
-        roi = struct(...
-            'shape', 'ellipse', ...
-            'units', 'microns', ...
-            'center', [xoMicrons yoMicrons], ...
-            'rotation', 0, ...
-            'minorAxisDiameter', roiWidthMicrons, ...
-            'majorAxisDiameter', roiHeightMicrons);
-
-        roi = struct(...
-            'shape', 'rect', ...
-            'units', 'microns', ...
-            'center', [xoMicrons yoMicrons], ...
-            'width', roiWidthMicrons, ...
-            'height', roiHeightMicrons);
-
-        idx = cm.indicesOfConesWithinROI(roi);
-        
-        medianConeDiameterMicronsModel(iPos) = median(cm.coneRFspacingsMicrons(idx));
-    end
-    
-    min1 = min(medianConeDiameterMicronsRawData);
-    min2 = min(medianConeDiameterMicronsModel);
-    max1 = max(medianConeDiameterMicronsRawData);
-    max2 = max(medianConeDiameterMicronsModel);
-    
-    diameterRange = [min([min1 min2]) max([max1 max2])];
-    figure();
-    plot(medianConeDiameterMicronsRawData, medianConeDiameterMicronsModel, 'k.');
-    hold on;
-    plot([diameterRange(1) diameterRange(2)], [diameterRange(1) diameterRange(2)], 'r-');
-    set(gca, 'XLim', diameterRange, 'YLim', diameterRange);
-    axis 'square';
-    xlabel('median cone diameter (microns) - data');
-    ylabel('median cone diameter (microns) - model');
+                'verticalDensityColorBar', ~true, ...
+                'plotTitle', 'cone density map in ISETBio model of M838');
 end
 
 
@@ -135,8 +90,8 @@ function minSpacingMicrons = minConeSpacingMicrons
     verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
     medianConeDiameterMicronsRawData = cone_locxy_diameter_838OD(:,3);
     
-    % Spacing is 5% larger than diameters
-    medianConeSpacingMicronsRawData = 1.05 * medianConeDiameterMicronsRawData;
+    % Spacing is 1% larger than diameters
+    medianConeSpacingMicronsRawData = medianConeDiameterMicronsRawData;
     
     [minSpacingMicrons, idx] = min(medianConeSpacingMicronsRawData );
     fprintf('Min cone spacing of raw data is at ecc: %f %f microns\n', horizontalEccMicrons(idx), verticalEccMicrons(idx));
