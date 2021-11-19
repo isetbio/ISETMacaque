@@ -13,42 +13,58 @@ function generateMacaqueM838Mosaic
 % History:
 %    09/23/21  NPC  ISETBIO TEAM, 2021
 
-    reComputeMosaic = false;
+    monkeyID = 'M838';
+    reComputeMosaic = ~true;
+    
     if (reComputeMosaic)
         sizeDegs = 1.3;  
         
+        % Cone aperture modifiers
+        % The cone light gathering aperture is described by a Gaussian function with 
+        % sigma equal to 0.204 x inner segment diameter (cone diameter)
+        sigmaGaussian = 0.204;  % From McMahon et al, 2000
+
+        % Set cone aperture modifiers
+        coneApertureModifiers = struct(...
+            'smoothLocalVariations', true, ...
+            'sigma',  sigmaGaussian, ...
+            'shape', 'Gaussian');
+        
         cm = cMosaic(...
-            'sizeDegs', sizeDegs*[1.0 1.0], ...                                          % SIZE: x=1.2 degs, y=1.2 degs
+            'sizeDegs', sizeDegs*[1.0 1.0], ...                                 % SIZE: x=1.2 degs, y=1.2 degs
             'eccentricityDegs', [0.0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
             'computeMeshFromScratch', true, ...                                 % generate mesh on-line
-            'customMinRFspacing', minConeSpacingMicrons(), ...
-            'customRFspacingFunction', @Williams838_spacingFunction, ...        % custom cone spacing function
-            'customDegsToMMsConversionFunction', @Williams838_rhoDegsToMMs, ... % custom visual degs -> retinal mm conversion function
-            'customMMsToDegsConversionFunction', @Williams838_rhoMMsToDegs, ... % customretinal  mm -> visual degs conversion function
-            'micronsPerDegree', WilliamsLabData.constants.micronsPerDegreeRetinalConversion, ...   % custom mean microns per degree for macaque retina
+            'coneDiameterToSpacingRatio', WilliamsLabData.constants.coneDiameterToConeSpacingRatio, ...
+            'customMinRFspacing', WilliamsLabData.constants.M838coneMosaicMinConeSpacingMicrons(), ...
+            'customRFspacingFunction', @WilliamsLabData.constants.M838coneMosaicSpacingFunction, ...        % custom cone spacing function
+            'customDegsToMMsConversionFunction', @WilliamsLabData.constants.M838coneMosaicRhoDegsToMMs, ... % custom visual degs -> retinal mm conversion function
+            'customMMsToDegsConversionFunction', @WilliamsLabData.constants.M838coneMosaicRhoMMsToDegs, ... % customretinal  mm -> visual degs conversion function
+            'coneApertureModifiers', coneApertureModifiers, ...
+            'eccVaryingConeAperture', true, ...
+            'eccVaryingConeBlur', true, ...
             'coneDensities',  [0.48 0.48 0.04], ...                             % macaque cone density
             'tritanopicRadiusDegs', 0.0, ...                                    % no tritanopic area
             'randomSeed', randi(9999999), ...                                   % set the random seed, so at to generate a different mosaic each time
             'maxMeshIterations', 1000 ...                                       % stop iterative procedure after this many iterations
         );
-
-    % Save the generated mosaic
-    rootDirName = ISETmacaqueRootPath();
-    mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM838.mat');
-    save(mosaicFileName, 'cm');
+        
+        % Save the generated mosaic
+        mosaicFileName = coneMosaicFilename(monkeyID);
+        save(mosaicFileName, 'cm');
     
     else
-        rootDirName = ISETmacaqueRootPath();
-        mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM838.mat');
+        % Load the generated mosaic
+        mosaicFileName = coneMosaicFilename(monkeyID);
         load(mosaicFileName, 'cm');
     end
+    
     
     % Contrast the measured and the model cone diameters
     load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
     measuredConeDiameterData.horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
     measuredConeDiameterData.verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
     measuredConeDiameterData.medianConeDiametersMicrons = cone_locxy_diameter_838OD(:,3);
-    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
+    
     
     % Visualize the generated mosaic
     visualizationLimits = 130 * [-1 1 -1 1];
@@ -64,6 +80,8 @@ function generateMacaqueM838Mosaic
     cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
         'domainVisualizationLimits', visualizationLimits, ...
         'domainVisualizationTicks', domainVisualizationTicks, ...
+        'visualizedConeAperture', 'lightCollectingArea4sigma', ...
+        'backgroundColor', [0 0 0], ...
         'labelCones', true, 'plotTitle', 'ISETBio modeling of M838');
     
     ax = subplot('Position', [0.56 0.05 0.4 0.9]);
@@ -80,59 +98,39 @@ function generateMacaqueM838Mosaic
                 'densityColorMap', colormap(), ...
                 'verticalDensityColorBar', ~true, ...
                 'plotTitle', 'cone density map in ISETBio model of M838');
+            
+    cm.visualize('domain', 'microns', ...
+                'domainVisualizationLimits', [-10 10 -10 10], ...
+                'domainVisualizationTicks', struct('x', -10:2:10, 'y', -10:2:10), ...
+                'visualizedConeAperture', 'lightCollectingArea4sigma', ...
+                'visualizedConeApertureThetaSamples', 60, ...
+        'labelCones', true, 'plotTitle', 'ISETBio modeling of M838 - cone apertures (4 * sigma)');
+    
+    cm.visualize('domain', 'microns', ...
+                'domainVisualizationLimits', [-10 10 -10 10], ...
+                'domainVisualizationTicks', struct('x', -10:2:10, 'y', -10:2:10), ...
+                'visualizedConeAperture', 'lightCollectingArea6sigma', ...
+                'visualizedConeApertureThetaSamples', 60, ...
+        'labelCones', true, 'plotTitle', 'ISETBio modeling of M838 - cone apertures (6 * sigma)');
+    
+    cm.visualize('domain', 'microns', ...
+                'domainVisualizationLimits', [-10 10 -10 10], ...
+                'domainVisualizationTicks', struct('x', -10:2:10, 'y', -10:2:10), ...
+                'visualizedConeAperture', 'geometricArea', ...
+                'visualizedConeApertureThetaSamples', 60, ...
+        'labelCones', true, 'plotTitle', 'ISETBio modeling of M838 - cone diameters');
+    
+    cm.visualize('domain', 'microns', ...
+                'domainVisualizationLimits', [-10 10 -10 10], ...
+                'domainVisualizationTicks', struct('x', -10:2:10, 'y', -10:2:10), ...
+                'visualizedConeAperture', 'coneSpacing', ...
+                'visualizedConeApertureThetaSamples', 60, ...
+        'labelCones', true, 'plotTitle', 'ISETBio modeling of M838 - cone spacings');
+    
+    
+    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
 end
 
 
-function minSpacingMicrons = minConeSpacingMicrons
-     % Load tabulated data for Williams lab monkey 838
-    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
-    horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
-    verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
-    medianConeDiameterMicronsRawData = cone_locxy_diameter_838OD(:,3);
-    
-    % Spacing is 1% larger than diameters
-    medianConeSpacingMicronsRawData = medianConeDiameterMicronsRawData;
-    
-    [minSpacingMicrons, idx] = min(medianConeSpacingMicronsRawData );
-    fprintf('Min cone spacing of raw data is at ecc: %f %f microns\n', horizontalEccMicrons(idx), verticalEccMicrons(idx));
-    
-end
 
-% Custom cone spacing function specific to monkey 838 from the Williams lab
-function [rfSpacingMicrons, eccentricitiesMicrons] = Williams838_spacingFunction(rfPosMicrons, whichEye, useParfor)
-
-    % Load tabulated data for Williams lab monkey 838
-    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
-    horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
-    verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
-    coneDiameterMicrons = cone_locxy_diameter_838OD(:,3);
-    
-    % Assume cone spacing == cone diameter
-    coneSpacingMicrons = coneDiameterMicrons;
-    
-    % Interpolate density map on a uniform grid
-    interpolationMethod = 'linear';
-    extrapolationMethod = 'linear';
-    F = scatteredInterpolant(horizontalEccMicrons,verticalEccMicrons, coneSpacingMicrons, ...
-        interpolationMethod, extrapolationMethod);
-    
-    % Intepolate at rfPosMicrons
-    xq = rfPosMicrons(:,1);
-    yq = rfPosMicrons(:,2);
-    rfSpacingMicrons = F(xq,yq);
-    eccentricitiesMicrons = sqrt(sum(rfPosMicrons .^ 2, 2));
-end
-
-% Degs -> MM conversion function specific to monkey 838
-function eccMMs = Williams838_rhoDegsToMMs(eccDegs)
-% Convert retinal distance in degs to retinal distance in mm
-    eccMicrons = eccDegs * WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-    eccMMs = eccMicrons / 1e3;
-end
-
-% MM -> Degs conversion function specific to monkey 838
-function eccDegs = Williams838_rhoMMsToDegs(eccMMs)
-% Convert retinal distance in MMs to retinal distance in degs
-    eccDegs = eccMMs * 1e3 / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-end
 

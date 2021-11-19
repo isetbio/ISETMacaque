@@ -15,6 +15,7 @@ function contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData)
     [~,idx] = min(abs(measuredConeDiameterData.horizontalEccMicrons));
     xOrigin = measuredConeDiameterData.horizontalEccMicrons(idx);
     
+
     for iPos = 1:numel(measuredConeDiameterData.horizontalEccMicrons)
         xoMicrons = measuredConeDiameterData.horizontalEccMicrons(iPos);
         yoMicrons = measuredConeDiameterData.verticalEccMicrons(iPos);
@@ -23,10 +24,13 @@ function contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData)
             'units', 'microns', ...
             'center', [xoMicrons yoMicrons], ...
             'width', roiWidthMicrons, ...
-            'height', roiHeightMicrons);
+            'height', roiHeightMicrons, ...
+            'rotation', 0);
 
         idx = cm.indicesOfConesWithinROI(roi); 
-        medianConeDiameterMicronsModel(iPos) = median(cm.coneRFspacingsMicrons(idx));
+        
+        medianConeDiameterMicronsModel(iPos) = median(cm.coneApertureDiametersMicrons(idx));
+        
         
         if (xoMicrons == xOrigin)
             iidx = find(verticalEccSupport == yoMicrons);

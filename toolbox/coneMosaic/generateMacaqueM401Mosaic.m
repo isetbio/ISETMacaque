@@ -13,13 +13,14 @@ function generateMacaqueM401Mosaic
 % History:
 %    08/16/21  NPC  ISETBIO TEAM, 2021
 
+    monkeyID = 'M401';
     reComputeMosaic = false;
     if (reComputeMosaic)
         sizeDegs = 1.2;  
         
         cm = cMosaic(...
             'sizeDegs', sizeDegs*[1.0 1.0], ...                                 % SIZE: x=1.2 degs, y=1.2 degs
-            'eccentricityDegs', [0.0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
+            'eccentricityDegs', [0  .0 0], ...                                    % ECC:  x=0.0 degs, y= 0.0 degs
             'computeMeshFromScratch', true, ...                                 % generate mesh on-line
             'customMinRFspacing', minConeSpacingMicrons(), ...
             'customRFspacingFunction', @Williams401_spacingFunction, ...        % custom cone spacing function
@@ -32,15 +33,30 @@ function generateMacaqueM401Mosaic
             'maxMeshIterations', 1000 ...                                       % stop iterative procedure after this many iterations
         );
 
+        % Cone aperture modifiers
+        % The cone light gathering aperture is described by a Gaussian function with 
+        % sigma equal to 0.204 x inner segment diameter (which here we assume is equal to the cone spacing).
+        sigmaGaussian = 0.204;
+        
+        % Set cone aperture modifiers
+        cm.coneApertureModifiers = struct(...
+            'smoothLocalVariations', true, ...
+            'apertureShape', 'Gaussian');
+        
         % Save the generated mosaic
-        rootDirName = ISETmacaqueRootPath();
-        mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
+        mosaicFileName = coneMosaicFilename(monkeyID);
         save(mosaicFileName, 'cm');
     
    else
-        rootDirName = ISETmacaqueRootPath();
-        mosaicFileName = fullfile(rootDirName, 'dataResources/coneMosaicM401.mat');
+        mosaicFileName = coneMosaicFilename(monkeyID);
         load(mosaicFileName, 'cm');
+        
+        newConeApertureModifiers = cm.coneApertureModifiers;
+        newConeApertureModifiers.smoothLocalVariations = true;
+        newConeApertureModifiers.apertureShape = 'Gaussian';
+        cm.coneApertureModifiers = newConeApertureModifiers;
+        save(mosaicFileName, 'cm');
+        
     end
     
     % Contrast the measured and the model cone diameters
@@ -48,7 +64,7 @@ function generateMacaqueM401Mosaic
     measuredConeDiameterData.horizontalEccMicrons = cone_locxy_diameter(:,1);
     measuredConeDiameterData.verticalEccMicrons = cone_locxy_diameter(:,2);
     measuredConeDiameterData.medianConeDiametersMicrons = cone_locxy_diameter(:,3);
-    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
+    
     
     % Visualize the generated mosaic
     visualizationLimits = 130 * [-1 1 -1 1];
@@ -64,6 +80,7 @@ function generateMacaqueM401Mosaic
     cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
         'domainVisualizationLimits', visualizationLimits, ...
         'domainVisualizationTicks', domainVisualizationTicks, ...
+        'visualizedConeAperture', 'geometricArea', ...
         'labelCones', true, 'plotTitle', 'ISETBio modeling of M401');
     
     ax = subplot('Position', [0.56 0.05 0.4 0.9]);
@@ -80,6 +97,8 @@ function generateMacaqueM401Mosaic
                 'densityColorMap', colormap(), ...
                 'verticalDensityColorBar', true, ...
                 'plotTitle', 'cone density map in ISETBio model of M401');
+            
+    contrastMeasuredAndModelConeDiameters(cm, measuredConeDiameterData);
 end
 
 function minSpacingMicrons = minConeSpacingMicrons

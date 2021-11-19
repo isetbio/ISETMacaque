@@ -27,15 +27,15 @@ function regenerateFigure6()
     %coneDensityLevelsConesPerMM2 = 40000:18200:250000;
     
     hFig = figure(1); clf;
-    set(hFig, 'Position', [10 10 1050 1400]);
+    set(hFig, 'Position', [10 10 1662 819]);
     % Plot the cone density map in retinal microns
-    subplot(2,1,2);
+    ax = subplot('Position', [0.56 0.05 0.40 0.94]);
     contourf(xGridMicrons, yGridMicrons, coneDensityMapConesPerMM2, coneDensityLevelsConesPerMM2 );
     hold on;
     plot([xGridMicrons(1) xGridMicrons(end)], [0 0], 'k-');
     plot([0 0], [yGridMicrons(1) yGridMicrons(end)], 'k-');
     axis 'image'
-    set(gca, 'XTick', -200:50:200, 'YTick', -200:50:200, 'FontSize', 14, 'XLim', 120*[-1 1], 'YLim', 120*[-1 1]);
+    set(gca, 'XTick', -200:50:200, 'YTick', -200:50:200, 'FontSize', 20, 'XLim', 120*[-1 1], 'YLim', 120*[-1 1]);
     xlabel('(nasal retina)  < ----- eccentricity (microns)  ---- > (temporal retina)');
     ylabel('(ingerior retina)  < ------- eccentricity (microns)    -----> (superior retina)');
     title('measured density data, central segment (m401)');
@@ -43,14 +43,14 @@ function regenerateFigure6()
     colorbar
     
     % Plot the cone density map in degrees
-    subplot(2,1,1)
+    ax = subplot('Position', [0.06 0.05 0.40 0.94]);
     contourf(xGridDegs,yGridDegs, coneDensityMapConesPerMM2, coneDensityLevelsConesPerMM2);
     hold on;
     plot([xGridDegs(1) xGridDegs(end)], [0 0], 'k-');
     plot([0 0], [yGridDegs(1) yGridDegs(end)], 'k-');
     xtickDegs = round((-200:50:200)/WilliamsLabData.constants.micronsPerDegreeRetinalConversion *100)/100;
     ytickDegs = round((-200:50:200)/WilliamsLabData.constants.micronsPerDegreeRetinalConversion *100)/100;
-    set(gca, 'XTick', xtickDegs, 'YTick', ytickDegs, 'FontSize', 14);
+    set(gca, 'XTick', xtickDegs, 'YTick', ytickDegs, 'FontSize', 20);
     xlabel('(nasal retina)  < ----- eccentricity (degrees)  ---- > (temporal retina)');
     ylabel('(inferior retina)  < ------- eccentricity (degrees)    -----> (superior retina)');
     colorbar
@@ -62,18 +62,19 @@ function regenerateFigure6()
     load(mosaicFileName, 'cm');
     
     hFig = figure(2); clf;
-    set(hFig, 'Position', [10 10 1050 1400]);
+    set(hFig, 'Position', [10 10 1662 819]);
     % Plot the cone density map in retinal microns
-    ax = subplot(2,1,1);
+    ax = subplot('Position', [0.55 0.05 0.40 0.94]);
     
     % Visualize the generated mosaic
     cm.visualize('figureHandle', hFig, 'axesHandle', ax, 'domain', 'microns', ...
         'domainVisualizationLimits', [-120 120 -120 120], ...
         'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
+        'fontSize', 20, ...
         'labelCones', true, 'plotTitle', 'synthesized mosaic (based on M401 density data)');
     
     % Visualize the achieved density map
-    ax = subplot(2,1,2);
+    ax = subplot('Position', [0.05 0.05 0.40 0.94]);
     cm.visualize('figureHandle', hFig, 'axesHandle', ax,  'domain', 'microns', ...
                 'domainVisualizationLimits', [-120 120 -120 120], ...
                 'domainVisualizationTicks', struct('x', -150:50:150, 'y', -150:50:150), ...
@@ -84,6 +85,7 @@ function regenerateFigure6()
                 'densityContourLevelLabelsDisplay', true, ...
                 'densityColorMap', colormap(), ...
                 'verticalDensityColorBar', true, ...
+                'fontSize', 20, ...
                 'plotTitle', 'density plot of synthesized mosaic');
             
     
