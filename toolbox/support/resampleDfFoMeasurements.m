@@ -5,7 +5,7 @@ function [resampled_mean_dfF_otf, resampled_std_dfF_otf]= ...
     rootDirName = ISETmacaqueRootPath();
     
     % Mean (over all sessions) data
-    load(fullfile(rootDirName, 'dataResources/WilliamsLab/spatialFrequencyData_M838_OD_2021.mat'), 'freqs', 'cone_center_guesses', 'midget_dfF_otf', 'otf');
+    load(fullfile(rootDirName, 'dataResources/WilliamsLab/SpatialFrequencyData_M838_OD_2021.mat'), 'freqs', 'cone_center_guesses', 'midget_dfF_otf', 'otf');
     spatialFrequency = freqs;
 
     % Data from each session
