@@ -237,7 +237,7 @@ function [theScene, scalingFactor] = generateStimulus(visualStimulus,  wavelengt
     
     meanLuminance = sceneGet(theScene, 'mean luminance');
     fprintf('Scene mean luminance: %f\n', meanLuminance);
-    pause
+  
 end
 
 
