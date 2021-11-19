@@ -62,7 +62,8 @@ function [measuredCharacteristicRadiiMicrons, actualCharacteristicRadiiMicrons, 
        'topMargin',      0.02);
     sv = sv';
     
-    parfor iCone = 1:nConesWithinROI
+
+    for iCone = 1:nConesWithinROI
         % Retrieve the cone's response time series
         theResponses = squeeze(coneMosaicSpatiotemporalContrastResponseDeltas(:,:,iCone));
         
@@ -123,9 +124,10 @@ function [measuredCharacteristicRadiiMicrons, actualCharacteristicRadiiMicrons, 
                 end
                 title(ax,sprintf('SF = %2.1f cpd (modulation: %2.2f%%)',examinedSpatialFrequencies(iSF), measuredModelConeOTFs(iCone,iSF)*100));
             end
-            
-            
-        end  
+        end
+        if (showSineWaveFits)
+            pause
+        end
     end
     
     
@@ -161,7 +163,7 @@ function [measuredCharacteristicRadiiMicrons, actualCharacteristicRadiiMicrons, 
     
     plotConeOTFfits = true;
     
-    parfor iCone = 1:nConesWithinROI
+    for iCone = 1:nConesWithinROI
         fprintf('Fitting cone %d/%d OTF\n', iCone, nConesWithinROI);
         % Fit a Gaussian function to this cone's OTF, taking into account the diffraction-limited OTF
         [theFittedRetinalConeOTFHR(iCone,:), fittedParamsOTF] = ...

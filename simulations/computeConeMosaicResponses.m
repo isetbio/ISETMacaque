@@ -1,4 +1,9 @@
-function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, opticalDefocusDiopters, PolansSubject, visualStimulus)
+function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, opticalDefocusDiopters, PolansSubject, visualStimulus, varargin)
+    
+    p = inputParser;
+    p.addParameter('noLCA', false, @islogical);
+    p.parse(varargin{:});
+    noLCA = p.Results.noLCA;
     
     switch (visualStimulus.type)
         case 'WilliamsLabStimulus'
@@ -40,7 +45,7 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
             WilliamsLabData.constants.pupilDiameterMM, wavelengthSupport, ...
             WilliamsLabData.constants.imagingPeakWavelengthNM, ...
             WilliamsLabData.constants.micronsPerDegreeRetinalConversion, ...
-            opticalDefocusDiopters);
+            opticalDefocusDiopters, 'noLCA', noLCA);
         
 
         % Save OTF with custom residual blur. This will be used for
@@ -227,8 +232,9 @@ function [theScene, scalingFactor] = generateStimulus(visualStimulus,  wavelengt
             end
             
             % Generate the scene
-            meanLuminanceMatchingAOStimulusLuminance = 1802;
-            theScene = generateAchromaticGratingSceneOnLCDdisplay(stimFrameParams, theDisplay, meanLuminanceMatchingAOStimulusLuminance);
+            theScene = generateAchromaticGratingSceneOnLCDdisplay(stimFrameParams, theDisplay, ...
+                visualStimulus.backgroundLuminanceCdM2, ...
+                visualStimulus.backgroundChromaticity);
             scalingFactor = [];
             
         otherwise

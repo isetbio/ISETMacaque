@@ -7,7 +7,7 @@ function analyzeWilliamsLabDataMain()
         'recomputeConeResponses', true, ...             % Step 1. Compute responses
      	'visualizedConeResponses', ~true, ...
         'reFitData', true, ...                           % Step 2. Fit data
-        'synthesizeRGCAndComputeResponses', ~true ...                       % Step 3. Synthesize RGCs and compute responses for current optics
+        'synthesizeRGCAndComputeResponses', ~true ...    % Step 3. Synthesize RGCs and compute responses for current optics
      );
  
      stimulusType = 'LCDdisplayAchromatic';
@@ -19,15 +19,16 @@ function analyzeWilliamsLabDataMain()
                  'type', 'WilliamsLabStimulus', ...
                  'stimulationDurationCycles', 4 ...
              );
-         
+            noLCA = false;
          case 'LCDdisplayAchromatic'
-             visualStimulus = struct(...
+            visualStimulus = struct(...
                  'type', 'CRT', ...
                  'stimulationDurationCycles', 4, ...
                  'backgroundChromaticity', [0.31 0.32], ...
-                 'backgroundLuminanceCdM2', 100, ...
+                 'backgroundLuminanceCdM2', 1802, ...  % Match the AO stimulus luminance
                  'lmsConeContrasts', [1 1 1] ...
-             );
+            );
+            noLCA = true;
      end
      
      
@@ -64,7 +65,7 @@ function analyzeWilliamsLabDataMain()
      examinedConeCouplingLambdas    = [0];   
      
      % subjects to examine
-     subjectsExamined = 0 ; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics)
+     subjectsExamined = 0; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics)
      
      
      % Real optics
@@ -84,7 +85,8 @@ function analyzeWilliamsLabDataMain()
              opticalDefocusDiopters = examinedOpticalDefocusDiopters(k);
 
              if (operations.recomputeConeResponses)
-                 computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, opticalDefocusDiopters, PolansSubject, visualStimulus);
+                 computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, ...
+                     opticalDefocusDiopters, PolansSubject, visualStimulus, 'noLCA', noLCA);
              end
 
              if (operations.visualizedConeResponses)

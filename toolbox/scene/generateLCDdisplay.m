@@ -26,6 +26,5 @@ function theDisplay = generateLCDdisplay(wavelengthSupport, desiredPixelSizeDegs
     theDisplay = displaySet(theDisplay, 'dpi', dpiDesired);
     
     % 5. Verify that we matched it
-    pixelSizeDegs = displayGet(theDisplay, 'degperpixel');
-    [pixelSizeDegs desiredPixelSizeDegs]         
+    pixelSizeDegs = displayGet(theDisplay, 'degperpixel');       
 end

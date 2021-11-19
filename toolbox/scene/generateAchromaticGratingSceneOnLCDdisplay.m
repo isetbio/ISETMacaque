@@ -1,6 +1,6 @@
-function theScene = generateAchromaticGratingSceneOnLCDdisplay(stimParams, theDisplay, meanLuminanceMatchingAOStimulusLuminance)
+function theScene = generateAchromaticGratingSceneOnLCDdisplay(stimParams, theDisplay, meanLuminance, meanChromaticity)
 
-    backgroundxyY = [0.3 0.3 7];
+    backgroundxyY = [meanChromaticity(1) meanChromaticity(2) 1];
     coneContrastModulation = [1 1 1];
     rgbSettings = computeAchromaticRGBsettings(theDisplay, backgroundxyY, coneContrastModulation);
     
@@ -47,7 +47,7 @@ function theScene = generateAchromaticGratingSceneOnLCDdisplay(stimParams, theDi
     theScene = sceneSet(theScene, 'h fov', stimParams.fovDegs);
             
     % Se the desired mean luminance
-    theScene = sceneAdjustLuminance(theScene, meanLuminanceMatchingAOStimulusLuminance);
+    theScene = sceneAdjustLuminance(theScene, meanLuminance);
 end
 
 
