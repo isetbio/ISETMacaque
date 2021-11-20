@@ -7,7 +7,10 @@ classdef constants
         pupilDiameterMM = 6.7;
         imagingPeakWavelengthNM = 561;
         imagingFullWidthHalfMaxBandwidthNM = 5;
-        pixelSizeMicronsOnRetina = 1.03;
+        
+        pixelSizeMicronsOnRetina = 1.03/2;
+        sceneSpatialUpsampleFactor = 10/2;
+        
         sfTuningStimulusFOVdegs = 0.7; % 1.3;
         temporalStimulationFrequencyHz = 6;
         galvanoMeterScannerRefreshRate = 25.3;

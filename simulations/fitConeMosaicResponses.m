@@ -8,7 +8,7 @@ function fitConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, op
     load(filename, 'theConeMosaic');
     
     options.showIndividualRGCFits = true;
-    options.showSineWaveFits = true;
+    options.showSineWaveFits = ~true;
     options.showConeOTFFits = true;
  
     
