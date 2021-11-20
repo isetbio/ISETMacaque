@@ -6,24 +6,24 @@ function analyzeWilliamsLabDataMain()
      operations = struct(...
         'recomputeConeResponses', true, ...             % Step 1. Compute responses
      	'visualizedConeResponses', ~true, ...
-        'reFitData', true, ...                           % Step 2. Fit data
-        'synthesizeRGCAndComputeResponses', ~true ...    % Step 3. Synthesize RGCs and compute responses for current optics
+        'reFitData', ~true, ...                           % Step 2. Fit data
+        'synthesizeRGCAndComputeResponses', true ...    % Step 3. Synthesize RGCs and compute responses for current optics
      );
  
-     stimulusType = 'LCDdisplayAchromatic';
+     stimulusType = 'AO'; % 'LCDdisplayAchromatic';
      
      switch (stimulusType)
          case 'AO'
              % Monochromatic AO stimulus employed by Williams lab
              visualStimulus = struct(...
                  'type', 'WilliamsLabStimulus', ...
-                 'stimulationDurationCycles', 8 ...
+                 'stimulationDurationCycles', 6 ...
              );
             noLCA = false;
          case 'LCDdisplayAchromatic'
             visualStimulus = struct(...
                  'type', 'CRT', ...
-                 'stimulationDurationCycles', 8, ...
+                 'stimulationDurationCycles', 6, ...
                  'backgroundChromaticity', [0.31 0.32], ...
                  'backgroundLuminanceCdM2', 1802, ...  % Match the AO stimulus luminance
                  'lmsConeContrasts', [1 1 1] ...
@@ -37,7 +37,7 @@ function analyzeWilliamsLabDataMain()
      apertureParams.sigma = 0.204;          % x inner segment diameter (cone diameter)  - From McMahon et al, 2000
      
      % Analyze responses for the midget RGCs within the central +/- 12.5 microns
-     eccRadiusMicrons = 12;
+     eccRadiusMicrons = 10;
      eccCenterMicrons = [0 0];
      
      % Empty - no coupling
@@ -61,11 +61,11 @@ function analyzeWilliamsLabDataMain()
      % NOTE: 0.066 defocus was conducted with pixelSize = 0.5 x pixelSize
      % using in the experiment to reduce issues related to quantization
      
-     examinedOpticalDefocusDiopters = [0.067];
-     examinedConeCouplingLambdas    = [0];   
+     examinedOpticalDefocusDiopters = [0.0];
+     examinedConeCouplingLambdas    = [0.0];   
      
      % subjects to examine
-     subjectsExamined = 0; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics)
+     subjectsExamined = 8; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics)
      
      
      % Real optics

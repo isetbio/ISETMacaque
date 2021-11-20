@@ -8,8 +8,8 @@ classdef constants
         imagingPeakWavelengthNM = 561;
         imagingFullWidthHalfMaxBandwidthNM = 5;
         
-        pixelSizeMicronsOnRetina = 1.03/2;
-        sceneSpatialUpsampleFactor = 10/2;
+        pixelSizeMicronsOnRetina = 1.03;
+        sceneSpatialUpsampleFactor = 9;
         
         sfTuningStimulusFOVdegs = 0.7; % 1.3;
         temporalStimulationFrequencyHz = 6;

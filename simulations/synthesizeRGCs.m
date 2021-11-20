@@ -24,9 +24,7 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
     meanRetinalIntegratedSurroundToCenterSensitivityLconeRGC = 1/meanRetinalIntegratedCenterToSurroundSensitivityLconeRGC;
     meanRetinalIntegratedCenterToSurroundSensitivityMconeRGC = meanRetinalKcToKsRatioMconeRGC .* (1./meanRetinalRsToRcRatioMconeRGC).^2;
     meanRetinalIntegratedSurroundToCenterSensitivityMconeRGC = 1/meanRetinalIntegratedCenterToSurroundSensitivityMconeRGC;
-    
-    
-    
+
     % Select model cones within the region of interest
     foveolaROI = struct(...
         'units', 'microns', ...
@@ -39,10 +37,10 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
     coneTypesWithinROI = theConeMosaic.coneTypes(coneIndicesWithinROI);
     RGCcenterPositionsWithinROI = theConeMosaic.coneRFpositionsMicrons(coneIndicesWithinROI,:);
     
-    % Compute the test-null response deltas
-    coneMosaicSpatiotemporalContrastResponseDeltas = bsxfun(@minus, ...
-        coneMosaicSpatiotemporalActivation, coneMosaicBackgroundActivation);
-   
+
+    % Transform into a modulation response
+    coneMosaicSpatiotemporalContrastResponseModulations = bsxfun(@times, bsxfun(@minus, ...
+        coneMosaicSpatiotemporalActivation, coneMosaicBackgroundActivation), 1./coneMosaicBackgroundActivation);
     
     wThreshold = 1/100;
     validRGCs = 0;
@@ -78,6 +76,7 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
                 Rs = Rc * meanRetinalRsToRcRatioMconeRGC;
         end
         
+        
         % Compute weights to all cones of the mosaic
         weightsToAllConesOfTheMosaic = exp(-(distancesToAllConesOfTheMosaic/Rs).^2);
         
@@ -103,18 +102,16 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
         end
         
         
-        
         % Generate RF weights map
         RFsWithinROI(validRGCs,surroundConeIndices) = -surroundConeWeights;
         RFsWithinROI(validRGCs,theConeIndex) = 1;
         
         % Pool cones feeding into the surround
         surroundResponses = sum(bsxfun(@times, ...
-            coneMosaicSpatiotemporalContrastResponseDeltas(:,:, surroundConeIndices), ...
+            coneMosaicSpatiotemporalContrastResponseModulations(:,:, surroundConeIndices), ...
             reshape(surroundConeWeights, [1 1 numel(surroundConeWeights)])),3);
         
-        centerResponses = coneMosaicSpatiotemporalContrastResponseDeltas(:,:, theConeIndex);
-        
+        centerResponses = coneMosaicSpatiotemporalContrastResponseModulations(:,:, theConeIndex);
         synthesizedRGCResponses(:,:,validRGCs) = centerResponses - surroundResponses;
     end
     
@@ -134,8 +131,8 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
         hFig = figure(555); clf;
         set(hFig, 'Position', [10 10 2900 1400], 'Color', [1 1 1]);
 
-        rowsNum = nSFs;
-        colsNum = nRGCs;
+        rowsNum = 3;
+        colsNum = 5;
         sv = NicePlot.getSubPlotPosVectors(...
                        'colsNum', colsNum, ...
                        'rowsNum', rowsNum, ...
@@ -145,6 +142,7 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
                        'rightMargin',    0.01, ...
                        'bottomMargin',   0.04, ...
                        'topMargin',      0.02);
+                   sv = sv'; 
     end
          
     rowsNum = 3;
@@ -161,6 +159,8 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
     sv2 = sv2';   
     
 
+    % Compute OTFs
+    synthesizedRGCOTFs = zeros(nRGCs, nSFs);
     
     for iRGC = 1:nRGCs
         % Retrieve the RGCs response time series
@@ -168,6 +168,13 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
         maxR = max(abs(theRGCresponses(:)));
         theRGCresponses = theRGCresponses / maxR;
         
+        switch (validRGCsConeTypes(iRGC))
+            case cMosaic.LCONE_ID
+                coneColor = [1 0.1 0.5];
+            case cMosaic.MCONE_ID
+                coneColor = [0.1 1 0.5];
+        end
+            
         % Fit sinusoid to time series to extract this RGC's OTF
         for iSF = 1:nSFs
             % Retrieve the time series response for this spatial frequency
@@ -177,31 +184,36 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
             [theFittedSineWaveResponses(iRGC,iSF,:), fittedParams] = fitSinusoidToResponseTimeSeries(...
                 temporalSupportSeconds, theResponseTimeSeries', ...
                 WilliamsLabData.constants.temporalStimulationFrequencyHz, timeHR);
-            
             % Extract the amplitude param
             synthesizedRGCOTFs(iRGC,iSF) = fittedParams(1);
             
+            
             if (showSineWaveFits)
-                ax = subplot('Position', sv(iSF, iRGC).v);
-                scatter(ax, temporalSupportSeconds*1000, theResponseTimeSeries, 100, 'filled', 'MarkerFaceColor', [0.8 0.8 0.8], 'MarkerEdgeColor', [0 0 0 ], 'MarkerFaceAlpha', 0.6);
+                ax = subplot('Position', sv(iSF).v);
+                scatter(ax, temporalSupportSeconds*1000, theResponseTimeSeries*maxR, 100, 'filled', ...
+                    'MarkerFaceColor', coneColor, 'MarkerEdgeColor', coneColor*0.5, 'MarkerFaceAlpha', 0.6);
                 hold(ax, 'on');
-                plot(ax, timeHR*1000, squeeze(theFittedSineWaveResponses(iRGC,iSF,:)), 'k-', 'LineWidth', 1.5);
+                plot(ax, timeHR*1000, squeeze(theFittedSineWaveResponses(iRGC,iSF,:))*maxR, 'k-', 'Color', coneColor*0.5, 'LineWidth', 1.5); 
                 plot(ax,[temporalSupportSeconds(1) temporalSupportSeconds(end)]*1000, [0 0 ], 'k-');
                 hold(ax, 'off');
-                set(ax, 'YLim', [-1 1], 'XTick', 0:100:1000, 'YTick', 0, 'FontSize', 12);
-                if (iRGC == 1)
-                    ylabel(ax,sprintf('%2.1f c/deg', examinedSpatialFrequencies(iSF)), 'FontWeight', 'bold');
-                end
-                if (iSF == 1)
-                    title(ax,sprintf('RGC %d', iRGC));
-                end
+                set(ax, 'YLim', [-1 1],  'YTick', -1:0.5:1)
+                set(ax,'XTick', 0:100:1000,'FontSize', 12);
+                title(ax,sprintf('%2.1f c/deg (RGC #%d)', examinedSpatialFrequencies(iSF), iRGC), 'FontWeight', 'bold');
                 if (iSF == nSFs)
                     xlabel(ax, 'time (ms)');
                 else
                     set(ax, 'XTick', []);
                 end
+               
             end
         end
+        
+        
+        if (showSineWaveFits)
+             drawnow
+             pause
+        end
+        
     end
     
     % Clear-up some memory
@@ -209,7 +221,7 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
     clear 'coneMosaicBackgroundActivation'
     clear 'coneMosaicSpatiotemporalActivation'
     
-    if (1==2) && ((opticalDefocusDiopters == 0) && (isempty(PolansSubject)))
+    if ((opticalDefocusDiopters == 0) && (isempty(PolansSubject)))
         fprintf(2,'Deconvolving optics/stimulus so as to estimate retinal RGC SF tuning functions \n');
         % If diffraction-limited optics, deconvolve OTF and stimulus OTF
         

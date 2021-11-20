@@ -268,7 +268,7 @@ function visualizeMosaicAndPSF(theConeMosaic, visualizedDomainRangeMicrons, theP
     psfSupportMicronsX = psfSupportMinutesX/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
     psfSupportMicronsY = psfSupportMinutesY/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
 
-    if (1==2)
+    if (1==1)
     % Add contour plot of the PSF
     hold(ax, 'on');
     cmap = brewermap(1024,'greys');

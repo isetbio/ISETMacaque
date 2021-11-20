@@ -169,7 +169,7 @@ function plotExtractedDoGparams(theConeMosaic, DoGmodelParamsLcenterRGCs, DoGmod
        h(1).FaceAlpha = 0.9;
        h(2).FaceAlpha = 0.9;
        axis(ax, 'square');
-       set(ax, 'XLim', [0 1.1], 'XTick', 0:0.1:1.1, 'FontSize', 16, 'YTick', 0:2:50, 'YLim', [0 max([nLcones nMcones])+2]);
+       set(ax, 'XLim', [0 1.1], 'XTick', 0:0.1:1.1, 'FontSize', 16, 'YTick', 0:5:100, 'YLim', [0 max([nLcones nMcones])+2]);
        grid(ax, 'on');
        xlabel(ax, 'integrated surround/center sensitivity');
        NicePlot.exportFigToPDF('DoGparams.pdf', hFig, 300);
