@@ -1,0 +1,104 @@
+function [theOI, thePSF, psfSupportMinutesX, psfSupportMinutesY, psfSupportWavelength] = ...
+    naturalM838Optics()
+
+
+    load('M838_Polychromatic_PSF.mat', ...
+        'Z_coeff_M838', 'd_pupil', 'axial_length', ...
+        'angularfreqs', 'spatialfreqs',...
+        'PSF_420nm', 'PSF_500nm', 'PSF_550nm', ...
+        'PSF_620nm', 'PSF_650nm', 'PSF_700nm', ...
+        'PSF_750nm', 'PSF_800nm');
+
+    PSFpoly.wavelengthSupport = [420 500 550 620 650 700 750 800];
+    PSFpoly.data(:,:,1) = PSF_420nm;
+    PSFpoly.data(:,:,2) = PSF_500nm;
+    PSFpoly.data(:,:,3) = PSF_550nm;
+    PSFpoly.data(:,:,4) = PSF_620nm;
+    PSFpoly.data(:,:,5) = PSF_650nm;
+    PSFpoly.data(:,:,6) = PSF_700nm;
+    PSFpoly.data(:,:,7) = PSF_750nm;
+    PSFpoly.data(:,:,8) = PSF_800nm;
+
+    spatialFrequencySupport = angularfreqs;
+    spatialSampleSizeDegs = 1/(2*max(spatialFrequencySupport));
+    spatialSampleSizeArcMin = spatialSampleSizeDegs*60;
+    psfSupportMinutesX = (1:size(PSFpoly.data,2))*spatialSampleSizeArcMin;
+    psfSupportMinutesXoriginal = psfSupportMinutesX - mean(psfSupportMinutesX);
+    psfSupportMinutesYoriginal = psfSupportMinutesXoriginal;
+
+    % Display the computed PSFs
+    hFig = figure(1);
+    set(hFig, 'Position', [10 10 1600, 650], 'Color', [1 1 1]);
+    for wIndex = 1:numel(PSFpoly.wavelengthSupport)
+        ax = subplot(2,4,wIndex);
+        theWavePSF = squeeze(PSFpoly.data(:,:,wIndex));
+        theWavePSF = theWavePSF / max(theWavePSF(:));
+        imagesc(ax,psfSupportMinutesXoriginal, psfSupportMinutesYoriginal, theWavePSF);
+        axis(ax, 'image')
+        set(ax, 'XLim', 10*[-1 1], 'YLim', 10*[-1 1], 'FontSize', 16);
+        if (wIndex >= 5)
+            xlabel('space (arc min)');
+        end
+        title(sprintf('%2.0f nm', PSFpoly.wavelengthSupport(wIndex)));
+        colormap(gray);
+        drawnow;
+    end
+
+    % Compute the optics from the Zernikes
+    wavelengthsListToCompute = PSFpoly.wavelengthSupport;
+    wavefrontSpatialSamples = 701;
+    measPupilDiamMM = d_pupil*1000;
+    targetPupilDiamMM = measPupilDiamMM;
+    micronsPerDegree = WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
+    measWavelength = 800; %847; 
+    showTranslation = false;
+
+    
+    [thePSF, ~, ~,~, psfSupportMinutesX, psfSupportMinutesY, theWVF] = ...
+        computePSFandOTF(Z_coeff_M838, ...
+             wavelengthsListToCompute, wavefrontSpatialSamples, ...
+             measPupilDiamMM, ...
+             targetPupilDiamMM, measWavelength, showTranslation, ...
+             'doNotZeroCenterPSF', false, ...
+             'micronsPerDegree', micronsPerDegree, ...
+             'upsampleFactor', 1, ...
+             'flipPSFUpsideDown', true, ...
+             'name', 'M838 optics');
+   
+    % Generate the OI from the wavefront map
+    theOI = wvf2oiSpecial(theWVF, micronsPerDegree, targetPupilDiamMM);
+    
+    posVectors =  NicePlot.getSubPlotPosVectors(...
+        'rowsNum', 2, 'colsNum', 8, ...
+        'rightMargin', 0.00, ...
+        'leftMargin', 0.01, ...
+        'widthMargin', 0.01, ...
+        'heightMargin', 0.05, ...
+        'bottomMargin', 0.02, ...
+        'topMargin', 0.03);
+
+
+    hFig = figure(2);
+    set(hFig, 'Position', [10 10 1600, 650], 'Color', [1 1 1]);
+    for wIndex = 1:numel(wavelengthsListToCompute)
+        ax = subplot('Position', posVectors(1,wIndex).v);
+        theWavePSF = squeeze(thePSF(:,:,wIndex));
+        theWavePSF = theWavePSF / max(theWavePSF(:));
+        imagesc(ax,psfSupportMinutesX, psfSupportMinutesY, theWavePSF);
+        axis(ax, 'image')
+        set(ax, 'XLim', 10*[-1 1], 'YLim', 10*[-1 1], 'XTick', [-9 0 9], 'YTick', [], 'FontSize', 16);
+        title(sprintf('%2.0f nm', wavelengthsListToCompute(wIndex)));
+
+        ax = subplot('Position', posVectors(2,wIndex).v);
+        theWavePSF = squeeze(PSFpoly.data(:,:,wIndex));
+        theWavePSF = theWavePSF / max(theWavePSF(:));
+        imagesc(ax,psfSupportMinutesXoriginal, psfSupportMinutesYoriginal, theWavePSF);
+        axis(ax, 'image')
+        set(ax, 'XLim', 10*[-1 1], 'YLim', 10*[-1 1], 'XTick', [-9 0 9], 'YTick', [], 'FontSize', 16);
+        title(sprintf('PSF-%d', wavelengthsListToCompute(wIndex)));
+        xlabel('space (arc min)');
+        colormap(gray);
+        drawnow;
+    end
+end
+

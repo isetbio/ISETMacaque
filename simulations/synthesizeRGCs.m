@@ -39,8 +39,11 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
     
 
     % Transform into a modulation response
+    meanActivations = mean(mean(coneMosaicSpatiotemporalActivation,1),2);
+
     coneMosaicSpatiotemporalContrastResponseModulations = bsxfun(@times, bsxfun(@minus, ...
-        coneMosaicSpatiotemporalActivation, coneMosaicBackgroundActivation), 1./coneMosaicBackgroundActivation);
+        coneMosaicSpatiotemporalActivation, meanActivations), 1./meanActivations);
+
     
     wThreshold = 1/100;
     validRGCs = 0;
@@ -190,10 +193,10 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
             
             if (showSineWaveFits)
                 ax = subplot('Position', sv(iSF).v);
-                scatter(ax, temporalSupportSeconds*1000, theResponseTimeSeries*maxR, 100, 'filled', ...
+                scatter(ax, temporalSupportSeconds*1000, theResponseTimeSeries, 100, 'filled', ...
                     'MarkerFaceColor', coneColor, 'MarkerEdgeColor', coneColor*0.5, 'MarkerFaceAlpha', 0.6);
                 hold(ax, 'on');
-                plot(ax, timeHR*1000, squeeze(theFittedSineWaveResponses(iRGC,iSF,:))*maxR, 'k-', 'Color', coneColor*0.5, 'LineWidth', 1.5); 
+                plot(ax, timeHR*1000, squeeze(theFittedSineWaveResponses(iRGC,iSF,:)), 'k-', 'Color', coneColor*0.5, 'LineWidth', 1.5); 
                 plot(ax,[temporalSupportSeconds(1) temporalSupportSeconds(end)]*1000, [0 0 ], 'k-');
                 hold(ax, 'off');
                 set(ax, 'YLim', [-1 1],  'YTick', -1:0.5:1)
@@ -211,7 +214,6 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
         
         if (showSineWaveFits)
              drawnow
-             pause
         end
         
     end
