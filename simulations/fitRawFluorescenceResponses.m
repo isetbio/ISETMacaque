@@ -22,6 +22,7 @@ function fitRawFluorescenceResponses
      
      coneDiameterDegs = coneDiameterMicrons / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
      coneMosaicRcDegs = 0.204*coneDiameterDegs*sqrt(2);
+     lowerBoundForRcDegs = min(coneMosaicRcDegs);
      
      meanFovealConeRcDegs = mean(coneMosaicRcDegs(idx));
      
@@ -30,6 +31,9 @@ function fitRawFluorescenceResponses
 
      % ---- Fit with the DoG model (with fixed Rc) --- 
      %rcDegs = prctile(coneMosaicRcDegs, 10);
+     
+     % ---- Fit with the DoG model (with fixed Rc) --- 
+     rcDegs = meanFovealConeRcDegs;
 
      % ---- Use different lower bound for RsToTc for each cell
      determineLowerBoundForRsToRcForEachCell = ~true;
@@ -37,7 +41,7 @@ function fitRawFluorescenceResponses
      % Compute stimulus OTF
      stimulusOTF = computeStimulusOTF(diffractionLimitedOTF.sf);
 
-     opticalDefocusDiopters = 0.0; %0.067;
+     opticalDefocusDiopters = 0.067;
 
      if (opticalDefocusDiopters > 0)
         % assumed residual defocus
@@ -52,11 +56,15 @@ function fitRawFluorescenceResponses
      % Deconvolve the effect of stimulus
      dFresponsesLcenterRGCs = bsxfun(@times, dFresponsesLcenterRGCs, 1./stimulusOTF);
      dFresponsesMcenterRGCs = bsxfun(@times, dFresponsesMcenterRGCs, 1./stimulusOTF);
-
+     dFresponseStdLcenterRGCs = bsxfun(@times, dFresponseStdLcenterRGCs, 1./stimulusOTF);
+     dFresponseStdMcenterRGCs = bsxfun(@times, dFresponseStdMcenterRGCs, 1./stimulusOTF);
+     
      % Deconvolve the effect of residual defocus
      dFresponsesLcenterRGCs = bsxfun(@times, dFresponsesLcenterRGCs, 1./OTF_ResidualDefocusOnly);
      dFresponsesMcenterRGCs = bsxfun(@times, dFresponsesMcenterRGCs, 1./OTF_ResidualDefocusOnly);
-
+     dFresponseStdLcenterRGCs = bsxfun(@times, dFresponseStdLcenterRGCs, 1./OTF_ResidualDefocusOnly);
+     dFresponseStdMcenterRGCs = bsxfun(@times, dFresponseStdMcenterRGCs, 1./OTF_ResidualDefocusOnly);
+     
 
      coneType = 'Lcone';
      switch (coneType)
@@ -69,8 +77,9 @@ function fitRawFluorescenceResponses
      end
 
      [yFits, sfHR, fittedDoGParams, rmsErrors] = fitSpatialTransferFunctions(...
-         coneType, sfsExamimed, mtfs, mtfs_stDev, determineLowerBoundForRsToRcForEachCell, ...
-         coneMosaicRcDegs, rcDegs, opticalDefocusDiopters);
+         coneType, sfsExamimed, mtfs, mtfs_stDev, ...
+         lowerBoundForRcDegs , determineLowerBoundForRsToRcForEachCell, ...
+         rcDegs, opticalDefocusDiopters);
 
      for cellIndex = 1:size(fittedDoGParams,1)
         params = fittedDoGParams(cellIndex,:);
@@ -88,7 +97,7 @@ function fitRawFluorescenceResponses
      maxRsLcells = min([2.2 max(Rs)*60]);
      hFigA = figure(20); clf;
      set(hFigA, 'Position', [10 10 600 600], 'Color', [1 1 1]);
-     ax = subplot('Position', [0.14 0.13 0.85 0.85]);
+     ax = subplot('Position', [0.13 0.13 0.85 0.85]);
      yyaxis(ax, 'right')
      h = histogram(coneMosaicRcDegs*60, 0:0.02:1);
      h.FaceColor = [0.85 0.85 0.85];
@@ -101,7 +110,7 @@ function fitRawFluorescenceResponses
      
      hFigB = figure(21); clf;
      set(hFigB, 'Position', [10 10 600 600], 'Color', [1 1 1]);
-     ax = subplot('Position', [0.14 0.13 0.85 0.85]);
+     ax = subplot('Position', [0.13 0.13 0.85 0.85]);
      scatter(ax, Rc/meanFovealConeRcDegs, Rs/meanFovealConeRcDegs, 16^2, 'filled', ...
          'MarkerFaceAlpha', 0.5, 'MarkerEdgeColor', [1 0 0], 'MarkerFaceColor', [1 0.5 0.5], 'LineWidth',1.0);
      for k = 1:numel(Rc)
@@ -112,6 +121,14 @@ function fitRawFluorescenceResponses
          end
          text(ax, Rc(k)/meanFovealConeRcDegs+0.1, Rs(k)/meanFovealConeRcDegs+kk*0.05, sprintf('L%d', k), 'FontSize', 12);
      end
+     
+     
+     hFigC = figure(22); clf;
+     set(hFigC, 'Position', [10 10 1000 600], 'Color', [1 1 1]);
+     ax = subplot('Position', [0.13 0.13 0.85 0.85]);
+     scatter(ax, 0*Rc+0.01, Rs./Rc, 16^2, 'filled', ...
+         'MarkerFaceAlpha', 0.5, 'MarkerEdgeColor', [1 0 0], 'MarkerFaceColor', [1 0.5 0.5], 'LineWidth',1.0);
+     
      
      coneType = 'Mcone';
      switch (coneType)
@@ -124,8 +141,9 @@ function fitRawFluorescenceResponses
      end
 
      [yFits, sfHR, fittedDoGParams, rmsErrors] = fitSpatialTransferFunctions(...
-         coneType, sfsExamimed, mtfs, mtfs_stDev, determineLowerBoundForRsToRcForEachCell, ...
-         coneMosaicRcDegs, rcDegs, opticalDefocusDiopters);
+         coneType, sfsExamimed, mtfs, mtfs_stDev, ...
+         lowerBoundForRcDegs, determineLowerBoundForRsToRcForEachCell, ...
+         rcDegs, opticalDefocusDiopters);
 
      Kc = []; Rc = []; Ks = []; Rs = [];
      for cellIndex = 1:size(fittedDoGParams,1)
@@ -141,7 +159,7 @@ function fitRawFluorescenceResponses
         Rs(cellIndex) = Rc(cellIndex) * RsOverRc;
      end
 
-     maxRsMcells = min([2.2 max(Rs)*60]);
+     maxRsMcells = min([2.2 1.1*max(Rs)*60]);
      
      figure(20);
      maxRange = max([maxRsMcells maxRsLcells]);
@@ -158,20 +176,61 @@ function fitRawFluorescenceResponses
      grid(gca, 'on');
      axis(gca, 'square');
 
-     figure(21)
+     figure(21);
+     minRsRcRatio = 0;
+     maxRsRcRatio = 10;
+     tickLevels = 0:0.5:10;
+     tickLabels = {'0', '', '1', '', '2', '', '3', '', '4', '', '5', '', '6', '', '7', '', '8', '', '9', '', '10'};
+     scaling = 'Linear';
+
+     
      hold(gca, 'on');
-     scatter(Rc/meanFovealConeRcDegs, Rs/meanFovealConeRcDegs, 16^2, 'filled', ...
+     scatter(gca,Rc/meanFovealConeRcDegs, Rs/meanFovealConeRcDegs, 16^2, 'filled', ...
          'MarkerFaceAlpha', 0.5, 'MarkerEdgeColor', [0 0.5 0], 'MarkerFaceColor', [0.5 1 0.5], 'LineWidth',1.0);
-     plot([0 0], [6 6], 'k-', 'LineWidth', 1.0);
+
      for k = 1:numel(Rc)
          text(gca, Rc(k)/meanFovealConeRcDegs+0.1, Rs(k)/meanFovealConeRcDegs, sprintf('M%d', k), 'FontSize', 12);
      end
-     set(gca, 'FontSize', 24, 'XLim', [0 6], 'YLim', [0 6], 'XTick', 0:0.5:6, 'YTick', 0:0.5:6);
-     set(gca, 'XTickLabel', {'0', '', '1', '', '2', '', '3', '', '4', '', '5', '', '6'}, 'YTickLabel', {'0', '', '1', '', '2', '', '3', '', '4', '', '5', '', '6'});
+     
+     
+     plot(gca, [minRsRcRatio maxRsRcRatio],[minRsRcRatio maxRsRcRatio], 'k-', 'LineWidth', 1.0);
+     
+     
+     set(gca, 'FontSize', 24, 'XLim', [minRsRcRatio maxRsRcRatio], 'YLim', [minRsRcRatio maxRsRcRatio], ...
+         'XTick', tickLevels, 'YTick', tickLevels, ...
+         'XTickLabel', tickLabels, 'YTickLabel', tickLabels, ...
+         'XScale', scaling, 'YScale', scaling);
      xlabel(gca, 'RGC Rc / foveal cone Rc ratio');
      ylabel(gca, 'RGC Rs / foveal cone Rs ratio');
      grid(gca, 'on');
      axis(gca, 'square');
+     
+     
+     figure(22);
+     minRsRcRatio = 0.5;
+     maxRsRcRatio = 20;
+     tickLevels = 0:20;
+     
+
+     hold(gca, 'on');
+     scatter(gca, 0*Rc+0.01, Rs./Rc, 16^2, 'filled', ...
+         'MarkerFaceAlpha', 0.5, 'MarkerEdgeColor', [0 0.5 0], 'MarkerFaceColor', [0.5 1 0.5], 'LineWidth',1.0);
+     
+     % Add Cronner&Kaplan data
+     [Rc, Rs] = CronerKaplanFig4Data();
+     
+     scatter(gca, Rc.eccDegs, Rs.radiusDegs ./ Rc.radiusDegs, 12^2, 's', 'filled', ...
+         'MarkerFaceAlpha', 0.5, 'MarkerEdgeColor', [0 0.5 0], 'MarkerFaceColor', [0.5 0.5 0.5], 'LineWidth',1.0);
+     
+     set(gca, 'FontSize', 24, 'XLim', [0.01 10], 'YLim', [minRsRcRatio maxRsRcRatio], ...
+         'XTick', [0.01 0.03 0.1 0.3 1 3 10 30], 'YTick', tickLevels, ...
+         'YTickLabel', tickLabels, ...
+         'XScale', 'log', 'YScale', 'linear');
+     xlabel(gca, 'eccentricity (degs)');
+     ylabel(gca, 'Rs / Rc ratio');
+     grid(gca, 'on');
+     
+     
      
      if (isempty(rcDegs))
         figName = sprintf('summary_freeRc_defocus_%2.3fD.pdf', opticalDefocusDiopters);
@@ -193,9 +252,11 @@ function fitRawFluorescenceResponses
 end
 
 function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
-    fitSpatialTransferFunctions(coneType, sfs, mtfs, mtfStandardDev, determineLowerBoundForRsToRcForEachCell, ...
-    coneMosaicRcDegs, rcDegs, opticalDefocusDiopters)
+    fitSpatialTransferFunctions(coneType, sfs, mtfs, mtfStandardDev, ...
+    lowerBoundForRcDegs, determineLowerBoundForRsToRcForEachCell, ...
+    rcDegs, opticalDefocusDiopters)
 
+    
     cellsNum = size(mtfs,1);
     sfHR = linspace(sfs(1), sfs(end), 100);
 
@@ -213,6 +274,12 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
 
     
 
+    if (isempty(mtfStandardDev))
+       multiStartSolver = 'lsqcurvefit';
+    else
+       multiStartSolver = 'fmincon';
+    end
+                
     if (~determineLowerBoundForRsToRcForEachCell)
         lowerBoundForRsToRc = 1.0*ones(1,cellsNum);
         
@@ -223,13 +290,13 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
             lowerBoundForRsToRc  = lowerBoundsForRsToRc(iLowerBoundIndex);
             for cellIndex = 1:cellsNum
                 y = mtfs(cellIndex,:);
-                weights = [];
-                multiStartSolver = 'lsqcurvefit';
-        
+                yError = mtfStandardDev(cellIndex,:);
+                
                 [~, ~, rmsErrors(iLowerBoundIndex , cellIndex)] = ...
                             fitDogModelToOTF(...
-                                sfs, y, weights, ...
+                                sfs, y, yError, ...
                                 rcDegs, sfHR, ...
+                                lowerBoundForRcDegs, ...
                                 lowerBoundForRsToRc, ...
                                 multiStartSolver);
             end
@@ -272,9 +339,7 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
                     lowerBoundForRsToRc(11) = 1.;
                 end
             end
-
         end
-
 
         hFig = figure(); clf;
         set(hFig, 'Position', [10 10 2000 550], 'Color', [1 1 1]);
@@ -304,14 +369,15 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
         rmsErrors = [];
     end
 
+        
     for cellIndex = 1:cellsNum
             y = mtfs(cellIndex,:);
-            weights = [];
-            multiStartSolver = 'lsqcurvefit';
+            yError = mtfStandardDev(cellIndex,:);
             [yFits(cellIndex,:), fittedDoGParams(cellIndex,:), rmsErrors(cellIndex)] = ...
                         fitDogModelToOTF(...
-                            sfs, y, weights, ...
+                            sfs, y, yError, ...
                             rcDegs, sfHR, ...
+                            lowerBoundForRcDegs, ...
                             lowerBoundForRsToRc(cellIndex), ...
                             multiStartSolver);
     end

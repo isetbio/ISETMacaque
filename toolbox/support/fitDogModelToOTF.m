@@ -1,5 +1,6 @@
 function [theFittedRetinalOTFs, fittedParams, rmsError] = fitDogModelToOTF(...
-    sf, measuredRetinalRGCOTFs, measuredRetinalRGCOTFSTDs, theFittedRFcenterRadius, sfHR, lowerBoundForRsToRc, ...
+    sf, measuredRetinalRGCOTFs, measuredRetinalRGCOTFSTDs, theFittedRFcenterRadius, sfHR, ...
+    lowerBoundForRcDegs, lowerBoundForRsToRc, ...
     multiStartSolver)
     
     % Surround radius no larger than 15 x center radius
@@ -10,16 +11,6 @@ function [theFittedRetinalOTFs, fittedParams, rmsError] = fitDogModelToOTF(...
     upperBoundForKsToKc = 1.0;
     
     upperBoundForKc = 10*1000 * 1000;
-    
-    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
-    coneDiameterMicrons = cone_locxy_diameter_838OD(:,3);
-    coneDiameterDegs = coneDiameterMicrons / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-    coneMosaicRcDegs = 0.204*coneDiameterDegs*sqrt(2);
-     
-    % sigma = 0.204 * innerSegmentDiameter.
-    lowerBoundForRcDegs = min(coneMosaicRcDegs);
-    
-    %lowerBoundForRcDegs = 0.2*sqrt(2) * 0.204 * 1.9 / WilliamsLabData.constants.micronsPerDegreeRetinalConversion
     
     % Model to fit
     if (isempty(theFittedRFcenterRadius))
@@ -59,6 +50,8 @@ function [theFittedRetinalOTFs, fittedParams, rmsError] = fitDogModelToOTF(...
 
         switch (multiStartSolver)
             case 'lsqcurvefit'
+                
+                fprintf('Fitting DoG model using LSQCURVEFIT WITHOUT weights\n');
                 
                 thresholdRMSForRepeatFitting = 0.1;
                 maxRefitAttempts = 3;
@@ -105,11 +98,11 @@ function [theFittedRetinalOTFs, fittedParams, rmsError] = fitDogModelToOTF(...
                 
                 if (isempty(measuredRetinalRGCOTFSTDs))
                     weights = ones(size(theRetinalResponse));
-                    fprintf('Fitting DoG model WITHOUT weights\n');
+                    fprintf('Fitting DoG model using FMINCON WITHOUT weights\n');
                 else
                     theRetinalResponseStd = measuredRetinalRGCOTFSTDs(iCell,:);
                     weights = 1./theRetinalResponseStd;
-                    fprintf('Fitting DoG model WITH weights\n');
+                    fprintf('Fitting DoG model using FMINCON WITH weights\n');
                 end
                 
                 objective = @(p) sum(weights .* (DoGFunction(p, sf) - theRetinalResponse).^2);
