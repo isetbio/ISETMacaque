@@ -4,13 +4,13 @@ function analyzeWilliamsLabDataMain()
     
      % What operation to perform
      operations = struct(...
-        'recomputeConeResponses', true, ...             % Step 1. Compute responses
+        'recomputeConeResponses', ~true, ...             % Step 1. Compute responses
      	'visualizedConeResponses', ~true, ...
         'reFitData', ~true, ...                           % Step 2. Fit data
         'synthesizeRGCAndComputeResponses', true ...    % Step 3. Synthesize RGCs and compute responses for current optics
      );
  
-     stimulusType = 'AO'; % 'LCDdisplayAchromatic';
+     stimulusType = 'AO'; %'LCDdisplayAchromatic'; % 'AO'; % 'LCDdisplayAchromatic';
      
      switch (stimulusType)
          case 'AO'
@@ -37,7 +37,7 @@ function analyzeWilliamsLabDataMain()
      apertureParams.sigma = 0.204;          % x inner segment diameter (cone diameter)  - From McMahon et al, 2000
      
      % Analyze responses for the midget RGCs within the central +/- 12.5 microns
-     eccRadiusMicrons = 10;
+     eccRadiusMicrons = 3;
      eccCenterMicrons = [0 0];
      
      % Empty - no coupling
@@ -65,7 +65,7 @@ function analyzeWilliamsLabDataMain()
      examinedConeCouplingLambdas    = [0.0];   
      
      % subjects to examine
-     subjectsExamined = 8; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics)
+     subjectsExamined = 0; % [10 9 8 6 4 2];  % Choose from 1:10 (or 0, for Diffraction-Limited optics, or 838 for M838 optics)
      
      
      % Real optics
@@ -76,6 +76,8 @@ function analyzeWilliamsLabDataMain()
             % Diffraction-limited optics
             fprintf(2, 'Employing diffraction-limited optics.\n');
             PolansSubject = [];
+         elseif (PolansSubject == 838)
+            fprintf(2, 'Employing M838 optics.\n');
          else
              fprintf(2, 'Employing Polans optics (subject %d).\n', PolansSubject);
          end
@@ -98,7 +100,7 @@ function analyzeWilliamsLabDataMain()
                  
                  % If you want to estimate retinal Rcs under the residual
                  % blur assumption set the following flat to true
-                 deconvolveMeasurementsWithResidualBlur = true;
+                 deconvolveMeasurementsWithResidualBlur = ~true;
                  
                  % choose which data to get. Optiocs are {'mean', 'resampleSessionData', 'session1only', 'session2only', 'session3only', 'sessionWithHighestSFextension'}
                  sessionData = 'mean'; 

@@ -250,7 +250,7 @@ function synthesizeRGCs(monkeyID, apertureParams,  coneCouplingLambda, opticalDe
         end
     end
         
-    useMeasuredDataInsteadOfSynthesizedData = ~true;
+    useMeasuredDataInsteadOfSynthesizedData = true;
     if (useMeasuredDataInsteadOfSynthesizedData)
         fprintf(2,'Using MEASURED SF curves, NOT SYNTHESIZED\n');
         clear 'synthesizedRGCOTFs'

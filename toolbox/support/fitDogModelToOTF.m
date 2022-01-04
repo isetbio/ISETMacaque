@@ -7,12 +7,19 @@ function [theFittedRetinalOTFs, fittedParams, rmsError] = fitDogModelToOTF(...
     
     % Peak sensitivity of the surround no larger than 1.0 x peak
     % sensitivity of the center
-    upperBoundForKsToKc = 5.0;
+    upperBoundForKsToKc = 1.0;
     
     upperBoundForKc = 10*1000 * 1000;
     
-    % sigma = 0.204 * innerSegmentDiameter. Min inner segment diameter = 1.9 microns
-    lowerBoundForRcDegs = 0.2*sqrt(2) * 0.204 * 1.9 / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
+    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
+    coneDiameterMicrons = cone_locxy_diameter_838OD(:,3);
+    coneDiameterDegs = coneDiameterMicrons / WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
+    coneMosaicRcDegs = 0.204*coneDiameterDegs*sqrt(2);
+     
+    % sigma = 0.204 * innerSegmentDiameter.
+    lowerBoundForRcDegs = min(coneMosaicRcDegs);
+    
+    %lowerBoundForRcDegs = 0.2*sqrt(2) * 0.204 * 1.9 / WilliamsLabData.constants.micronsPerDegreeRetinalConversion
     
     % Model to fit
     if (isempty(theFittedRFcenterRadius))

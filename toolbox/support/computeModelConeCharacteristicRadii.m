@@ -161,7 +161,7 @@ function [measuredCharacteristicRadiiMicrons, actualCharacteristicRadiiMicrons, 
     measuredCharacteristicRadiiMicrons = zeros(nConesWithinROI,1);
     actualCharacteristicRadiiMicrons = zeros(nConesWithinROI,1);
     
-    plotConeOTFfits = true;
+    plotConeOTFfits = ~true;
     
     for iCone = 1:nConesWithinROI
         fprintf('Fitting cone %d/%d OTF\n', iCone, nConesWithinROI);

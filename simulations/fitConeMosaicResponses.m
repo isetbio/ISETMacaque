@@ -29,6 +29,7 @@ function fitConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda, op
                 'OTF_ResidualDefocus', 'sfsExamimed');
 
         fprintf(2, 'Deconvolving with the OTF with %2.3fD residual blur OTF\n', opticalDefocusDiopters);
+        
         % These responses have been deconvolved with the diffraction-limited OTF
         % So put this back on;
         
