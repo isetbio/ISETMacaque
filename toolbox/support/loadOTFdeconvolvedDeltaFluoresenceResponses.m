@@ -1,11 +1,44 @@
 function [dFresponsesLcenterRGCs, dFresponsesMcenterRGCs, dFresponsesScenterRGCs, ...
      dFresponseStdLcenterRGCs,  dFresponseStdMcenterRGCs,  dFresponseStdScenterRGCs, ...
      diffractionLimitedOTF] = loadOTFdeconvolvedDeltaFluoresenceResponses(monkeyID, sessionData)
- 
+
+% Load the provided fluorescene STF data
+%
+% Syntax:
+%   d = loadOTFdeconvolvedDeltaFluoresenceResponses(monkeyID, sessionData);
+%
+% Description:
+%   Load the provided fluorescene STF data and the diffraction-limited OTF
+%
+% Inputs:
+%    monkeyID            - String, 'M838'
+%    sessionData         - String, choose from {'mean', 'session1only', 'session2only', 'session3 only', 'sessionWithHighestSFextension'}
+%
+% Outputs:
+%    dFresponsesLcenterRGCs    - [mCells x N spatial frequencies] matrix of STF responses 
+%                                for (putatively) L-center RGCs
+%    dFresponsesMcenterRGCs    - [mCells x N spatial frequencies] matrix of STF responses 
+%                                for (putatively) M-center RGCs
+%    dFresponsesScenterRGCs    - [mCells x N spatial frequencies] matrix of STF responses 
+%                                for (putatively) S-center RGCs
+%    dFresponseStdLcenterRGCs  - [mCells x N spatial frequencies] matrix of std error of the mean STF responses 
+%                                for (putatively) L-center RGCs
+%    dFresponseStdMcenterRGCs  - [mCells x N spatial frequencies] matrix of std error of the mean STF responses 
+%                                for (putatively) M-center RGCs
+%    dFresponseStdScenterRGCs  - [mCells x N spatial frequencies] matrix of std error of the mean STF responses 
+%                                for (putatively) S-center RGCs
+%    diffractionLimitedOTF     - struct with:
+%                                  'sf': spatial frequencies at which STFs were measured and,
+%                                  'otf': the corresponding OTF value of a
+%                                       6.7 mm diffraction-limited system
+%
+% Optional key/value pairs:
+%    None
+%         
 
     % Generate data filename
     rootDirName = ISETmacaqueRootPath();
-    measuredDataFileName = fullfile(rootDirName, 'dataResources/WilliamsLab/SpatialFrequencyData_M838_OD_2021.mat');
+    measuredDataFileName = fullfile(rootDirName, sprintf('dataResources/WilliamsLab/SpatialFrequencyData_%s_OD_2021.mat', monkeyID));
     
     % Load the measured cells' GCaMP fluorescence dF/F response - based OTFs
     % Note: these have been already deconvolved with the diffraction-limited OTF
