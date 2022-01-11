@@ -33,10 +33,10 @@ function fitRawFluorescenceResponses
      %rcDegs = prctile(coneMosaicRcDegs, 10);
      
      % ---- Fit with the DoG model (with fixed Rc) --- 
-     rcDegs = meanFovealConeRcDegs;
+     %rcDegs = meanFovealConeRcDegs;
 
      % ---- Use different lower bound for RsToTc for each cell
-     determineLowerBoundForRsToRcForEachCell = ~true;
+     determineLowerBoundForRsToRcForEachCell = true;
      
      % Compute stimulus OTF
      stimulusOTF = computeStimulusOTF(diffractionLimitedOTF.sf);
@@ -284,10 +284,9 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
         lowerBoundForRsToRc = 1.0*ones(1,cellsNum);
         
     else
-        lowerBoundsForRsToRc = 0.5:0.25:5;
+        examinedLowerBoundsForRsToRc = 0.5:0.25:5;
     
-        for iLowerBoundIndex = 1:numel(lowerBoundsForRsToRc)
-            lowerBoundForRsToRc  = lowerBoundsForRsToRc(iLowerBoundIndex);
+        for iLowerBoundIndex = 1:numel(examinedLowerBoundsForRsToRc)
             for cellIndex = 1:cellsNum
                 y = mtfs(cellIndex,:);
                 yError = mtfStandardDev(cellIndex,:);
@@ -297,7 +296,7 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
                                 sfs, y, yError, ...
                                 rcDegs, sfHR, ...
                                 lowerBoundForRcDegs, ...
-                                lowerBoundForRsToRc, ...
+                                examinedLowerBoundsForRsToRc(iLowerBoundIndex), ...
                                 multiStartSolver);
             end
         end
@@ -345,13 +344,13 @@ function [yFits, sfHR, fittedDoGParams, rmsErrors] = ...
         set(hFig, 'Position', [10 10 2000 550], 'Color', [1 1 1]);
         for cellIndex = 1:cellsNum
             ax = subplot('Position', sv(1,cellIndex).v);
-            scatter(ax, lowerBoundsForRsToRc, rmsErrors(:, cellIndex), 100, 'filled',  ...
+            scatter(ax, examinedLowerBoundsForRsToRc, rmsErrors(:, cellIndex), 100, 'filled',  ...
                 'LineWidth', 1.5, 'MarkerEdgeColor', [1 0 0], 'MarkerFaceColor', [1 0.5 0.5], 'MarkerFaceAlpha', 0.5);
             hold(ax, 'on');
             plot(ax, lowerBoundForRsToRc(cellIndex)*[1 1], [min(squeeze(rmsErrors(:, cellIndex))) max(squeeze(rmsErrors(:, cellIndex)))], 'k--', 'LineWidth', 1.5);
             xlabel(ax,'lower bound for Rs/Rc');
             ylabel(ax, 'rms error')
-            set(ax, 'YTick', [], 'XTick', 0:0.5:10, 'XLim', [1 5], ...
+            set(ax, 'XTick', 0:0.5:10, 'XLim', [1 5], ...
                 'XTickLabel', {'','', '1', '', '2', '', '3', '', '4', '', '5', '', '6', '', '7', '', '8', '', '9', '', '10'});
             set(ax, 'FontSize', 14);
             xtickangle(ax, 0)

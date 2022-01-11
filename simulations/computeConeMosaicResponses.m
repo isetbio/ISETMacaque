@@ -71,8 +71,13 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
             [~,~,~,~,~,~,diffractionLimitedOTF] = loadOTFdeconvolvedDeltaFluoresenceResponses(monkeyID, sessionData);
             sfsExamimed = diffractionLimitedOTF.sf;
             OTF_ResidualDefocus = interp1(sfSupportCyclesPerDeg, OTFslice, sfsExamimed);
+            OTF_ResidualDefocusHR = struct(...
+                'mag', OTFslice, ...
+                'sf', sfSupportCyclesPerDeg);
             save(customDefocusOTFFilename(opticalDefocusDiopters), ...
-                'OTF_ResidualDefocus', 'sfsExamimed');
+                'OTF_ResidualDefocus', 'sfsExamimed', 'OTF_ResidualDefocusHR');
+            fprintf('saved Defocus to %s' ,customDefocusOTFFilename(opticalDefocusDiopters))
+            pause
         end
     
     else

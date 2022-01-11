@@ -6,7 +6,7 @@ function analyzeWilliamsLabDataMain()
      operations = struct(...
         'recomputeConeResponses', ~true, ...             % Step 1. Compute responses
      	'visualizedConeResponses', ~true, ...
-        'reFitData', ~true, ...                           % Step 2. Fit data
+        'reFitData', true, ...                           % Step 2. Fit data
         'synthesizeRGCAndComputeResponses', true ...    % Step 3. Synthesize RGCs and compute responses for current optics
      );
  
@@ -37,7 +37,7 @@ function analyzeWilliamsLabDataMain()
      apertureParams.sigma = 0.204;          % x inner segment diameter (cone diameter)  - From McMahon et al, 2000
      
      % Analyze responses for the midget RGCs within the central +/- 12.5 microns
-     eccRadiusMicrons = 3;
+     eccRadiusMicrons = 10;
      eccCenterMicrons = [0 0];
      
      % Empty - no coupling
@@ -61,7 +61,7 @@ function analyzeWilliamsLabDataMain()
      % NOTE: 0.066 defocus was conducted with pixelSize = 0.5 x pixelSize
      % using in the experiment to reduce issues related to quantization
      
-     examinedOpticalDefocusDiopters = [0.0];
+     examinedOpticalDefocusDiopters = [0.067];
      examinedConeCouplingLambdas    = [0.0];   
      
      % subjects to examine
@@ -96,7 +96,7 @@ function analyzeWilliamsLabDataMain()
              end
 
              if (operations.reFitData)
-                 lowerBoundForRsToRcInFreeRcFits = 1.5;
+                 lowerBoundForRsToRcInFreeRcFits = 1.0;
                  
                  % If you want to estimate retinal Rcs under the residual
                  % blur assumption set the following flat to true
