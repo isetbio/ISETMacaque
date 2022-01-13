@@ -4,7 +4,7 @@ function analyzeWilliamsLabDataMain()
     
      % What operation to perform
      operations = struct(...
-        'recomputeConeResponses', ~true, ...             % Step 1. Compute responses
+        'recomputeConeResponses', true, ...             % Step 1. Compute responses
      	'visualizedConeResponses', ~true, ...
         'reFitData', true, ...                           % Step 2. Fit data
         'synthesizeRGCAndComputeResponses', true ...    % Step 3. Synthesize RGCs and compute responses for current optics
@@ -17,7 +17,7 @@ function analyzeWilliamsLabDataMain()
              % Monochromatic AO stimulus employed by Williams lab
              visualStimulus = struct(...
                  'type', 'WilliamsLabStimulus', ...
-                 'stimulationDurationCycles', 6 ...
+                 'stimulationDurationCycles', 4 ...
              );
             noLCA = false;
          case 'LCDdisplayAchromatic'
@@ -61,7 +61,7 @@ function analyzeWilliamsLabDataMain()
      % NOTE: 0.066 defocus was conducted with pixelSize = 0.5 x pixelSize
      % using in the experiment to reduce issues related to quantization
      
-     examinedOpticalDefocusDiopters = [0.067];
+     examinedOpticalDefocusDiopters = [0.072]; %[0.067];
      examinedConeCouplingLambdas    = [0.0];   
      
      % subjects to examine

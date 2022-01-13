@@ -77,7 +77,6 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
             save(customDefocusOTFFilename(opticalDefocusDiopters), ...
                 'OTF_ResidualDefocus', 'sfsExamimed', 'OTF_ResidualDefocusHR');
             fprintf('saved Defocus to %s' ,customDefocusOTFFilename(opticalDefocusDiopters))
-            pause
         end
     
     else
@@ -127,7 +126,9 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
 
     % Generate the background stimulus scene
     [theBackgroundScene, scalingFactor] = generateStimulus(visualStimulus, wavelengthSupport, theOI, [], [], [], []);
-    
+    meanLuminance = sceneGet(theBackgroundScene, 'mean luminance');
+    fprintf('Background scene mean luminance: %f\n', meanLuminance);
+
 
     % Compute the optical image of the background stimulus
     theBackgroundOI = oiCompute(theBackgroundScene, theOI);
@@ -164,7 +165,8 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
         theStimulusTemporalSupportSeconds = zeros(1, numel(spatialPhases));
         for iPhase = 1:numel(spatialPhases)
             theStimulusScene = generateStimulus(visualStimulus,  wavelengthSupport, theOI, testStimulusContrast, testStimulusSpatialFrequencyCPD, spatialPhases(iPhase), scalingFactor);
-
+            meanLuminance = sceneGet(theStimulusScene, 'mean luminance');
+            fprintf('Test scene mean luminance: (%2.2fc/deg, phase: %2.2f degs) %f\n', examinedSpatialFrequencies(iSF), spatialPhases(iPhase), meanLuminance);
             % Compute the optical image of the test stimulus
             theListOfOpticalImages{iPhase} = oiCompute(theStimulusScene, theOI);
             theStimulusTemporalSupportSeconds(iPhase) = (iPhase-1)*displayFrameDurationSeconds;
@@ -190,7 +192,7 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
 end
 
 
-function [theScene, scalingFactor] = generateStimulus(visualStimulus,  wavelengthSupport, theOI, theContrast, theSpatialFrequency, theSpatialPhase, theScalingFactor)
+function [theScene, theScalingFactor] = generateStimulus(visualStimulus,  wavelengthSupport, theOI, theContrast, theSpatialFrequency, theSpatialPhase, theScalingFactor)
 
     % Stimulus frame params for the background stimulus
     stimFrameParams = struct(...
@@ -223,10 +225,10 @@ function [theScene, scalingFactor] = generateStimulus(visualStimulus,  wavelengt
                 theOI = oiCompute(theBackgroundScene, theOI);
 
                 % Compute scaling factor using the OI for the uniform field and the calibrationROI
-                scalingFactor = computeScalingFactor(theOI, WilliamsLabData.constants.calibrationROI);
+                theScalingFactor = computeScalingFactor(theOI, WilliamsLabData.constants.calibrationROI);
 
                 % Make sure we got the right ROIenergy after applying the computed scaling factor
-                theBackgroundScene = generateMonochromaticGratingScene(stimFrameParams,  scalingFactor);
+                theBackgroundScene = generateMonochromaticGratingScene(stimFrameParams,  theScalingFactor);
                 theOI = oiCompute(theBackgroundScene, theOI);
                 [~, computedROIenergyMicroWatts] = computeScalingFactor(theOI, WilliamsLabData.constants.calibrationROI);
                 fprintf('Desired energy within ROI: %f microWatts, achieved: %f microWatts\n', ...
@@ -266,15 +268,13 @@ function [theScene, scalingFactor] = generateStimulus(visualStimulus,  wavelengt
             theScene = generateAchromaticGratingSceneOnLCDdisplay(stimFrameParams, theDisplay, ...
                 visualStimulus.backgroundLuminanceCdM2, ...
                 visualStimulus.backgroundChromaticity);
-            scalingFactor = [];
+            theScalingFactor = [];
             
         otherwise
             error('Unknown stimulus type: ''%s''.', visualStimulus.type);
     end
-    
-    meanLuminance = sceneGet(theScene, 'mean luminance');
-    fprintf('Scene mean luminance: %f\n', meanLuminance);
-  
+
+
 end
 
 

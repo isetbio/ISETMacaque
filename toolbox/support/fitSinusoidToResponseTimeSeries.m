@@ -32,15 +32,15 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
     sinFunction = @(params,time)(params(3)*0 + params(1) * sin(2.0*pi*stimulusTemporalFrequencyHz*time - params(2)/180*pi));
 
     % Initial params
-    initialParams(1) = 0.7;     % amplitude
+    initialParams(1) = 1.0;     % amplitude
     initialParams(2) = 0.0;     % phase
     initialParams(3) = 0.0;     % baseline
     
     maxAmplitude = max(abs(theResponse));
     theResponse = theResponse/maxAmplitude;
     
-    lowerBound = [0.8   -360     0];
-    upperBound = [1     360     0];
+    lowerBound = [0.5   -360     0];
+    upperBound = [1.0    360     0];
     
     % Fit
     fittedParams = lsqcurvefit(sinFunction,initialParams, time, double(theResponse), lowerBound, upperBound, options);
@@ -51,6 +51,11 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
     fittedParams(1) = fittedParams(1) * maxAmplitude;
 
     % Generate high-resolution fitted function
-    theFittedResponse = sinFunction(fittedParams,timeHR);
+    if (~isempty(timeHR))
+        theFittedResponse = sinFunction(fittedParams,timeHR);
+    else
+        theFittedResponse = [];
+    end
+
 end
 
