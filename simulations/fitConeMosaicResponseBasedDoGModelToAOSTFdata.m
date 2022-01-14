@@ -3,11 +3,30 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 1024;
+    startingPointsNum = 8;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
-    maxRecordedRGCeccArcMin = 1;
+    maxRecordedRGCeccArcMin = 6;
+
+    fitLcenterCells = true;
+    fitMcenterCells = ~true;
+    visualizedLocationsNum = 16;
+
+    residualDefocusDiopters = 0.000;
+    %residualDefocusDiopters = 0.020;
+    %residualDefocusDiopters = 0.040;
+    %residualDefocusDiopters = 0.055;
+    %residualDefocusDiopters = 0.063;
+    %residualDefocusDiopters = 0.067;
+    %residualDefocusDiopters = 0.072;
+    %residualDefocusDiopters = 0.075;
+    %residualDefocusDiopters = 0.085;
+    %residualDefocusDiopters = 0.100;
+    %residualDefocusDiopters = 0.125;
+    %residualDefocusDiopters = 0.150;
+
+
 
     % Load the uncorrected DF data
     monkeyID = 'M838';
@@ -21,7 +40,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
     sParams = struct(...
         'coneCouplingLambda',  0, ...           % no cone coupling
         'PolansSubject', [], ...                % [] = diffraction-limited optics
-        'residualDefocusDiopters', 0.072, ...
+        'residualDefocusDiopters', residualDefocusDiopters, ... 
         'visualStimulus', struct(...
                  'type', 'WilliamsLabStimulus', ...
                  'stimulationDurationCycles', 6));
@@ -35,54 +54,103 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
     modelSTFrunData.coneMosaicSpatiotemporalActivation = ...
         bsxfun(@times, bsxfun(@minus, modelSTFrunData.coneMosaicSpatiotemporalActivation, b), 1./b);
 
-    % Find the indices of model L-cones that could provide input to the L-center RGCs
-    indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesWithinEccDegs(...
-        modelSTFrunData.theConeMosaic, ...
-        modelSTFrunData.theConeMosaic.LCONE_ID, ...
-        maxRecordedRGCeccArcMin/60);
-
-    % Fit the L-center RGCs using the model L-cones that could provide
-    % input to the RF centers
-    [fittedParamsLcenterRGCs, centerLConeCharacteristicRadiiDegs, ...
-        fittedSTFsLcenterRGCs, rmsErrorsLcenterRGCs] = ...
-        fitAllData(modelSTFrunData, ...
-                   indicesOfModelConesDrivingLcenterRGCs, ...
-                   d.dFresponsesLcenterRGCs, ...
-                   d.dFresponseStdLcenterRGCs, ...
-                   startingPointsNum, 'L');
-                   
-    % Find the indices of model M-cones that could provide input to the M-center RGCs
-    indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesWithinEccDegs(...
-        modelSTFrunData.theConeMosaic, ...
-        modelSTFrunData.theConeMosaic.MCONE_ID, ...
-        maxRecordedRGCeccArcMin/60);
     
-    % Fit the M-center RGCs using the model M-cones that could provide
-    % input to the RF centers
-    [fittedParamsMcenterRGCs, centerMConeCharacteristicRadiiDegs, ...
-        fittedSTFsMcenterRGCs, rmsErrorsMcenterRGCs] = ...
-        fitAllData(modelSTFrunData, ...
-                   indicesOfModelConesDrivingMcenterRGCs, ...
-                   d.dFresponsesMcenterRGCs, ...
-                   d.dFresponseStdMcenterRGCs, ...
-                   startingPointsNum, 'M');
+    fitsFileName = sprintf('ISETBioFits%2.3fD.mat', sParams.residualDefocusDiopters);
+
+    if (fitLcenterCells)
+        fprintf('Fitting L-center cells\n');
+        % Find the indices of model L-cones that could provide input to the L-center RGCs
+        indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesWithinEccDegs(...
+            modelSTFrunData.theConeMosaic, ...
+            modelSTFrunData.theConeMosaic.LCONE_ID, ...
+            maxRecordedRGCeccArcMin/60);
+        
+        % Do a subset of these
+        if (numel(indicesOfModelConesDrivingLcenterRGCs)>visualizedLocationsNum)
+            skip = round(numel(indicesOfModelConesDrivingLcenterRGCs)/visualizedLocationsNum);
+            idx = 1:skip:numel(indicesOfModelConesDrivingLcenterRGCs);
+            indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesDrivingLcenterRGCs(idx);
+        end
+
+        %kkk = round(numel(indicesOfModelConesDrivingLcenterRGCs)/2);
+        %indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesDrivingLcenterRGCs(kkk);
+    
+        % Fit the L-center RGCs using the model L-cones that could provide
+        % input to the RF centers
+        [fittedParamsLcenterRGCs, centerLConeCharacteristicRadiiDegs, ...
+            fittedSTFsLcenterRGCs, rmsErrorsLcenterRGCs] = ...
+            fitAllData(modelSTFrunData, ...
+                       indicesOfModelConesDrivingLcenterRGCs, ...
+                       d.dFresponsesLcenterRGCs, ...
+                       d.dFresponseStdLcenterRGCs, ...
+                       startingPointsNum, 'L', sParams.residualDefocusDiopters);
+
+        % Save the L-center data
+        save(fitsFileName,...
+            'fittedParamsLcenterRGCs', 'centerLConeCharacteristicRadiiDegs', ...
+            'fittedSTFsLcenterRGCs', 'rmsErrorsLcenterRGCs', ...
+            'indicesOfModelConesDrivingLcenterRGCs');
+    end
 
 
-    save('ISETBioFits.mat', ...
-        'fittedParamsLcenterRGCs', 'centerLConeCharacteristicRadiiDegs', ...
-        'fittedSTFsLcenterRGCs', 'rmsErrorsLcenterRGCs', ...
-        'indicesOfModelConesDrivingLcenterRGCs', ...
-        'fittedParamsMcenterRGCs', 'centerMConeCharacteristicRadiiDegs', ...
-        'fittedSTFsMcenterRGCs', 'rmsErrorsMcenterRGCs', ...
-        'indicesOfModelConesDrivingMcenterRGCs', ...
-        'startingPointsNum');
+    
+    if (fitMcenterCells)
+        fprintf('Fitting M-center cells\n');
+        % Find the indices of model M-cones that could provide input to the M-center RGCs
+        indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesWithinEccDegs(...
+            modelSTFrunData.theConeMosaic, ...
+            modelSTFrunData.theConeMosaic.MCONE_ID, ...
+            maxRecordedRGCeccArcMin/60);
+        
+        % Do a seubset of these
+        if (numel(indicesOfModelConesDrivingMcenterRGCs)>visualizedLocationsNum)
+            skip = round(numel(indicesOfModelConesDrivingMcenterRGCs)/visualizedLocationsNum);
+            idx = 1:skip:numel(indicesOfModelConesDrivingMcenterRGCs);
+            indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesDrivingMcenterRGCs(idx);
+        end
+    
+        kkk = round(numel(indicesOfModelConesDrivingMcenterRGCs)/2);
+        indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesDrivingMcenterRGCs(kkk);
+    
+
+        % Fit the M-center RGCs using the model M-cones that could provide
+        % input to the RF centers
+        [fittedParamsMcenterRGCs, centerMConeCharacteristicRadiiDegs, ...
+            fittedSTFsMcenterRGCs, rmsErrorsMcenterRGCs] = ...
+            fitAllData(modelSTFrunData, ...
+                       indicesOfModelConesDrivingMcenterRGCs, ...
+                       d.dFresponsesMcenterRGCs, ...
+                       d.dFresponseStdMcenterRGCs, ...
+                       startingPointsNum, 'M', sParams.residualDefocusDiopters);
+
+        % Save the M-center data
+        
+        if (exist(fitsFileName, 'file'))
+            % Append to file
+            save(fitsFileName,...
+                'fittedParamsMcenterRGCs', 'centerMConeCharacteristicRadiiDegs', ...
+                'fittedSTFsMcenterRGCs', 'rmsErrorsMcenterRGCs', ...
+                'indicesOfModelConesDrivingMcenterRGCs', ...
+                'startingPointsNum', '-append');
+        else
+            save(fitsFileName,...
+                'fittedParamsMcenterRGCs', 'centerMConeCharacteristicRadiiDegs', ...
+                'fittedSTFsMcenterRGCs', 'rmsErrorsMcenterRGCs', ...
+                'indicesOfModelConesDrivingMcenterRGCs', ...
+                'startingPointsNum');
+        end
+
+            
+    end
+
+
 
 end
 
 function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsErrors] = ...
     fitAllData(modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters, ...
     dFresponses, dFresponseStdErr, ...
-    startingPointsNum, centerConeType)
+    startingPointsNum, centerConeType, residualDefocusDiopters)
 
     % Fit each of RGC STF with a DoG cone pooling model in which
     % the center cone is one of the cones within the maxRecordedRGCeccArcMin
@@ -93,16 +161,24 @@ function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsError
     rmsErrors = nan(rgcCellsNum, centerConesNum);
 
 
-    for iRGCindex = 1:rgcCellsNum
+    for iRGCindex = 1:1 % 1:rgcCellsNum
         fprintf('Fitting RGC data (%d/%d).\n', iRGCindex, rgcCellsNum);
         theMeasuredSTF = dFresponses(iRGCindex,:);
         theMeasuredSTFStdErr = dFresponseStdErr(iRGCindex,:);
 
         hFig = figure(iRGCindex); clf;
-        set(hFig, 'Position', [10 10 1300 450], 'Color', [1 1 1]);
-        axRF     = subplot('Position', [0.69 0.12 0.30 0.8]);
-        ax     = subplot('Position', [0.35 0.12 0.30 0.8]);
-        axMap  = subplot('Position', [0.02 0.12 0.30 0.8]);
+        set(hFig, 'Position', [10 10 1680 450], 'Color', [1 1 1]);
+        axRF     = subplot('Position', [0.525 0.12 0.22 0.8]);
+        axConeWeights = subplot('Position', [0.78 0.12 0.22 0.8]);
+        ax     = subplot('Position', [0.28 0.12 0.22 0.8]);
+        axMap  = subplot('Position', [0.02 0.12 0.22 0.8]);
+
+        % Video showing all cones
+        videoFileName = sprintf('Fits%2.3fD_%s%d_startingPoints%d.mp4', residualDefocusDiopters, centerConeType, iRGCindex, startingPointsNum);
+        videoOBJ = VideoWriter(videoFileName, 'MPEG-4');
+        videoOBJ.FrameRate = 30;
+        videoOBJ.Quality = 100;
+        videoOBJ.open();
 
         for iCone = 1:numel(indicesOfModelConesDrivingTheRGCcenters)
             
@@ -115,8 +191,8 @@ function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsError
             centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
             
             % Plot cone pooling schematic
-            surroundConeIndices = fitResults.surroundConeIndices;
-            surroundConeWeights = fitResults.surroundConeWeights;
+            surroundConeIndices{iCone} = fitResults.surroundConeIndices;
+            surroundConeWeights{iCone} = fitResults.surroundConeWeights;
     
             rmsErrors(iRGCindex, iCone) = fitResults.rmsErrors;
 
@@ -138,33 +214,38 @@ function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsError
             end
 
             % PLot error map
-            if (iCone > 1)
-                maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
-                [minRMSerror, bestiCone] = min(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
-                cla(axMap);
-                hold(axMap, 'on');
-                for allConeIndices = 1:iCone
-                    err = (rmsErrors(iRGCindex, allConeIndices)-minRMSerror)/(maxRMSerror-minRMSerror);
-                    markerSize = 6 + round(14 * err);
-                    centerModelConeIndex = indicesOfModelConesDrivingTheRGCcenters(allConeIndices);
-                    centerConePosMicrons = modelSTFrunData.theConeMosaic.coneRFpositionsMicrons(centerModelConeIndex,:);
-                    if (allConeIndices == bestiCone)
-                        lineWidth = 1.5;
-                        color = [0.1 1.0 0.4];
-                    else
-                        lineWidth = 0.5;
-                        color = [0.7 0.7 0.7];
-                    end
 
-                    plot(axMap, centerConePosMicrons(1), centerConePosMicrons(2), 'ko', ...
-                        'MarkerSize', markerSize, 'MarkerFaceColor', color, 'LineWidth', lineWidth);
-                    
-                    set(axMap, 'XLim', [-20 20], 'YLim', [-20 20], 'FontSize', 18);
-                    axis(axMap, 'square');
-                    xlabel(axMap, 'microns');
-                    title(axMap, sprintf('RMSerr map (%2.2f - %2.2f)', minRMSerror, maxRMSerror));
+            maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
+            [minRMSerror, bestiCone] = min(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
+            cla(axMap);
+            hold(axMap, 'on');
+            for allConeIndices = 1:iCone
+                if (maxRMSerror == minRMSerror)
+                    err = 1.0;
+                else
+                    err = (rmsErrors(iRGCindex, allConeIndices)-minRMSerror)/(maxRMSerror-minRMSerror);
                 end
+                markerSize = 6 + round(14 * err);
+
+                centerModelConeIndex = indicesOfModelConesDrivingTheRGCcenters(allConeIndices);
+                centerConePosMicrons = modelSTFrunData.theConeMosaic.coneRFpositionsMicrons(centerModelConeIndex,:);
+                if (allConeIndices == bestiCone)
+                    lineWidth = 1.5;
+                    color = [0.1 1.0 0.4];
+                else
+                    lineWidth = 0.5;
+                    color = [0.7 0.7 0.7];
+                end
+
+                plot(axMap, centerConePosMicrons(1), centerConePosMicrons(2), 'ko', ...
+                    'MarkerSize', markerSize, 'MarkerFaceColor', color, 'LineWidth', lineWidth);
+
+                set(axMap, 'XLim', [-20 20], 'YLim', [-20 20], 'FontSize', 18);
+                axis(axMap, 'square');
+                xlabel(axMap, 'retinal space (microns)');
+                title(axMap, sprintf('RMSerr map (%2.2f - %2.2f)', minRMSerror, maxRMSerror));
             end
+
 
             cla(ax);
             hold(ax, 'on')
@@ -176,7 +257,7 @@ function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsError
                 linePlotHandle.Color = [linePlotHandle.Color 0.5];
             end
 
-            % The best fitting center cone STF in red
+            % The best fitting center cone STF in green
             for iiCone = 1:iCone
                 if (rmsErrors(iRGCindex, iiCone) == min(min(rmsErrors(iRGCindex,:))))
                     plot(ax, modelSTFrunData.examinedSpatialFrequencies, squeeze(fittedSTFs(iRGCindex, iiCone,:)), ...
@@ -206,62 +287,114 @@ function [fittedParams, centerConeCharacteristicRadiusDegs, fittedSTFs, rmsError
             grid(ax, 'on');
             axis(ax, 'square');
             xlabel(ax, 'spatial frequency (c/deg)');
-
+            title(ax, sprintf('RMSerr: %2.3f', rmsErrors(iRGCindex, iCone)));
 
             % The best fitting center cone RF
-            for iiCone = 1:iCone
-                if (rmsErrors(iRGCindex, iiCone) == min(min(rmsErrors(iRGCindex,:))))
-                    xArcMin = -2:0.01:2;
-                    xDegs = xArcMin/60;
+            %for iiCone = 1:iCone
+            %    if (rmsErrors(iRGCindex, iiCone) == min(min(rmsErrors(iRGCindex,:))))
+
+            iiCone = iCone;
+                    % PLot the actual RF cone weights
+                    cla(axConeWeights);
+
+                    conesNum = size(modelSTFrunData.theConeMosaic.coneRFpositionsDegs,1);
+                    
                     Kc = fittedParams(iRGCindex, iiCone,1);
+                    Ks = Kc * fittedParams(iRGCindex, iiCone,2);
+                    theConeWeights = zeros(1, conesNum);
+                    
+                    theConeWeights(surroundConeIndices{iiCone}) = -Ks * surroundConeWeights{iiCone};
+                    theConeWeights(indicesOfModelConesDrivingTheRGCcenters(iiCone)) = ...
+                        theConeWeights(indicesOfModelConesDrivingTheRGCcenters(iiCone)) + Kc;
+
+                    centerConePositionMicrons = modelSTFrunData.theConeMosaic.coneRFpositionsMicrons(indicesOfModelConesDrivingTheRGCcenters(iiCone),:);
+                    xRangeMicrons = centerConePositionMicrons(1) + 10*[-1 1];
+                    yRangeMicrons = centerConePositionMicrons(2) + 10*[-1 1];
+                    exclusivelySurroundConeIndices = find(theConeWeights<0);
+                    if (isempty(exclusivelySurroundConeIndices))
+                        maxActivationRange = Kc;
+                    else
+                        maxActivationRange = max(abs(theConeWeights(exclusivelySurroundConeIndices)));
+                    end
+                    modelSTFrunData.theConeMosaic.visualize(...
+                        'figureHandle', hFig, 'axesHandle', axConeWeights, ...
+                        'domain', 'microns', ...
+                        'domainVisualizationLimits', [xRangeMicrons(1) xRangeMicrons(2) yRangeMicrons(1) yRangeMicrons(2)], ...
+                        'domainVisualizationTicks', struct('x', -40:2:40, 'y', -40:2:40), ...
+                        'visualizedConeAperture', 'lightCollectingArea4sigma', ...
+                        'activation', theConeWeights, ...
+                        'activationRange', 1.2*maxActivationRange*[-1 1], ...
+                        'activationColorMap', brewermap(1024, '*RdBu'), ...
+                        'noYLabel', true, ...
+                        'fontSize', 18, ...
+                        'plotTitle', 'cone pooling weights');
+
+                    % PLot the weighting function
+                    cla(axRF);
+
+                    xArcMin = -4:0.01:4;
+                    xDegs = xArcMin/60;
+                    xMicrons = centerConePositionMicrons(1) + xDegs * WilliamsLabData.constants.micronsPerDegreeRetinalConversion;                    Kc = fittedParams(iRGCindex, iiCone,1);
                     KsToKc = fittedParams(iRGCindex, iiCone,2);
                     Ks = Kc * KsToKc;
                     RcDegs = centerConeCharacteristicRadiusDegs(iiCone);
                     RsDegs = fittedParams(iRGCindex, iiCone,3)*RcDegs;
+
                     centerProfile = Kc * exp(-(xDegs/RcDegs).^2);
                     surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
 
                     baseline = 0;
                     % Plot the center
-                    cla(axRF);
-                    faceColor = [1 0.8 0.8];
+                    
+                    faceColor = 1.7*[100 0 30]/255;
                     edgeColor = [0.7 0.2 0.2];
                     faceAlpha = 0.4;
                     lineWidth = 1.0;
-                    shadedAreaPlot(axRF,xArcMin, centerProfile, ...
+                    shadedAreaPlot(axRF,xMicrons, centerProfile, ...
                          baseline, faceColor, edgeColor, faceAlpha, lineWidth);
                     hold(axRF, 'on');
                     
                     % Plot the surround
-                    faceColor = [0.8 0.8 1]*0.8;
+                    faceColor = [75 150 200]/255;
                     edgeColor = [0.3 0.3 0.7];
-                    shadedAreaPlot(axRF,xArcMin, -surroundProfile, ...
+                    shadedAreaPlot(axRF,xMicrons, -surroundProfile, ...
                          baseline, faceColor, edgeColor, faceAlpha, lineWidth);
 
-                    plot(axRF, xArcMin, centerProfile-surroundProfile, 'k-', 'LineWidth', 3);
-                    plot(axRF, xArcMin, centerProfile-surroundProfile, '-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5);
+                    plot(axRF, xMicrons, centerProfile-surroundProfile, 'k-', 'LineWidth', 3);
+                    plot(axRF, xMicrons, centerProfile-surroundProfile, '-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5);
 
                     % Plot the cones
-                    coneDiameterArcMin = RcDegs/0.204*60;
-                    for k = -2:2
+                    coneDiameterArcMin = RcDegs/sqrt(2.0)/0.204*60;
+                    for k = -6:6
                         xOutline = coneDiameterArcMin*(k+[-0.48 0.48 0.3 0.3 -0.3 -0.3 -0.48]);
                         yOutline = max(centerProfile)*([-0.2 -0.2 -0.3 -0.5 -0.5 -0.3 -0.2]-0.1);
-                        patch(axRF, xOutline, yOutline, -10*eps*ones(size(xOutline)), ...
+                        xOutlineMicrons = centerConePositionMicrons(1) + xOutline/60* WilliamsLabData.constants.micronsPerDegreeRetinalConversion;                   
+                        
+                        patch(axRF, xOutlineMicrons, yOutline, -10*eps*ones(size(xOutline)), ...
                             'FaceColor', [0.85 0.85 0.85], 'EdgeColor', [0.2 0.2 0.2], ...
                             'LineWidth', 0.5, 'FaceAlpha', 0.5);
                     end
 
                     hold(axRF, 'off');
-                    set(axRF, 'YColor', 'none', 'YLim', max(centerProfile)*[-0.5 1.05], 'YTick', [0], 'XLim', [-2.2 2.2], 'XTick', -2:1:2, 'FontSize', 18);
-                    xlabel(axRF,'arc min.');
+                    set(axRF, 'YColor', 'none', 'YLim', max(centerProfile)*[-0.5 1.05], 'YTick', [0], ...
+                        'XLim', xRangeMicrons, 'XTick', -40:2:40, 'FontSize', 18);
+                    xlabel(axRF,'retinal space (microns)');
+                    xtickangle(axRF, 0);
                     title(axRF, sprintf('Rs/Rc: %2.2f, Kc/Ks: %2.2f', RsDegs/RcDegs, 1./KsToKc));
-                end
-            end
+            %    end
+            %end
 
+            % add frame to video
             drawnow;
+            videoOBJ.writeVideo(getframe(hFig));
 
         end
-        NicePlot.exportFigToPDF(sprintf('Fits_%s%d.pdf', centerConeType, iRGCindex), hFig, 300);
+
+        % Close video
+        videoOBJ.close();
+
+        % Export PDF
+        NicePlot.exportFigToPDF(sprintf('Fits%2.3fD_%s%d.pdf', residualDefocusDiopters, centerConeType, iRGCindex), hFig, 300);
     end
 
 end
