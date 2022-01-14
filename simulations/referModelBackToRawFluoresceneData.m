@@ -1,10 +1,13 @@
 function referModelBackToRawFluoresceneData
     % Load the raw fluorescence measurements - no corrections whatsoever
     % and the diffraction-limited OTF
-    d = loadUncorrectedData();
-    
-    % Load the M838 mosaic data
-    c = loadConeMosaicData();
+    monkeyID = 'M838';
+    sessionData = 'mean';
+    d = loadUncorrectedDeltaFluoresenceResponses(monkeyID, sessionData);
+
+    % Load the monkey cone mosaic data
+    maxRecordedRGCeccArcMin = 6;
+    c = loadConeMosaicData(monkeyID, maxRecordedRGCeccArcMin);
     
     % Simulate 0.067D defocus
     defocusDiopters = 0.067;
@@ -64,9 +67,11 @@ end
 function [theFittedResponse, theModelRF, fittedParams, lowerBound, upperBound] = ...
     fitBlurredDogModelToSTF(sf, theSTF, theSTFstdErr, stimulusOTF, residualDefocusOTF, fovealConeCharacteristicRadiusDegs)
     
+    
+    
     kc = struct(...
-        'low', 1, ...
-        'high', 1e5, ...
+        'low', 1e-4, ...
+        'high', 1e4, ...
         'initial', 10);
 
     RcToFovealConeRc = struct(...
@@ -74,6 +79,11 @@ function [theFittedResponse, theModelRF, fittedParams, lowerBound, upperBound] =
         'high', 5, ...
         'initial', 1.0);
 
+    RcToFovealConeRc = struct(...
+        'low', 0.95, ...
+        'high', 1.1, ...
+        'initial', 1.0);
+    
     KsToKc = struct(...
         'low', 1e-5, ...
         'high', 1, ...
@@ -90,6 +100,10 @@ function [theFittedResponse, theModelRF, fittedParams, lowerBound, upperBound] =
     upperBound    = [kc.high       RcToFovealConeRc.high        KsToKc.high        RsToRc.high];
      
 
+    % Subtract minSTF value if that is < 0
+    minSTF = min([0 min(theSTF)]);
+    theSTF = theSTF - minSTF;
+    
     weights = 1./theSTFstdErr;
     objective = @(p) sum(weights .* (spatialTransferFunctionForDefocusedSystem(p, fovealConeCharacteristicRadiusDegs, sf, stimulusOTF, residualDefocusOTF) - theSTF).^2);
    
@@ -108,7 +122,7 @@ function [theFittedResponse, theModelRF, fittedParams, lowerBound, upperBound] =
     doMultiStart = true;
 
     if (doMultiStart)
-        startingPointsNum = 30;
+        startingPointsNum = 1024;
 
         problem = createOptimProblem('fmincon',...
                         'x0', fittedParams, ...
@@ -130,6 +144,11 @@ function [theFittedResponse, theModelRF, fittedParams, lowerBound, upperBound] =
 
 
     theFittedResponse = spatialTransferFunctionForDefocusedSystem(fittedParams, fovealConeCharacteristicRadiusDegs, sf, stimulusOTF, residualDefocusOTF);
+    
+    % Add back the minSTF
+    theFittedResponse = theFittedResponse + minSTF;
+    
+    % Compute the line weighting function of the best fit DoG model
     theModelRF = DoGLineWeightingFunction(fittedParams,fovealConeCharacteristicRadiusDegs);
 end
 
