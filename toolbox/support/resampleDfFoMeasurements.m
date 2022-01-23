@@ -53,14 +53,17 @@ function [resampled_mean_dfF_otf, resampled_std_dfF_otf]= ...
         case -1
             % Only the first session data
             resampled_mean_dfF_otf = squeeze(midget_dfF_otf_all(:,:,1));
+            resampled_std_dfF_otf = squeeze(midget_dfF_otf_all_errors(:,:,1));
             return;
         case -2
             % Only the 2nd session data
             resampled_mean_dfF_otf = squeeze(midget_dfF_otf_all(:,:,2));
+            resampled_std_dfF_otf = squeeze(midget_dfF_otf_all_errors(:,:,2));
             return;
         case -3
             % Only the 3rd session data
             resampled_mean_dfF_otf = squeeze(midget_dfF_otf_all(:,:,3));
+            resampled_std_dfF_otf = squeeze(midget_dfF_otf_all_errors(:,:,3));
             return;
     end
         
