@@ -11,7 +11,7 @@ function d = loadUncorrectedDeltaFluoresenceResponses(monkeyID, sessionData)
 %
 % Inputs:
 %    monkeyID            - String, 'M838'
-%    sessionData         - String, choose from {'mean', 'session1only', 'session2only', 'session3 only', 'sessionWithHighestSFextension'}
+%    sessionData         - String, choose from {'mean', 'session1only', 'session2only', 'session3only', 'sessionWithHighestSFextension'}
 %
 % Outputs:
 %    d                   - Struct with data for (putative) L-, M-, S-cone center
