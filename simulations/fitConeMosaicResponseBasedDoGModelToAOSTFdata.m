@@ -396,20 +396,34 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
             end
 
 
+            if (~isempty(d.test))
+                % We cross-validate, so plot the cross-validated run measurements
+                theMeasuredSTFdata = theCrossValidatedMeasuredSTF;
+                theMeasuredSTFerrorData = theCrossValidatedMeasuredSTFStdErr;
+            else
+                % Plot the measurements used to train the model since we do
+                % not cross-validate
+                theMeasuredSTFdata = theMeasuredSTF;
+                theMeasuredSTFerrorData = theMeasuredSTFStdErr;
+            end
+                
+                    
             % The error bars
             for iSF = 1:numel(modelSTFrunData.examinedSpatialFrequencies)
                 plot(ax, modelSTFrunData.examinedSpatialFrequencies(iSF) *[1 1], ...
-                         theMeasuredSTF(iSF) + theMeasuredSTFStdErr(iSF)*[-1 1], ...
+                         theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
                          '-', 'Color', [0 0 0], 'LineWidth', 4);
                 plot(ax, modelSTFrunData.examinedSpatialFrequencies(iSF) *[1 1], ...
-                         theMeasuredSTF(iSF) + theMeasuredSTFStdErr(iSF)*[-1 1], ...
+                         theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
                          '-', 'Color', [0.1 1.0 0.4], 'LineWidth', 1.5);
             end
 
             % The mean data points
-            plot(ax,modelSTFrunData.examinedSpatialFrequencies, theMeasuredSTF, ...
+            plot(ax,modelSTFrunData.examinedSpatialFrequencies, theMeasuredSTFdata, ...
                   'ko', 'MarkerFaceColor', [0.3 1.0 0.4], 'MarkerSize', 14, 'LineWidth', 1.5);
 
+              
+              
             set(ax, 'XScale', 'log', 'FontSize', 18);
             set(ax, 'XLim', [4 55], 'XTick', [5 10 20 40 60], 'YLim', [-0.1 0.75], 'YTick', [0:0.1:1]);
             grid(ax, 'on');
@@ -632,19 +646,19 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         theNormalizedFittedSTF = (theFittedSTF - min(theFittedSTF))/(max(theFittedSTF)-min(theFittedSTF));
 
         % Step 2. Objective function
-        scalingObjective = @(p) sum(weights .* (theNormalizedFittedSTF*p - theSTF).^2);
+        scalingObjective = @(p) sum(weights .* (p(1) + theNormalizedFittedSTF*p(2) - theSTF).^2);
 
         % Step 3. Initial params and bounds
-        scalingParamsInitial = 1;
-        lowerBoundForScalar = 0.1; upperBoundForScalar = 10;
+        scalingParamsInitial = [0 1];
+        lowerBoundForScalar = [-0.5 0.1]; upperBoundForScalar = [0.5 10];
 
         % Step 4. Find the optical scaling factor
         scalingParams = fmincon(scalingObjective, scalingParamsInitial,[],[],[],[],lowerBoundForScalar,upperBoundForScalar,[],options);
 
         % Apply the optimal scaling factor to theFittedSTF
-        theFittedSTF = theNormalizedFittedSTF * scalingParams;
-        theFittedCenterSTF = theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingParams;
-        theFittedSurroundSTF = theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingParams;
+        theFittedSTF = scalingParams(1) + theNormalizedFittedSTF * scalingParams(2);
+        theFittedCenterSTF = scalingParams(1) + theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingParams(2);
+        theFittedSurroundSTF = scalingParams(1) + theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingParams(2);
     end
 
 
