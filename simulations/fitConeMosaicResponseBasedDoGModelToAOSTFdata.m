@@ -4,7 +4,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 256;
+    startingPointsNum = 1024;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
@@ -12,7 +12,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 
     fitLcenterCells = true;
     fitMcenterCells = ~true;
-    visualizedLocationsNum = 4;
+    visualizedLocationsNum = 100;
 
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
@@ -63,6 +63,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
             'test', d3);
         dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's3'};
 
+        if (1==2)
         % 6 cross-validated run (single session)
         dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
             'train',  d1, ...
@@ -95,6 +96,8 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
             'train',  d3, ...
             'test', d2);
         dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's2'};
+        end
+        
     end
     
     
@@ -134,7 +137,8 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         
         % Do a subset of these
         if (numel(indicesOfModelConesDrivingLcenterRGCs)>visualizedLocationsNum)
-            skip = round(numel(indicesOfModelConesDrivingLcenterRGCs)/visualizedLocationsNum);
+            skip = 2; %round(numel(indicesOfModelConesDrivingLcenterRGCs)/visualizedLocationsNum);
+            
             idx = 1:skip:numel(indicesOfModelConesDrivingLcenterRGCs);
             indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesDrivingLcenterRGCs(idx);
         end
