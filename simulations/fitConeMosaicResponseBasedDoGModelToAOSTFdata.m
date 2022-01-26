@@ -4,16 +4,23 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 1024;
+    startingPointsNum = 512;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
     maxRecordedRGCeccArcMin = 6;
 
     fitLcenterCells = true;
+    targetLcenterRGCindices = [3 7]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    
     fitMcenterCells = ~true;
-    visualizedLocationsNum = 100;
+    targetMcenterRGCindices = [1 2 4];   % the non-low pass cells
+    
+    visualizedLocationsNum = Inf;
 
+    % Turn annoying warning off
+    
+    
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
     %residualDefocusDiopters = 0.040;
@@ -124,8 +131,11 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 
 
     % Generate the fits filename
-    theFitsFilename = fitsFilename(sParams.residualDefocusDiopters, startingPointsNum, crossValidateModel);
-
+    theFitsFilename = fitsFilename(sParams.residualDefocusDiopters, startingPointsNum, crossValidateModel, ...
+        fitLcenterCells, fitMcenterCells, targetLcenterRGCindices, targetMcenterRGCindices)
+    
+    
+    
     if (fitLcenterCells)
         fprintf('Fitting L-center cells\n');
         % Find the indices of model L-cones that could provide input to the L-center RGCs
@@ -138,13 +148,13 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         % Do a subset of these
         if (numel(indicesOfModelConesDrivingLcenterRGCs)>visualizedLocationsNum)
             skip = 2; %round(numel(indicesOfModelConesDrivingLcenterRGCs)/visualizedLocationsNum);
-            
             idx = 1:skip:numel(indicesOfModelConesDrivingLcenterRGCs);
             indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesDrivingLcenterRGCs(idx);
         end
 
         % Fit the L-center RGCs using the model L-cones that could provide
         % input to the RF centers
+        
         if (~crossValidateModel)
             [fittedParamsLcenterRGCs, ...
              fittedSTFsLcenterRGCs, ...
@@ -152,7 +162,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
              centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingLcenterRGCs, ...
                            dNonCrossValidatedData, 0, ...
-                           startingPointsNum, 'L', sParams.residualDefocusDiopters);
+                           startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
         else
             for iCrossValidationRun = 1:numel(dCrossValidatedData)
                 [fittedParamsLcenterRGCs{iCrossValidationRun}, ...
@@ -161,7 +171,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
                  centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingLcenterRGCs, ...
                            dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
-                           startingPointsNum, 'L', sParams.residualDefocusDiopters);
+                           startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
             end
         end
 
@@ -169,6 +179,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         save(theFitsFilename,...
             'fittedParamsLcenterRGCs', 'centerLConeCharacteristicRadiiDegs', ...
             'fittedSTFsLcenterRGCs', 'rmsErrorsLcenterRGCs', ...
+            'targetLcenterRGCindices', ...
             'indicesOfModelConesDrivingLcenterRGCs');
     end % fitLcenterCells
 
@@ -184,7 +195,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         
         % Do a seubset of these
         if (numel(indicesOfModelConesDrivingMcenterRGCs)>visualizedLocationsNum)
-            skip = round(numel(indicesOfModelConesDrivingMcenterRGCs)/visualizedLocationsNum);
+            skip = 2; % round(numel(indicesOfModelConesDrivingMcenterRGCs)/visualizedLocationsNum);
             idx = 1:skip:numel(indicesOfModelConesDrivingMcenterRGCs);
             indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesDrivingMcenterRGCs(idx);
         end
@@ -198,7 +209,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
              centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingMcenterRGCs, ...
                            dNonCrossValidatedData, 0, ...
-                           startingPointsNum, 'M', sParams.residualDefocusDiopters);
+                           startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
         else
             for iCrossValidationRun = 1:numel(dCrossValidatedData)
                 [fittedParamsMcenterRGCs{iCrossValidationRun}, ...
@@ -207,7 +218,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
                  centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingMcenterRGCs, ...
                            dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
-                           startingPointsNum, 'M', sParams.residualDefocusDiopters);
+                           startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
             end
         end
 
@@ -219,12 +230,14 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
                 'fittedParamsMcenterRGCs', 'centerMConeCharacteristicRadiiDegs', ...
                 'fittedSTFsMcenterRGCs', 'rmsErrorsMcenterRGCs', ...
                 'indicesOfModelConesDrivingMcenterRGCs', ...
+                'targetMcenterRGCindices', ...
                 'startingPointsNum', '-append');
         else
             save(theFitsFilename,...
                 'fittedParamsMcenterRGCs', 'centerMConeCharacteristicRadiiDegs', ...
                 'fittedSTFsMcenterRGCs', 'rmsErrorsMcenterRGCs', ...
                 'indicesOfModelConesDrivingMcenterRGCs', ...
+                'targetMcenterRGCindices', ...
                 'startingPointsNum');
         end       
     end % fitMcenterCells
@@ -233,7 +246,7 @@ end
 
 function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDegs] = ...
     fitModelToSessionData(modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters, ...
-    d, crossValidationRun, startingPointsNum, centerConeType, residualDefocusDiopters)
+    d, crossValidationRun, startingPointsNum, centerConeType, residualDefocusDiopters, targetRGCindices)
 
     % Fit each of RGC STF with a DoG cone pooling model in which
     % the center cone is one of the cones within the maxRecordedRGCeccArcMin
@@ -266,6 +279,12 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
     rmsErrors = nan(rgcCellsNum, centerConesNum);
 
     for iRGCindex = 1:rgcCellsNum
+        
+        if (~ismember(iRGCindex, targetRGCindices))
+            fprintf('Skipping RGC %d.\n', iRGCindex);
+            continue;
+        end
+            
         [pdfFilename, videoFileName] = ...
             fitsPDFFilename(residualDefocusDiopters, sprintf('%s%d',centerConeType, iRGCindex), startingPointsNum, crossValidationRun);
 
@@ -300,26 +319,34 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
             % Fit the model to the training data
             fittedParamsFroCrossValidation = [];
 
-            fprintf('\tFitting model using %s cone %d of %d to training data', centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
+            fprintf('\tFitting (best of %d different paths) using model %s-cone %d/%d to training data', startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
 
             fitResults = fitConePoolingDoGModelToSTF(...
                 theMeasuredSTF, theMeasuredSTFStdErr, ...
                 modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
                 startingPointsNum, fittedParamsFroCrossValidation);
 
-            if (~isempty(d.test))
-                % Cross-validate the fitted model to the test data
+            if (~isempty(d.test)) && (any(d.dataSets{1} ~= d.dataSets{2}))
+                % If we have different training and testing data sets
+                % Cross-validate the fitted model (dataSets{1} to the test data (dataSets{2})
                 fittedParamsFroCrossValidation = fitResults.fittedParams;
 
-                fprintf('\tCross-validating the model (run %d) using %s cone %d of %d to testing data (train: %s, test: %s)', ...
-                     crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
+%                 fprintf('\tCross-validating the model (run %d) using %s cone %d of %d to testing data (train: %s, test: %s)', ...
+%                      crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
 
+                fprintf('\tCross-validating the model (run %d)  using model %s-cone %d/%d to testing data (train: %s, test: %s)', ...
+                    crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
+
+                 
                 fitResults = fitConePoolingDoGModelToSTF(...
                     theCrossValidatedMeasuredSTF, theCrossValidatedMeasuredSTFStdErr, ...
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
                     startingPointsNum, fittedParamsFroCrossValidation);
+               
             end
 
+            
+                
             fittedParams(iRGCindex, iCone,:) = fitResults.fittedParams;
             centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
             
@@ -577,7 +604,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
    
     options = optimset(...
         'Display', 'off', ...
-        'Algorithm', 'interior-point',...
+        'Algorithm', 'interior-point',... % 'sqp', ... % 'interior-point',...
         'GradObj', 'off', ...
         'DerivativeCheck', 'off', ...
         'MaxFunEvals', 10^5, ...
@@ -626,12 +653,14 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             ms = MultiStart(...
                            'Display', displayProgress, ...
                            'FunctionTolerance', 2e-4, ...
+                           'StartPointsToRun','bounds-ineqs', ...  % run only initial points that are feasible with respect to bounds and inequality constraints.
                            'UseParallel', true);
         
             % Run the multi-start
             [fittedParams,errormulti] = run(ms, problem, startingPointsNum);
         end
 
+                
         % Compute the fitted STF
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
          surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(fittedParams, constants);
