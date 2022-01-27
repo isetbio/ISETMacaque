@@ -1,26 +1,23 @@
-
-function fitConeMosaicResponseBasedDoGModelToAOSTFdata
+function fitISETBioModelToAOSTFdata
 % Use the ISETBio computed M838 cone mosaic responses with a single cone 
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 512;
+    startingPointsNum = 768;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
     maxRecordedRGCeccArcMin = 6;
 
     fitLcenterCells = true;
-    targetLcenterRGCindices = [3 7]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [4]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     
     fitMcenterCells = ~true;
     targetMcenterRGCindices = [1 2 4];   % the non-low pass cells
     
+    % How many input cones to use
     visualizedLocationsNum = Inf;
 
-    % Turn annoying warning off
-    
-    
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
     %residualDefocusDiopters = 0.040;
@@ -35,8 +32,6 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
     %residualDefocusDiopters = 0.150;
 
 
-
-    % Load the uncorrected DF data
     monkeyID = 'M838';
     crossValidateModel = true;
 
@@ -46,12 +41,12 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         dNonCrossValidatedData = struct(...
             'train',  d, ...
             'test', []);
-        
     else
         d1 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session1only'); 
         d2 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session2only');
         d3 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session3only');
 
+        % Arrange data in cross-validated pairs
         dCrossValidatedData = {};
 
         % 3 non-cross validated runs (single session)
@@ -132,8 +127,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
 
     % Generate the fits filename
     theFitsFilename = fitsFilename(sParams.residualDefocusDiopters, startingPointsNum, crossValidateModel, ...
-        fitLcenterCells, fitMcenterCells, targetLcenterRGCindices, targetMcenterRGCindices)
-    
+        fitLcenterCells, fitMcenterCells, targetLcenterRGCindices, targetMcenterRGCindices);
     
     
     if (fitLcenterCells)
@@ -156,14 +150,18 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         % input to the RF centers
         
         if (~crossValidateModel)
+            % No cross-validation, using the mean data
+            iCrossValidationRun = 0;
+
             [fittedParamsLcenterRGCs, ...
              fittedSTFsLcenterRGCs, ...
              rmsErrorsLcenterRGCs, ...
              centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingLcenterRGCs, ...
-                           dNonCrossValidatedData, 0, ...
+                           dNonCrossValidatedData, iCrossValidationRun, ...
                            startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
         else
+            % Cross-validated runs, using individual session data
             for iCrossValidationRun = 1:numel(dCrossValidatedData)
                 [fittedParamsLcenterRGCs{iCrossValidationRun}, ...
                  fittedSTFsLcenterRGCs{iCrossValidationRun}, ...
@@ -193,7 +191,7 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
             modelSTFrunData.theConeMosaic.MCONE_ID, ...
             maxRecordedRGCeccArcMin/60);
         
-        % Do a seubset of these
+        % Do a subset of these
         if (numel(indicesOfModelConesDrivingMcenterRGCs)>visualizedLocationsNum)
             skip = 2; % round(numel(indicesOfModelConesDrivingMcenterRGCs)/visualizedLocationsNum);
             idx = 1:skip:numel(indicesOfModelConesDrivingMcenterRGCs);
@@ -203,14 +201,18 @@ function fitConeMosaicResponseBasedDoGModelToAOSTFdata
         % Fit the M-center RGCs using the model M-cones that could provide
         % input to the RF centers
         if (~crossValidateModel)
+            % No cross-validation, using the mean data
+            iCrossValidationRun = 0;
+
             [fittedParamsMcenterRGCs, ...
              fittedSTFsMcenterRGCs, ...
              rmsErrorsMcenterRGCs, ...
              centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
                            indicesOfModelConesDrivingMcenterRGCs, ...
-                           dNonCrossValidatedData, 0, ...
+                           dNonCrossValidatedData, iCrossValidationRun, ...
                            startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
         else
+            % Cross-validated runs, using individual session data
             for iCrossValidationRun = 1:numel(dCrossValidatedData)
                 [fittedParamsMcenterRGCs{iCrossValidationRun}, ...
                  fittedSTFsMcenterRGCs{iCrossValidationRun}, ...
@@ -268,10 +270,7 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
                 theCrossValidatedMeasuredSTFs = d.test.dFresponsesMcenterRGCs;
                 theCrossValidatedMeasuredSTFStdErrs = d.test.dFresponseStdMcenterRGCs;
             end
-
     end
-
-
 
     % Initialize
     rgcCellsNum = size(theMeasuredSTFs,1);
@@ -285,8 +284,10 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
             continue;
         end
             
-        [pdfFilename, videoFileName] = ...
-            fitsPDFFilename(residualDefocusDiopters, sprintf('%s%d',centerConeType, iRGCindex), startingPointsNum, crossValidationRun);
+        % Initialize the visualization
+        visStruct = initializeISETBioFitVisualization(iRGCindex, centerConeType, ...
+            startingPointsNum, crossValidationRun, ...
+            residualDefocusDiopters);
 
         fprintf('Fitting RGC data (%d/%d).\n', iRGCindex, rgcCellsNum);
 
@@ -301,64 +302,51 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
         end
 
 
-        hFig = figure(iRGCindex); clf;
-        set(hFig, 'Position', [10 10 1680 450], 'Color', [1 1 1]);
-        axRF     = subplot('Position', [0.525 0.12 0.22 0.8]);
-        axConeWeights = subplot('Position', [0.78 0.12 0.22 0.8]);
-        ax     = subplot('Position', [0.28 0.12 0.22 0.8]);
-        axMap  = subplot('Position', [0.02 0.12 0.22 0.8]);
+        % Fit the model for each of the assumed RFcenter driving cones
+        for iCone = 1:numel(indicesOfModelConesDrivingTheRGCcenters)  
 
-        % Video showing all cones
-        videoOBJ = VideoWriter(videoFileName, 'MPEG-4');
-        videoOBJ.FrameRate = 30;
-        videoOBJ.Quality = 100;
-        videoOBJ.open();
-
-        for iCone = 1:numel(indicesOfModelConesDrivingTheRGCcenters)
-            
             % Fit the model to the training data
-            fittedParamsFroCrossValidation = [];
+            fprintf('\tFitting the model (best of %d different paths) using %s-cone %d/%d to training data', startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
 
-            fprintf('\tFitting (best of %d different paths) using model %s-cone %d/%d to training data', startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
+            theMeasuredSTFdata = theMeasuredSTF;
+            theMeasuredSTFerrorData = theMeasuredSTFStdErr;
 
             fitResults = fitConePoolingDoGModelToSTF(...
-                theMeasuredSTF, theMeasuredSTFStdErr, ...
+                theMeasuredSTFdata, theMeasuredSTFerrorData, ...
                 modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
-                startingPointsNum, fittedParamsFroCrossValidation);
+                startingPointsNum, []);
 
             if (~isempty(d.test)) && (any(d.dataSets{1} ~= d.dataSets{2}))
                 % If we have different training and testing data sets
-                % Cross-validate the fitted model (dataSets{1} to the test data (dataSets{2})
-                fittedParamsFroCrossValidation = fitResults.fittedParams;
-
-%                 fprintf('\tCross-validating the model (run %d) using %s cone %d of %d to testing data (train: %s, test: %s)', ...
+                % Cross-validate the fitted model (from dataSets{1}) to the test data (dataSets{2})
+  
+%               fprintf('\tCross-validating the model (run %d) using %s cone %d of %d to testing data (train: %s, test: %s)', ...
 %                      crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
 
-                fprintf('\tCross-validating the model (run %d)  using model %s-cone %d/%d to testing data (train: %s, test: %s)', ...
+                fprintf('\tCross-validating the trained model (run %d) using %s-cone %d/%d to testing data (train: %s, test: %s)', ...
                     crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
 
-                 
+                theMeasuredSTFdata = theCrossValidatedMeasuredSTF;
+                theMeasuredSTFerrorData = theCrossValidatedMeasuredSTFStdErr;
+
                 fitResults = fitConePoolingDoGModelToSTF(...
-                    theCrossValidatedMeasuredSTF, theCrossValidatedMeasuredSTFStdErr, ...
+                    theMeasuredSTFdata, theMeasuredSTFerrorData, ...
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
-                    startingPointsNum, fittedParamsFroCrossValidation);
-               
+                    startingPointsNum, fitResults.fittedParams);
             end
 
             
-                
+            % Keep fit results for each RGC and each RF center driving cone
             fittedParams(iRGCindex, iCone,:) = fitResults.fittedParams;
-            centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
-            
-            % Plot cone pooling schematic
-            surroundConeIndices{iCone} = fitResults.surroundConeIndices;
-            surroundConeWeights{iCone} = fitResults.surroundConeWeights;
-    
             rmsErrors(iRGCindex, iCone) = fitResults.rmsErrors;
-
             fittedSTFs(iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
             fittedCenterSTFs(iRGCindex, iCone,:) =  fitResults.theFittedCenterSTFs;
             fittedSurroundSTFs(iRGCindex, iCone,:) = fitResults.theFittedSurroundSTFs;
+
+            centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
+            surroundConeIndices{iCone} = fitResults.surroundConeIndices;
+            surroundConeWeights{iCone} = fitResults.surroundConeWeights;
+   
             
             fprintf('fit with cone %d of %d (rmsE: %2.3f) which has a Rc = %2.4f arc min\n', ...
                 iCone, numel(indicesOfModelConesDrivingTheRGCcenters), ...
@@ -373,209 +361,30 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
                     fitResults.paramsUpperBound(iParam));
             end
 
-            % PLot error map
-            maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
-            [minRMSerror, bestiCone] = min(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
-            cla(axMap);
-            hold(axMap, 'on');
-            for allConeIndices = 1:iCone
-                if (maxRMSerror == minRMSerror)
-                    err = 1.0;
-                else
-                    err = (rmsErrors(iRGCindex, allConeIndices)-minRMSerror)/(maxRMSerror-minRMSerror);
-                end
-                markerSize = 6 + round(14 * err);
-
-                centerModelConeIndex = indicesOfModelConesDrivingTheRGCcenters(allConeIndices);
-                centerConePosMicrons = modelSTFrunData.theConeMosaic.coneRFpositionsMicrons(centerModelConeIndex,:);
-                if (allConeIndices == bestiCone)
-                    lineWidth = 1.5;
-                    color = [0.1 1.0 0.4];
-                else
-                    lineWidth = 0.5;
-                    color = [0.7 0.7 0.7];
-                end
-
-                plot(axMap, centerConePosMicrons(1), centerConePosMicrons(2), 'ko', ...
-                    'MarkerSize', markerSize, 'MarkerFaceColor', color, 'LineWidth', lineWidth);
-
-                set(axMap, 'XLim', [-20 20], 'YLim', [-20 20], 'FontSize', 18);
-                axis(axMap, 'square');
-                xlabel(axMap, 'retinal space (microns)');
-                title(axMap, sprintf('RMSerr map (%2.2f - %2.2f)', minRMSerror, maxRMSerror));
-            end
-
-
-            cla(ax);
-            hold(ax, 'on')
-            % All center cone STFs in gray
-            for iiCone = 1:iCone
-                linePlotHandle = plot(ax, modelSTFrunData.examinedSpatialFrequencies, squeeze(fittedSTFs(iRGCindex, iiCone,:)), ...
-                    'k-', 'LineWidth', 1.5, 'Color', [0.35 0.35 0.35]);
-                % Opacity of lines : 0.5
-                linePlotHandle.Color = [linePlotHandle.Color 0.5];
-            end
-
-            % The best fitting center cone STF in green
-            for iiCone = 1:iCone
-                if (rmsErrors(iRGCindex, iiCone) == min(min(rmsErrors(iRGCindex,:))))
-                    plot(ax, modelSTFrunData.examinedSpatialFrequencies, squeeze(fittedSTFs(iRGCindex, iiCone,:)), ...
-                        '-', 'LineWidth', 4.0, 'Color', [0.0 0.0 0.0]);
-                    plot(ax, modelSTFrunData.examinedSpatialFrequencies, squeeze(fittedSTFs(iRGCindex, iiCone,:)), ...
-                        '-', 'LineWidth', 2, 'Color', [0.1 1.0 0.4]);
-                end
-            end
-
-
             if (~isempty(d.test))
-                % We cross-validate, so plot the cross-validated run measurements
-                theMeasuredSTFdata = theCrossValidatedMeasuredSTF;
-                theMeasuredSTFerrorData = theCrossValidatedMeasuredSTFStdErr;
+                fitTitle = sprintf('RMSE: %2.2f (train:%s, test: %s)', ...
+                    rmsErrors(iRGCindex, iCone), d.dataSets{1}, d.dataSets{2});
             else
-                % Plot the measurements used to train the model since we do
-                % not cross-validate
-                theMeasuredSTFdata = theMeasuredSTF;
-                theMeasuredSTFerrorData = theMeasuredSTFStdErr;
-            end
-                
-                    
-            % The error bars
-            for iSF = 1:numel(modelSTFrunData.examinedSpatialFrequencies)
-                plot(ax, modelSTFrunData.examinedSpatialFrequencies(iSF) *[1 1], ...
-                         theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
-                         '-', 'Color', [0 0 0], 'LineWidth', 4);
-                plot(ax, modelSTFrunData.examinedSpatialFrequencies(iSF) *[1 1], ...
-                         theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
-                         '-', 'Color', [0.1 1.0 0.4], 'LineWidth', 1.5);
+                fitTitle = sprintf('RMSE: %2.2f', rmsErrors(iRGCindex, iCone));
             end
 
-            % The mean data points
-            plot(ax,modelSTFrunData.examinedSpatialFrequencies, theMeasuredSTFdata, ...
-                  'ko', 'MarkerFaceColor', [0.3 1.0 0.4], 'MarkerSize', 14, 'LineWidth', 1.5);
+            % Update visualization for this assumed RFcenter cone
+            updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
+                indicesOfModelConesDrivingTheRGCcenters, ...
+                modelSTFrunData.theConeMosaic, ...
+                centerConeCharacteristicRadiusDegs, ...
+                surroundConeIndices, surroundConeWeights, ...
+                fittedParams, rmsErrors, ...
+                modelSTFrunData.examinedSpatialFrequencies, fittedSTFs, ...
+                theMeasuredSTFdata, theMeasuredSTFerrorData, fitTitle);
 
-              
-              
-            set(ax, 'XScale', 'log', 'FontSize', 18);
-            set(ax, 'XLim', [4 55], 'XTick', [5 10 20 40 60], 'YLim', [-0.1 0.75], 'YTick', [0:0.1:1]);
-            grid(ax, 'on');
-            axis(ax, 'square');
-            xlabel(ax, 'spatial frequency (c/deg)');
-            if (~isempty(d.test))
-                title(ax, sprintf('RMSerr: %2.3f (train:%s, test: %s)', ...
-                    rmsErrors(iRGCindex, iCone), d.dataSets{1}, d.dataSets{2}));
-            else
-                title(ax, sprintf('RMSerr: %2.3f', rmsErrors(iRGCindex, iCone)));
-            end
+        end % iCone
 
-            % The best fitting center cone RF
-            %for iiCone = 1:iCone
-            %    if (rmsErrors(iRGCindex, iiCone) == min(min(rmsErrors(iRGCindex,:))))
-
-            iiCone = iCone;
-                    % PLot the actual RF cone weights
-                    cla(axConeWeights);
-
-                    conesNum = size(modelSTFrunData.theConeMosaic.coneRFpositionsDegs,1);
-                    
-                    Kc = fittedParams(iRGCindex, iiCone,1);
-                    Ks = Kc * fittedParams(iRGCindex, iiCone,2);
-                    theConeWeights = zeros(1, conesNum);
-                    
-                    theConeWeights(surroundConeIndices{iiCone}) = -Ks * surroundConeWeights{iiCone};
-                    theConeWeights(indicesOfModelConesDrivingTheRGCcenters(iiCone)) = ...
-                        theConeWeights(indicesOfModelConesDrivingTheRGCcenters(iiCone)) + Kc;
-
-                    centerConePositionMicrons = modelSTFrunData.theConeMosaic.coneRFpositionsMicrons(indicesOfModelConesDrivingTheRGCcenters(iiCone),:);
-                    xRangeMicrons = centerConePositionMicrons(1) + 10*[-1 1];
-                    yRangeMicrons = centerConePositionMicrons(2) + 10*[-1 1];
-                    exclusivelySurroundConeIndices = find(theConeWeights<0);
-                    if (isempty(exclusivelySurroundConeIndices))
-                        maxActivationRange = Kc;
-                    else
-                        maxActivationRange = max(abs(theConeWeights(exclusivelySurroundConeIndices)));
-                    end
-                    modelSTFrunData.theConeMosaic.visualize(...
-                        'figureHandle', hFig, 'axesHandle', axConeWeights, ...
-                        'domain', 'microns', ...
-                        'domainVisualizationLimits', [xRangeMicrons(1) xRangeMicrons(2) yRangeMicrons(1) yRangeMicrons(2)], ...
-                        'domainVisualizationTicks', struct('x', -40:2:40, 'y', -40:2:40), ...
-                        'visualizedConeAperture', 'lightCollectingArea4sigma', ...
-                        'activation', theConeWeights, ...
-                        'activationRange', 1.2*maxActivationRange*[-1 1], ...
-                        'activationColorMap', brewermap(1024, '*RdBu'), ...
-                        'noYLabel', true, ...
-                        'fontSize', 18, ...
-                        'plotTitle', 'cone pooling weights');
-
-                    % PLot the weighting function
-                    cla(axRF);
-
-                    xArcMin = -4:0.01:4;
-                    xDegs = xArcMin/60;
-                    xMicrons = centerConePositionMicrons(1) + xDegs * WilliamsLabData.constants.micronsPerDegreeRetinalConversion;                    Kc = fittedParams(iRGCindex, iiCone,1);
-                    KsToKc = fittedParams(iRGCindex, iiCone,2);
-                    Ks = Kc * KsToKc;
-                    RcDegs = centerConeCharacteristicRadiusDegs(iiCone);
-                    RsDegs = fittedParams(iRGCindex, iiCone,3)*RcDegs;
-
-                    centerProfile = Kc * exp(-(xDegs/RcDegs).^2);
-                    surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
-
-                    baseline = 0;
-                    % Plot the center
-                    
-                    faceColor = 1.7*[100 0 30]/255;
-                    edgeColor = [0.7 0.2 0.2];
-                    faceAlpha = 0.4;
-                    lineWidth = 1.0;
-                    shadedAreaPlot(axRF,xMicrons, centerProfile, ...
-                         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
-                    hold(axRF, 'on');
-                    
-                    % Plot the surround
-                    faceColor = [75 150 200]/255;
-                    edgeColor = [0.3 0.3 0.7];
-                    shadedAreaPlot(axRF,xMicrons, -surroundProfile, ...
-                         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
-
-                    plot(axRF, xMicrons, centerProfile-surroundProfile, 'k-', 'LineWidth', 3);
-                    plot(axRF, xMicrons, centerProfile-surroundProfile, '-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5);
-
-                    % Plot the cones
-                    coneDiameterArcMin = RcDegs/sqrt(2.0)/0.204*60;
-                    for k = -6:6
-                        xOutline = coneDiameterArcMin*(k+[-0.48 0.48 0.3 0.3 -0.3 -0.3 -0.48]);
-                        yOutline = max(centerProfile)*([-0.2 -0.2 -0.3 -0.5 -0.5 -0.3 -0.2]-0.1);
-                        xOutlineMicrons = centerConePositionMicrons(1) + xOutline/60* WilliamsLabData.constants.micronsPerDegreeRetinalConversion;                   
-                        
-                        patch(axRF, xOutlineMicrons, yOutline, -10*eps*ones(size(xOutline)), ...
-                            'FaceColor', [0.85 0.85 0.85], 'EdgeColor', [0.2 0.2 0.2], ...
-                            'LineWidth', 0.5, 'FaceAlpha', 0.5);
-                    end
-
-                    hold(axRF, 'off');
-                    set(axRF, 'YColor', 'none', 'YLim', max(centerProfile)*[-0.5 1.05], 'YTick', [0], ...
-                        'XLim', xRangeMicrons, 'XTick', -40:2:40, 'FontSize', 18);
-                    xlabel(axRF,'retinal space (microns)');
-                    xtickangle(axRF, 0);
-                    title(axRF, sprintf('Rs/Rc: %2.2f, Kc/Ks: %2.2f', RsDegs/RcDegs, 1./KsToKc));
-            %    end
-            %end
-
-            % add frame to video
-            drawnow;
-            videoOBJ.writeVideo(getframe(hFig));
-
-        end
-
-        % Close video
-        videoOBJ.close();
-
-        % Export PDF
-        NicePlot.exportFigToPDF(pdfFilename, hFig, 300);
-    end
-
+        % End visualization for this RGC
+        closeISETBioFitVisualization(visStruct);
+    end % iRGCindex
 end
+
 
 function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
                      modelSTFrunData, centerModelConeIndex, startingPointsNum, ...
@@ -749,7 +558,6 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     [surroundConeIndices, surroundConeWeights] = ...
         surroundConeIndicesAndWeightsFast(RsDegs, constants);
 
-    
     %sfsNum = size(constants.coneMosaicSpatiotemporalActivation,1);
     %tBinsNum = size(constants.coneMosaicSpatiotemporalActivation,2);
     %conesNum = size(constants.coneMosaicSpatiotemporalActivation,3);
@@ -782,7 +590,6 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
-
         % Retrieve the time-series sesponse for this spatial frequency
         theTimeSeriesResponse = modelRGCmodulations(iSF,:);
 
@@ -803,6 +610,4 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         theModelCenterSTF(iSF) = max(abs(squeeze(centerMechanismModulations(iSF,:))));
         theModelSurroundSTF(iSF) = max(abs(squeeze(surroundMechanismModulations(iSF,:))));
     end
-    
-
 end

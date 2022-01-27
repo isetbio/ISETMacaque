@@ -30,4 +30,12 @@ function idx = indicesOfModelConesWithinEccDegs(theConeMosaic, targetConeType, m
     idxAllCones = theConeMosaic.indicesOfConesWithinROI(geometryStruct);
     idxTargetConeType = find(theConeMosaic.coneTypes(idxAllCones) == targetConeType);
     idx = idxAllCones(idxTargetConeType);
+
+    % sort them according to eccentricity
+    p = theConeMosaic.coneRFpositionsMicrons(idx,:);
+    [~,sortedIndices] = sort(sum(p.^2,2), 'ascend');
+    idx = idx(sortedIndices);
+
+
+
 end
