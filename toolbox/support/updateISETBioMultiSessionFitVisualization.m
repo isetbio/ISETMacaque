@@ -1,8 +1,12 @@
-function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
+function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, ...
     indicesOfModelConesDrivingTheRGCcenters, theConeMosaic, ...
     centerConeCharacteristicRadiusDegs, surroundConeIndices, surroundConeWeights, ...
-    fittedParams, rmsErrors, rmsErrorsTrain, examinedSpatialFrequencies, fittedSTFs, ...
-    theMeasuredSTFdata, theMeasuredSTFerrorData, fitTitle)
+    fittedParams, rmsErrorsAllTestSessions, rmsErrorsTrain, ...
+    fitTitle, dTrainSession, dTestSession)
+
+
+    % mean over all sessions
+    rmsErrors = squeeze(mean(rmsErrorsAllTestSessions,1, 'omitnan'));
 
     % Plot the spatial map of rms errors (for different assumed RF center cone positions)
     maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
@@ -42,52 +46,61 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     end
 
 
-    % Plot the fit
-    cla(visStruct.axFit);
-    hold(visStruct.axFit, 'on')
+    % Plot the relationship between RMSerrors for the different test sessions
+    cla(visStruct.axSessionsRMSE);
 
-    % All center cone STFs in gray
-    for iiCone = 1:iCone
-        linePlotHandle = plot(visStruct.axFit, examinedSpatialFrequencies, squeeze(fittedSTFs(1,iRGCindex, iiCone,:)), ...
-            'k-', 'LineWidth', 1.5, 'Color', [0.0 0.0 0.0]);
-        % Opacity of lines : 0.5
-        linePlotHandle.Color = [linePlotHandle.Color 0.25];
-    end
+    errorRange(1)= round(max([0 min([min(rmsErrorsTrain(rmsErrorsTrain>0)) min(rmsErrorsAllTestSessions(rmsErrorsAllTestSessions>0))])-1]));
+    errorRange(2)= round(max([max(rmsErrorsTrain(:)) max(rmsErrorsAllTestSessions(:))])+1);
+    plot(visStruct.axSessionsRMSE, [errorRange(1) errorRange(2)], [errorRange(1) errorRange(2)], 'k-', 'LineWidth', 1.0);
+    hold(visStruct.axSessionsRMSE, 'on');
 
-    % The best fitting center cone STF in red
-    plot(visStruct.axFit, examinedSpatialFrequencies, squeeze(fittedSTFs(1,iRGCindex, minRMSerrorConeIndex,:)), ...
-        '-', 'LineWidth', 4.0, 'Color', [0.4 0 0]);
-    plot(visStruct.axFit, examinedSpatialFrequencies, squeeze(fittedSTFs(1,iRGCindex, minRMSerrorConeIndex,:)), ...
-        '-', 'LineWidth', 1.5, 'Color', [1 0 0]);
-        
-                    
-    % The error bars
-    for iSF = 1:numel(examinedSpatialFrequencies)
-        plot(visStruct.axFit, examinedSpatialFrequencies(iSF) *[1 1], ...
-                 theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
-                 '-', 'Color', [1 0 0], 'LineWidth', 4);
-        plot(visStruct.axFit, examinedSpatialFrequencies(iSF) *[1 1], ...
-                 theMeasuredSTFdata(iSF) + theMeasuredSTFerrorData(iSF)*[-1 1], ...
-                 '-', 'Color', [1 0.5 0.5], 'LineWidth', 1.5);
-    end
+    p1 = scatter(visStruct.axSessionsRMSE, ...
+        squeeze(rmsErrorsTrain(iRGCindex, 1:iCone)), ...
+        squeeze(rmsErrorsAllTestSessions(1, iRGCindex, 1:iCone)), ...
+        144, 'filled', ...
+        'MarkerFaceColor', [0.7 0.2 0.8], 'MarkerEdgeColor', [0.7 0.2 0.8], ...
+        'MarkerFaceAlpha', 0.5);
+    
+    p2 = scatter(visStruct.axSessionsRMSE, ...
+        squeeze(rmsErrorsTrain(iRGCindex, 1:iCone)), ...
+        squeeze(rmsErrorsAllTestSessions(2, iRGCindex, 1:iCone)), ...
+        144, 'filled', ...
+        'MarkerFaceColor', [0.3 0.7 0.2], 'MarkerEdgeColor', [0.3 0.7 0.2], ...
+        'MarkerFaceAlpha', 0.5);
 
-    % The mean data points
-    plot(visStruct.axFit, examinedSpatialFrequencies, theMeasuredSTFdata, ...
-          'ro', 'MarkerFaceColor', [1 0.5 0.5], 'MarkerSize', 14, 'LineWidth', 1.5);
+    p3 = scatter(visStruct.axSessionsRMSE, ...
+        squeeze(rmsErrorsTrain(iRGCindex, 1:iCone)), ...
+        0.5*(squeeze(rmsErrorsAllTestSessions(1, iRGCindex, 1:iCone))+squeeze(rmsErrorsAllTestSessions(2, iRGCindex, 1:iCone))), ...
+        64, 'filled', ...
+        'MarkerFaceColor', [0.3 0.3 0.3], 'MarkerEdgeColor', [0.25 0.25 0.25], ...
+        'MarkerFaceAlpha', 0.5);
 
+    
+    scatter(visStruct.axSessionsRMSE, ...
+        squeeze(rmsErrorsTrain(iRGCindex, minRMSerrorConeIndex)), ...
+        0.5*(squeeze(rmsErrorsAllTestSessions(1, iRGCindex, minRMSerrorConeIndex))+squeeze(rmsErrorsAllTestSessions(2, iRGCindex, minRMSerrorConeIndex))), ...
+        64, 'filled', ...
+        'MarkerFaceColor', [0 0 0], 'MarkerEdgeColor', [0 0 0], ...
+        'MarkerFaceAlpha', 0.8);
+
+    
+
+    legend(visStruct.axSessionsRMSE, [p1, p2, p3], {sprintf('test session %d', dTestSession(1)), sprintf('test session %d', dTestSession(2)), 'mean over test sessions'});
     % Finish fit plot     
-    set(visStruct.axFit, 'XScale', 'log', 'FontSize', 18);
-    set(visStruct.axFit, 'XLim', [4 55], 'XTick', [5 10 20 40 60], 'YLim', [-0.1 0.75], 'YTick', [0:0.1:1]);
-    grid(visStruct.axFit, 'on');
-    axis(visStruct.axFit, 'square');
-    xlabel(visStruct.axFit, 'spatial frequency (c/deg)');
-    ylabel(visStruct.axFit, '\Delta F / F');
-    title(visStruct.axFit, fitTitle, 'FontWeight', 'normal', 'FontSize', 15);
+    set(visStruct.axSessionsRMSE, 'FontSize', 18);
+    set(visStruct.axSessionsRMSE, 'XLim', errorRange, 'XTick', 0:2:20, 'YLim', errorRange, 'YTick', 0:2:20);
+    grid(visStruct.axSessionsRMSE, 'on');
+    axis(visStruct.axSessionsRMSE, 'square');
+    xlabel(visStruct.axSessionsRMSE, sprintf('rms error (training session - %d)', dTrainSession));
+    ylabel(visStruct.axSessionsRMSE, 'rms error (test sessions)');
+    title(visStruct.axSessionsRMSE, fitTitle, 'FontWeight', 'normal', 'FontSize', 15);
+    
+    
+
 
 
     % Plot the actual RF cone weights for the cone resulting in minRMSerror (minRMSerrorConeIndex)
     conesNum = size(theConeMosaic.coneRFpositionsDegs,1);
-    size(fittedParams)
     Kc = fittedParams(iRGCindex, minRMSerrorConeIndex,1);
     KsToKc = fittedParams(iRGCindex, minRMSerrorConeIndex,2);
     Ks = Kc * KsToKc;
@@ -119,8 +132,7 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
         'activationColorMap', brewermap(1024, '*RdBu'), ...
         'noYLabel', true, ...
         'fontSize', 18, ...
-        'plotTitle', ' ');          
-    
+        'plotTitle', ' ');  
 
 
     % Plot the RF center and surround weighting profiles
@@ -156,6 +168,7 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
             rfProfile = centerProfile-surroundProfile;
             rfProfile = rfProfile/max(rfProfile)*maxReferenceProfile;
             linePlotHandle2 = plot(visStruct.axRF, xMicrons, rfProfile, '-', 'Color', [0.0 0.0 0.0], 'LineWidth', 1.5);
+
             % Opacity of lines : 0.5
             linePlotHandle2.Color = [linePlotHandle2.Color 0.25];
         end
@@ -228,5 +241,6 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     % add frame to video
     drawnow;
     visStruct.videoOBJ.writeVideo(getframe(visStruct.hFig));
+
 
 end

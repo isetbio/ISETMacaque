@@ -9,11 +9,8 @@ function fitISETBioModelToAOSTFdata
     % the central 6 arcmin of the fovea"
     maxRecordedRGCeccArcMin = 6;
 
-    fitLcenterCells = true;
-    targetLcenterRGCindices = [4]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
-    
-    fitMcenterCells = ~true;
-    targetMcenterRGCindices = [1 2 4];   % the non-low pass cells
+    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
     
     % How many input cones to use
     visualizedLocationsNum = Inf;
@@ -33,7 +30,54 @@ function fitISETBioModelToAOSTFdata
 
 
     monkeyID = 'M838';
-    crossValidateModel = true;
+
+
+    %operationMode = 'fitModelOnSessionAveragedData';
+    operationMode = 'fitModelOnSingleSessionData';
+    %operationMode = 'crossValidateFittedModelOnSingleSessionData';
+    %operationMode = 'crossValidateFittedModelOnAllSessionData';
+
+    switch (operationMode)
+        case 'fitModelOnSessionAveragedData'
+            % Fit the model on the average (over all sessions) data
+            crossValidateModel = false;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = [];
+
+        case 'fitModelOnSingleSessionData'
+            % Fit the model on single sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = true;
+
+        case 'crossValidateFittedModelOnSingleSessionData'
+            % Cross-validate the fitted model on other sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = false;
+
+        case 'crossValidateFittedModelOnAllSessionData'
+            % Cross-validate the fitted model on other sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = true;
+            trainModel = false;
+    end
+
+    
+    doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
+        trainModel, monkeyID, residualDefocusDiopters, ...
+        maxRecordedRGCeccArcMin, visualizedLocationsNum, ...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        startingPointsNum);
+
+end
+
+function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
+    trainModel, monkeyID, residualDefocusDiopters, ...
+    maxRecordedRGCeccArcMin, visualizedLocationsNum, ...
+    targetLcenterRGCindices, targetMcenterRGCindices, ...
+    startingPointsNum)
+    
 
     if (~crossValidateModel)
         sessionData = 'mean';
@@ -41,7 +85,10 @@ function fitISETBioModelToAOSTFdata
         dNonCrossValidatedData = struct(...
             'train',  d, ...
             'test', []);
+
+        theTrainedModel = [];
     else
+
         d1 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session1only'); 
         d2 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session2only');
         d3 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session3only');
@@ -49,55 +96,90 @@ function fitISETBioModelToAOSTFdata
         % Arrange data in cross-validated pairs
         dCrossValidatedData = {};
 
-        % 3 non-cross validated runs (single session)
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d1, ...
-            'test', d1);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's1'};
+        if (trainModel)
+            % 3 non-cross validated runs (single session)
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d1, ...
+                'test', []);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's1'};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d2, ...
+                'test', []);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's2'};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d3, ...
+                'test', []);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's3'};
+        
+            theTrainedModel = [];
+        elseif (crossValidateModel) && (~crossValidateModelAgainstAllSessions)
 
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d2, ...
-            'test', d2);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's2'};
+            % Load the trained model params
+            theTrainedModelFitsfilename = fitsFilename(residualDefocusDiopters, startingPointsNum, ...
+                crossValidateModel, crossValidateModelAgainstAllSessions, true, ...
+                targetLcenterRGCindices, targetMcenterRGCindices);
 
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d3, ...
-            'test', d3);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's3'};
+            theTrainedModel = load(theTrainedModelFitsfilename);
+ 
+            % 6 cross-validated runs (against single sessions)
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d1, ...
+                'test', d2);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's2'};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d1, ...
+                'test', d3);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's3'};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d2, ...
+                'test', d1);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's1'};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d2, ...
+                'test', d3);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's3'};
+    
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d3, ...
+                'test', d1);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's1'};
 
-        if (1==2)
-        % 6 cross-validated run (single session)
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d1, ...
-            'test', d2);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's2'};
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d3, ...
+                'test', d2);
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's2'};
+        
+        else
 
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d1, ...
-            'test', d3);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', 's3'};
+            % Load the trained model params
+            theTrainedModelFitsfilename = fitsFilename(residualDefocusDiopters, startingPointsNum, ...
+                crossValidateModel, crossValidateModelAgainstAllSessions, true, ...
+                targetLcenterRGCindices, targetMcenterRGCindices);
 
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d2, ...
-            'test', d1);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's1'};
+            theTrainedModel = load(theTrainedModelFitsfilename);
+ 
+            % 3 cross-validated runs (against multiple sessions)
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d1);
+            dCrossValidatedData{numel(dCrossValidatedData)}.test = {d2,d3};
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s1', {'s2', 's3'}};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d2);
+            dCrossValidatedData{numel(dCrossValidatedData)}.test = {d1,d3};
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', {'s1', 's3'}};
+    
+            dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
+                'train',  d3);
+            dCrossValidatedData{numel(dCrossValidatedData)}.test = {d1,d2};
+            dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', {'s1', 's2'}};
 
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d2, ...
-            'test', d3);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s2', 's3'};
-
-
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d3, ...
-            'test', d1);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's1'};
-
-
-        dCrossValidatedData{numel(dCrossValidatedData)+1} = struct(...
-            'train',  d3, ...
-            'test', d2);
-        dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's2'};
         end
         
     end
@@ -126,11 +208,11 @@ function fitISETBioModelToAOSTFdata
 
 
     % Generate the fits filename
-    theFitsFilename = fitsFilename(sParams.residualDefocusDiopters, startingPointsNum, crossValidateModel, ...
-        fitLcenterCells, fitMcenterCells, targetLcenterRGCindices, targetMcenterRGCindices);
-    
-    
-    if (fitLcenterCells)
+    theFitsFilename = fitsFilename(sParams.residualDefocusDiopters, startingPointsNum, ...
+        crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
+        targetLcenterRGCindices, targetMcenterRGCindices);
+
+    if (~isempty(targetLcenterRGCindices))
         fprintf('Fitting L-center cells\n');
         % Find the indices of model L-cones that could provide input to the L-center RGCs
         indicesOfModelConesDrivingLcenterRGCs = indicesOfModelConesWithinEccDegs(...
@@ -152,25 +234,44 @@ function fitISETBioModelToAOSTFdata
         if (~crossValidateModel)
             % No cross-validation, using the mean data
             iCrossValidationRun = 0;
-
             [fittedParamsLcenterRGCs, ...
              fittedSTFsLcenterRGCs, ...
              rmsErrorsLcenterRGCs, ...
-             centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
-                           indicesOfModelConesDrivingLcenterRGCs, ...
-                           dNonCrossValidatedData, iCrossValidationRun, ...
-                           startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
+             centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                            theTrainedModel, ...
+                            modelSTFrunData, ...
+                            indicesOfModelConesDrivingLcenterRGCs, ...
+                            dNonCrossValidatedData, iCrossValidationRun, ...
+                            startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
         else
             % Cross-validated runs, using individual session data
-            for iCrossValidationRun = 1:numel(dCrossValidatedData)
-                [fittedParamsLcenterRGCs{iCrossValidationRun}, ...
-                 fittedSTFsLcenterRGCs{iCrossValidationRun}, ...
-                 rmsErrorsLcenterRGCs{iCrossValidationRun}, ...
-                 centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
-                           indicesOfModelConesDrivingLcenterRGCs, ...
-                           dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
-                           startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
+            if (trainModel)
+                for iCrossValidationRun = 1:numel(dCrossValidatedData)
+                    [fittedParamsLcenterRGCs{iCrossValidationRun}, ...
+                     fittedSTFsLcenterRGCs{iCrossValidationRun}, ...
+                     rmsErrorsLcenterRGCs{iCrossValidationRun}, ...
+                     centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                                theTrainedModel, ...
+                                modelSTFrunData, ...
+                                indicesOfModelConesDrivingLcenterRGCs, ...
+                                dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
+                                startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
+                end
+            else
+                for iCrossValidationRun = 1:numel(dCrossValidatedData)
+                    [fittedParamsLcenterRGCs{iCrossValidationRun}, ...
+                     fittedSTFsLcenterRGCs{iCrossValidationRun}, ...
+                     rmsErrorsLcenterRGCs{iCrossValidationRun}, ...
+                     centerLConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                                theTrainedModel, ...
+                                modelSTFrunData, ...
+                                indicesOfModelConesDrivingLcenterRGCs, ...
+                                dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
+                                startingPointsNum, 'L', sParams.residualDefocusDiopters, targetLcenterRGCindices);
+                end
+           
             end
+
         end
 
         % Save the L-center data
@@ -179,11 +280,11 @@ function fitISETBioModelToAOSTFdata
             'fittedSTFsLcenterRGCs', 'rmsErrorsLcenterRGCs', ...
             'targetLcenterRGCindices', ...
             'indicesOfModelConesDrivingLcenterRGCs');
-    end % fitLcenterCells
+    end % if (~isempty(targetLcenterRGCindices))
 
 
     
-    if (fitMcenterCells)
+    if (~isempty(targetMcenterRGCindices))
         fprintf('Fitting M-center cells\n');
         % Find the indices of model M-cones that could provide input to the M-center RGCs
         indicesOfModelConesDrivingMcenterRGCs = indicesOfModelConesWithinEccDegs(...
@@ -207,21 +308,40 @@ function fitISETBioModelToAOSTFdata
             [fittedParamsMcenterRGCs, ...
              fittedSTFsMcenterRGCs, ...
              rmsErrorsMcenterRGCs, ...
-             centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
-                           indicesOfModelConesDrivingMcenterRGCs, ...
-                           dNonCrossValidatedData, iCrossValidationRun, ...
-                           startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
+             centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                            [], ...
+                            modelSTFrunData, ...
+                            indicesOfModelConesDrivingMcenterRGCs, ...
+                            dNonCrossValidatedData, iCrossValidationRun, ...
+                            startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
         else
             % Cross-validated runs, using individual session data
-            for iCrossValidationRun = 1:numel(dCrossValidatedData)
-                [fittedParamsMcenterRGCs{iCrossValidationRun}, ...
-                 fittedSTFsMcenterRGCs{iCrossValidationRun}, ...
-                 rmsErrorsMcenterRGCs{iCrossValidationRun}, ...
-                 centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(modelSTFrunData, ...
-                           indicesOfModelConesDrivingMcenterRGCs, ...
-                           dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
-                           startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
+            if (trainModel)  
+                for iCrossValidationRun = 1:numel(dCrossValidatedData)
+                    [fittedParamsMcenterRGCs{iCrossValidationRun}, ...
+                     fittedSTFsMcenterRGCs{iCrossValidationRun}, ...
+                     rmsErrorsMcenterRGCs{iCrossValidationRun}, ...
+                     centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                                [], ...
+                                modelSTFrunData, ...
+                                indicesOfModelConesDrivingMcenterRGCs, ...
+                                dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
+                                startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices );
+                end
+            else
+                for iCrossValidationRun = 1:numel(dCrossValidatedData)
+                    [fittedParamsMcenterRGCs{iCrossValidationRun}, ...
+                     fittedSTFsMcenterRGCs{iCrossValidationRun}, ...
+                     rmsErrorsMcenterRGCs{iCrossValidationRun}, ...
+                     centerMConeCharacteristicRadiiDegs] = fitModelToSessionData(...
+                                theTrainedModel, ...
+                                modelSTFrunData, ...
+                                indicesOfModelConesDrivingMcenterRGCs, ...
+                                dCrossValidatedData{iCrossValidationRun}, iCrossValidationRun, ...
+                                startingPointsNum, 'M', sParams.residualDefocusDiopters, targetMcenterRGCindices);
+                end
             end
+
         end
 
 
@@ -242,40 +362,79 @@ function fitISETBioModelToAOSTFdata
                 'targetMcenterRGCindices', ...
                 'startingPointsNum');
         end       
-    end % fitMcenterCells
+    end % if (~isempty(targetMcenterRGCindices))
 end
 
 
+
 function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDegs] = ...
-    fitModelToSessionData(modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters, ...
+    fitModelToSessionData(theTrainedModel, modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters, ...
     d, crossValidationRun, startingPointsNum, centerConeType, residualDefocusDiopters, targetRGCindices)
+
+    assert( ((isempty(d.test)) == isempty(theTrainedModel)), ...
+        sprintf('Incosistent d.test and theTrainedModel params'));
 
     % Fit each of RGC STF with a DoG cone pooling model in which
     % the center cone is one of the cones within the maxRecordedRGCeccArcMin
     switch (centerConeType)
         case 'L'
-            theMeasuredSTFs = d.train.dFresponsesLcenterRGCs;
-            theMeasuredSTFStdErrs = d.train.dFresponseStdLcenterRGCs;
-
-            if (~isempty(d.test))
-                theCrossValidatedMeasuredSTFs = d.test.dFresponsesLcenterRGCs;
-                theCrossValidatedMeasuredSTFStdErrs = d.test.dFresponseStdLcenterRGCs;
+            if (isempty(d.test))
+                theMeasuredSTFdata = d.train.dFresponsesLcenterRGCs;
+                theMeasuredSTFerrorData = d.train.dFresponseStdLcenterRGCs;
+            else
+                if (iscell(d.test))
+                    % multi-session responses 
+                    for iSession = 1:numel(d.test)
+                        theMeasuredSTFdata(iSession,:,:) = d.test{iSession}.dFresponsesLcenterRGCs;
+                        theMeasuredSTFerrorData(iSession,:,:) = d.test{iSession}.dFresponseStdLcenterRGCs;
+                    end
+                else
+                    % single-session responses
+                    theMeasuredSTFdata = d.test.dFresponsesLcenterRGCs;
+                    theMeasuredSTFerrorData = d.test.dFresponseStdLcenterRGCs;
+                end
             end
                 
         case 'M'
-            theMeasuredSTFs = d.train.dFresponsesMcenterRGCs;
-            theMeasuredSTFStdErrs = d.train.dFresponseStdMcenterRGCs;
-
-            if (~isempty(d.test))
-                theCrossValidatedMeasuredSTFs = d.test.dFresponsesMcenterRGCs;
-                theCrossValidatedMeasuredSTFStdErrs = d.test.dFresponseStdMcenterRGCs;
+            if (isempty(d.test))
+                theMeasuredSTFdata = d.train.dFresponsesMcenterRGCs;
+                theMeasuredSTFerrorData = d.train.dFresponseStdMcenterRGCs;
+            else
+                if (iscell(d.test))
+                    % multi-session responses 
+                    for iSession = 1:numel(d.test)
+                        theMeasuredSTFdata(iSession,:,:) = d.test{iSession}.dFresponsesMcenterRGCs;
+                        theMeasuredSTFerrorData(iSession,:,:) = d.test{iSession}.dFresponseStdMcenterRGCs;
+                    end
+                else
+                    % single-session responses
+                    theMeasuredSTFdata = d.test.dFresponsesMcenterRGCs;
+                    theMeasuredSTFerrorData = d.test.dFresponseStdMcenterRGCs;
+                end
             end
     end
 
+
+    % Reshape data if needed
+    if (ndims(theMeasuredSTFdata) == 2)
+        % single session responses
+        theMeasuredSTFdata = reshape(theMeasuredSTFdata, [1 size(theMeasuredSTFdata,1) size(theMeasuredSTFdata,2)]);
+        theMeasuredSTFerrorData = reshape(theMeasuredSTFerrorData, [1 size(theMeasuredSTFerrorData,1) size(theMeasuredSTFerrorData,2)]);
+    end
+
+    sessionsNum = size(theMeasuredSTFdata,1);
+    rgcCellsNum = size(theMeasuredSTFdata,2);
+    sfsNum = size(theMeasuredSTFdata,3);
+
+    if ((isempty(d.test)) && (sessionsNum > 1))
+        error('Expected a single session for training the model. Data have %d sessions', sessionsNum);
+    end
+
     % Initialize
-    rgcCellsNum = size(theMeasuredSTFs,1);
     centerConesNum = numel(indicesOfModelConesDrivingTheRGCcenters);
-    rmsErrors = nan(rgcCellsNum, centerConesNum);
+    rmsErrors = nan(sessionsNum, rgcCellsNum, centerConesNum);
+    fittedParams = zeros(sessionsNum, rgcCellsNum, centerConesNum,3);
+    fittedSTFs = zeros(sessionsNum, rgcCellsNum, centerConesNum,sfsNum);
 
     for iRGCindex = 1:rgcCellsNum
         
@@ -284,100 +443,140 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
             continue;
         end
             
-        % Initialize the visualization
-        visStruct = initializeISETBioFitVisualization(iRGCindex, centerConeType, ...
-            startingPointsNum, crossValidationRun, ...
-            residualDefocusDiopters);
+        if (sessionsNum == 1)
+            % Initialize the visualization
+            visStruct = initializeISETBioFitVisualization(...
+                isempty(theTrainedModel), iRGCindex, centerConeType, ...
+                startingPointsNum, crossValidationRun, ...
+                residualDefocusDiopters);
+        else
+            visStruct = initializeISETBioMultiSessionFitVisualization(...
+                isempty(theTrainedModel), iRGCindex, centerConeType, ...
+                startingPointsNum, crossValidationRun, ...
+                residualDefocusDiopters);
+        end
 
         fprintf('Fitting RGC data (%d/%d).\n', iRGCindex, rgcCellsNum);
-
-        % Training data
-        theMeasuredSTF = theMeasuredSTFs(iRGCindex,:);
-        theMeasuredSTFStdErr = theMeasuredSTFStdErrs(iRGCindex,:);
-
-        if (~isempty(d.test))
-            % Cross-validation test data
-            theCrossValidatedMeasuredSTF =  theCrossValidatedMeasuredSTFs(iRGCindex,:);
-            theCrossValidatedMeasuredSTFStdErr = theCrossValidatedMeasuredSTFStdErrs(iRGCindex,:);
-        end
 
 
         % Fit the model for each of the assumed RFcenter driving cones
         for iCone = 1:numel(indicesOfModelConesDrivingTheRGCcenters)  
 
-            % Fit the model to the training data
-            fprintf('\tFitting the model (best of %d different paths) using %s-cone %d/%d to training data', startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
-
-            theMeasuredSTFdata = theMeasuredSTF;
-            theMeasuredSTFerrorData = theMeasuredSTFStdErr;
-
-            fitResults = fitConePoolingDoGModelToSTF(...
-                theMeasuredSTFdata, theMeasuredSTFerrorData, ...
-                modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
-                startingPointsNum, []);
-
-            if (~isempty(d.test)) && (any(d.dataSets{1} ~= d.dataSets{2}))
-                % If we have different training and testing data sets
-                % Cross-validate the fitted model (from dataSets{1}) to the test data (dataSets{2})
-  
-%               fprintf('\tCross-validating the model (run %d) using %s cone %d of %d to testing data (train: %s, test: %s)', ...
-%                      crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
-
-                fprintf('\tCross-validating the trained model (run %d) using %s-cone %d/%d to testing data (train: %s, test: %s)', ...
-                    crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), d.dataSets{1}, d.dataSets{2});
-
-                theMeasuredSTFdata = theCrossValidatedMeasuredSTF;
-                theMeasuredSTFerrorData = theCrossValidatedMeasuredSTFStdErr;
+            if (isempty(d.test))
+                % Fit the model to the training data
+                fprintf('\tFitting the model (best of %d different paths) using %s-cone %d/%d to training data\n', ...
+                    startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
 
                 fitResults = fitConePoolingDoGModelToSTF(...
-                    theMeasuredSTFdata, theMeasuredSTFerrorData, ...
+                    squeeze(theMeasuredSTFdata(1,iRGCindex,:)), ...
+                    squeeze(theMeasuredSTFerrorData(1,iRGCindex,:)), ...
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
-                    startingPointsNum, fitResults.fittedParams);
+                    startingPointsNum, []);
+                rmsErrorsTrain = [];
+
+                % Keep fit results for each RGC and each RF center driving cone
+                fittedParams(1,iRGCindex, iCone,:) = fitResults.fittedParams;
+                rmsErrors(1,iRGCindex, iCone) = fitResults.rmsErrors;
+                fittedSTFs(1,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
+
+            else
+                % Cross-validate the fitted model to the test data
+                dTrainSession = str2num(strrep(d.dataSets{1}, 's', ''));
+
+                if (iscell(d.dataSets{2}))
+                    % Cross-validate against multiple sessions
+                    sessionStrings = d.dataSets{2};
+                    dTestSession = [];
+                    for iSession = 1:sessionsNum
+                        dTestSession(iSession) = str2num(strrep(sessionStrings{iSession}, 's', ''));
+                    end
+                    fprintf('\tCross-validating the trained model (run %d) using %s-cone %d/%d to testing data (train session: %d, multiple test sessions)\n', ...
+                        crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), ...
+                        dTrainSession);
+                else
+                    % Cross-validate against a single session
+                    dTestSession = str2num(strrep(d.dataSets{2}, 's', ''));
+                    fprintf('\tCross-validating the trained model (run %d) using %s-cone %d/%d to testing data (train session: %d, test session: %d)\n', ...
+                        crossValidationRun, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), ...
+                        dTrainSession , dTestSession);
+                end
+
+                % Retrieve the trained model and the training RMSerrors
+                switch (centerConeType)
+                    case 'L'
+                        trainedModelFitParams = theTrainedModel.fittedParamsLcenterRGCs{dTrainSession}(iRGCindex, iCone,:);
+                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsLcenterRGCs{dTrainSession}(iRGCindex, iCone);
+                    case 'M'
+                        trainedModelFitParams = theTrainedModel.fittedParamsMcenterRGCs{dTrainSession}(iRGCindex, iCone,:);
+                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsMcenterRGCs{dTrainSession}(iRGCindex, iCone);
+                end
+
+                % Fit the test data using the trained model (just scaling)
+                for iSession = 1:sessionsNum
+                    
+                    fitResults = fitConePoolingDoGModelToSTF(...
+                        squeeze(theMeasuredSTFdata(iSession,iRGCindex,:)), ...
+                        squeeze(theMeasuredSTFerrorData(iSession,iRGCindex,:)), ...
+                        modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
+                        startingPointsNum, trainedModelFitParams);
+
+                    fittedParams(iSession,iRGCindex, iCone,:) = fitResults.fittedParams;
+                    rmsErrors(iSession,iRGCindex, iCone) = fitResults.rmsErrors;
+                    fittedSTFs(iSession,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
+                    fittedCenterSTFs(iSession,iRGCindex, iCone,:) =  fitResults.theFittedCenterSTFs;
+                end
             end
 
-            
-            % Keep fit results for each RGC and each RF center driving cone
-            fittedParams(iRGCindex, iCone,:) = fitResults.fittedParams;
-            rmsErrors(iRGCindex, iCone) = fitResults.rmsErrors;
-            fittedSTFs(iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
-            fittedCenterSTFs(iRGCindex, iCone,:) =  fitResults.theFittedCenterSTFs;
-            fittedSurroundSTFs(iRGCindex, iCone,:) = fitResults.theFittedSurroundSTFs;
-
+           
+            % Keep fit results for each RF center driving cone
             centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
             surroundConeIndices{iCone} = fitResults.surroundConeIndices;
             surroundConeWeights{iCone} = fitResults.surroundConeWeights;
-   
-            
-            fprintf('fit with cone %d of %d (rmsE: %2.3f) which has a Rc = %2.4f arc min\n', ...
-                iCone, numel(indicesOfModelConesDrivingTheRGCcenters), ...
-                rmsErrors(iRGCindex, iCone), ...
-                centerConeCharacteristicRadiusDegs(iCone)*60);
 
-            for iParam = 1:numel(fitResults.paramNames)
-                fprintf('\t ''%20s'': %2.4f [%2.4f - %2.2f]\n', ...
-                    fitResults.paramNames{iParam}, ...
-                    fittedParams(iRGCindex, iCone,iParam), ...
-                    fitResults.paramsLowerBound(iParam), ...
-                    fitResults.paramsUpperBound(iParam));
-            end
-
-            if (~isempty(d.test))
-                fitTitle = sprintf('RMSE: %2.2f (train:%s, test: %s)', ...
-                    rmsErrors(iRGCindex, iCone), d.dataSets{1}, d.dataSets{2});
+            if (isempty(d.test))
+                % Display the training model params
+                for iParam = 1:numel(fitResults.paramNames)
+                    fprintf('\t ''%20s'': %2.4f [%2.4f - %2.2f]\n', ...
+                        fitResults.paramNames{iParam}, ...
+                        fittedParams(1,iRGCindex, iCone,iParam), ...
+                        fitResults.paramsLowerBound(iParam), ...
+                        fitResults.paramsUpperBound(iParam));
+                end
+                fitTitle = sprintf('RMSE: %2.2f', rmsErrors(1,iRGCindex, iCone));
             else
-                fitTitle = sprintf('RMSE: %2.2f', rmsErrors(iRGCindex, iCone));
+                if (sessionsNum == 1)
+                    fitTitle = sprintf('RMSE: %2.2f (train:%s), RMSE: %2.2f (test: %s)', ...
+                        rmsErrorsTrain(iRGCindex, iCone), d.dataSets{1}, rmsErrors(1,iRGCindex, iCone), d.dataSets{2});
+                else
+                    fitTitle = sprintf('RMSE: %2.2f (train:%s), RMSE: %2.2f (mean %d sessions)', ...
+                        rmsErrorsTrain(iRGCindex, iCone), d.dataSets{1}, mean(rmsErrors(:,iRGCindex, iCone),1, 'omitnan'), sessionsNum);
+                end
             end
 
-            % Update visualization for this assumed RFcenter cone
-            updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
-                indicesOfModelConesDrivingTheRGCcenters, ...
-                modelSTFrunData.theConeMosaic, ...
-                centerConeCharacteristicRadiusDegs, ...
-                surroundConeIndices, surroundConeWeights, ...
-                fittedParams, rmsErrors, ...
-                modelSTFrunData.examinedSpatialFrequencies, fittedSTFs, ...
-                theMeasuredSTFdata, theMeasuredSTFerrorData, fitTitle);
 
+            if (sessionsNum == 1)
+                % Single session. visualize fits
+                % Update visualization for this assumed RFcenter cone
+                updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
+                    indicesOfModelConesDrivingTheRGCcenters, ...
+                    modelSTFrunData.theConeMosaic, ...
+                    centerConeCharacteristicRadiusDegs, ...
+                    surroundConeIndices, surroundConeWeights, ...
+                    squeeze(fittedParams(1,:,:,:)), squeeze(rmsErrors(1,:,:)), rmsErrorsTrain, ...
+                    modelSTFrunData.examinedSpatialFrequencies, fittedSTFs, ...
+                    squeeze(theMeasuredSTFdata(1,iRGCindex,:)), ...
+                    squeeze(theMeasuredSTFerrorData(1,iRGCindex,:)), ...
+                    fitTitle);
+            else
+                % Multiple sessions. visualize the rmsErrors only
+                updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, ...
+                    indicesOfModelConesDrivingTheRGCcenters, ...
+                    modelSTFrunData.theConeMosaic, ...
+                    centerConeCharacteristicRadiusDegs, ...
+                    surroundConeIndices, surroundConeWeights, ...
+                    squeeze(fittedParams(1,:,:,:)), rmsErrors, rmsErrorsTrain, ...
+                    fitTitle, dTrainSession, dTestSession);
+            end
         end % iCone
 
         % End visualization for this RGC
@@ -388,7 +587,7 @@ end
 
 function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
                      modelSTFrunData, centerModelConeIndex, startingPointsNum, ...
-                     fittedParamsFromCrossValidation)
+                     trainedModelFitParams)
 
     allowableSurroundConeTypes = [ ...
         modelSTFrunData.theConeMosaic.LCONE_ID ...
@@ -404,12 +603,9 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     centerConeCharacteristicRadiusDegs = sqrt(2) * 0.204 * modelSTFrunData.theConeMosaic.coneRFspacingsDegs(centerModelConeIndex);
     constants.centerConeCharacteristicRadiusDegs = centerConeCharacteristicRadiusDegs;
 
-    % Subtract minSTF value if that is < 0
-    minSTF = min([0 min(theSTF)]);
-    theSTF = theSTF - minSTF;
 
     weights = 1./theSTFstdErr;
-    objective = @(p) sum(weights .* (ISETBioComputedSTF(p, constants) - theSTF).^2);
+    objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants) - theSTF').^2);
    
     options = optimset(...
         'Display', 'off', ...
@@ -443,11 +639,12 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     paramNames    = {'Kc', 'kS/kC',  'RsToCenterConeRc'};
     
     
-    if (isempty(fittedParamsFromCrossValidation))
+ 
+    if (isempty(trainedModelFitParams))
         % Fit model to data
         if (startingPointsNum <= 1)
             % Just one attempt
-            fittedParams = fmincon(objective,paramsInitial,[],[],[],[],lowerBound,upperBound,[],options);
+            trainedModelFitParams = fmincon(objective,paramsInitial,[],[],[],[],lowerBound,upperBound,[],options);
         else
             % Multi-start
             problem = createOptimProblem('fmincon',...
@@ -466,55 +663,86 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
                            'UseParallel', true);
         
             % Run the multi-start
-            [fittedParams,errormulti] = run(ms, problem, startingPointsNum);
+            [trainedModelFitParams,errormulti] = run(ms, problem, startingPointsNum);
         end
 
-                
         % Compute the fitted STF
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
-         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(fittedParams, constants);
+         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants);
     else
-        % Use previously determine model
-        fittedParams = fittedParamsFromCrossValidation;
 
-        % Compute the fitted STF
+        % Compute the fittedSTF using the trained model
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
-         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(fittedParams, constants);
+         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants);
+
 
         % Determine the optical scaling factor for the fittedSTF to match the test data which may have a different overal
         % scale factor
 
-        % Step 1. Normalize the fittedSTF in the range [0 1]
-        theNormalizedFittedSTF = (theFittedSTF - min(theFittedSTF))/(max(theFittedSTF)-min(theFittedSTF));
+        if (scaleOnlyNoOffset)
+            % NOTE: The scaling factor here is determined with respect to
+            % the meanSTF
 
-        % Step 2. Objective function
-        scalingObjective = @(p) sum(weights .* (p(1) + theNormalizedFittedSTF*p(2) - theSTF).^2);
+            % Step 1. Find the mean from the 2 extreme values
+            meanSTF = 0.5*(min(theFittedSTF)+max(theFittedSTF));
 
-        % Step 3. Initial params and bounds
-        scalingParamsInitial = [0 1];
-        lowerBoundForScalar = [-0.5 0.1]; upperBoundForScalar = [0.5 10];
+            % Step 2. Subtract the meanSTF
+            theNormalizedFittedSTF = theFittedSTF - meanSTF;
 
-        % Step 4. Find the optical scaling factor
-        scalingParams = fmincon(scalingObjective, scalingParamsInitial,[],[],[],[],lowerBoundForScalar,upperBoundForScalar,[],options);
+            % Step 3. Objective function with a single parameter: thescalingFactor
+            scalingObjective = @(scalingFactor) sum(weights' .* (meanSTF + theNormalizedFittedSTF*scalingFactor - theSTF').^2);
 
-        % Apply the optimal scaling factor to theFittedSTF
-        theFittedSTF = scalingParams(1) + theNormalizedFittedSTF * scalingParams(2);
-        theFittedCenterSTF = scalingParams(1) + theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingParams(2);
-        theFittedSurroundSTF = scalingParams(1) + theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingParams(2);
+            % Step 4. Initial params and bounds
+            scalingFactorInitial = [1];
+            scalingFactorLowerBound = [0.1]; 
+            scalingFactorUpperBound = [10];
+
+             % Step 4. Find the optical scaling factor
+            scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
+    
+            % Apply the optimal scaling factor to theFittedSTF
+            theFittedSTF = meanSTF + theNormalizedFittedSTF * scalingFactor;
+            theFittedCenterSTF = theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingFactor;
+            theFittedSurroundSTF = theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingFactor;
+
+        else
+            % Step 1. Normalize the fittedSTF in the range [0 1]
+            theNormalizedFittedSTF = (theFittedSTF - min(theFittedSTF))/(max(theFittedSTF)-min(theFittedSTF));
+    
+            % Step 2. Objective function
+            scalingObjective = @(p) sum(weights' .* (p(1) + theNormalizedFittedSTF*p(2) - theSTF').^2);
+    
+            % Step 3. Initial params and bounds
+            scalingParamsInitial = [0 1];
+            lowerBoundForScalar = [-0.5 0.1]; 
+            upperBoundForScalar = [0.5 10];
+    
+            % Step 4. Find the optical scaling factor
+            scalingParams = fmincon(scalingObjective, scalingParamsInitial,[],[],[],[],lowerBoundForScalar,upperBoundForScalar,[],options);
+    
+            % Apply the optimal scaling factor to theFittedSTF
+            theFittedSTF = scalingParams(1) + theNormalizedFittedSTF * scalingParams(2);
+            theFittedCenterSTF = theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingParams(2);
+            theFittedSurroundSTF = theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingParams(2);
+        end
+
+
+
     end
+
 
 
     % RMSerror
     N = numel(theSTF);        
-    fitResults.rmsErrors = 100*sqrt(1/N*sum((theSTF-theFittedSTF).^2,2));     
+    fitResults.rmsErrors = 100*sqrt(1/N*sum((theSTF(:)-theFittedSTF(:)).^2,1));
 
-    % Add back the minSTF
-    fitResults.theFittedSTFs = theFittedSTF + minSTF;
-    fitResults.theFittedCenterSTFs = theFittedCenterSTF + minSTF;
-    fitResults.theFittedSurroundSTFs = theFittedSurroundSTF + minSTF;
+    % Form return struct
+    fitResults.theFittedSTFs = theFittedSTF;
+    fitResults.theFittedCenterSTFs = theFittedCenterSTF;
+    fitResults.theFittedSurroundSTFs = theFittedSurroundSTF;
 
     fitResults.centerConeCharacteristicRadiusDegs = centerConeCharacteristicRadiusDegs;
-    fitResults.fittedParams = fittedParams;
+    fitResults.fittedParams = trainedModelFitParams;
     fitResults.surroundConeIndices = surroundConeIndices;
     fitResults.surroundConeWeights = surroundConeWeights;
     fitResults.paramNames = paramNames;
@@ -590,24 +818,36 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
+
         % Retrieve the time-series sesponse for this spatial frequency
-        theTimeSeriesResponse = modelRGCmodulations(iSF,:);
-
-        if (1==2)
-            % Amplitude of modulation by fitting the entire time-series
-            [theFittedSinusoid, fittedParams] = ...
-                fitSinusoidToResponseTimeSeries(...
-                    constants.temporalSupportSeconds, ...
-                    theTimeSeriesResponse, ...
-                    WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                    timeHR);
-             theModelSTF(iSF) = fittedParams(1);
-        else
-            % Amplitude of modulation is just the max of the time-series
-            theModelSTF(iSF) = max(abs(theTimeSeriesResponse(:)));
-        end
-
         theModelCenterSTF(iSF) = max(abs(squeeze(centerMechanismModulations(iSF,:))));
         theModelSurroundSTF(iSF) = max(abs(squeeze(surroundMechanismModulations(iSF,:))));
+
+        % The model STF = centerSTF - surroundSTF. This way we can account
+        % for negative fluorescence values, interpreting them as points at which 
+        % the surround response is stronger than the center response.
+        % Otherwise, if we fit a sinusoid and take its
+        % amplitude, we would have always positive STF values.
+        % This is fine, but then we would then need to take the absolute values
+        % of the fluorescene STF, or alternatively, we would need to sutract
+        % the min of the fluorescene STF.
+        theModelSTF(iSF) = theModelCenterSTF(iSF) - theModelSurroundSTF(iSF);
+
+%       theTimeSeriesResponse = modelRGCmodulations(iSF,:);
+%       if (1==2)
+%             % Amplitude of modulation by fitting the entire time-series
+%             [theFittedSinusoid, fittedParams] = ...
+%                 fitSinusoidToResponseTimeSeries(...
+%                     constants.temporalSupportSeconds, ...
+%                     theTimeSeriesResponse, ...
+%                     WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+%                     timeHR);
+%              theModelSTF(iSF) = fittedParams(1);
+%       else
+%             % Amplitude of modulation is just the max of the time-series
+%             theModelSTF(iSF) = max(abs(theTimeSeriesResponse(:)));
+%       end
+
+        
     end
 end
