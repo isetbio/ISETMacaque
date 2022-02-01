@@ -33,8 +33,8 @@ function fitISETBioModelToAOSTFdata
 
 
     %operationMode = 'fitModelOnSessionAveragedData';
-    operationMode = 'fitModelOnSingleSessionData';
-    %operationMode = 'crossValidateFittedModelOnSingleSessionData';
+    %operationMode = 'fitModelOnSingleSessionData';
+    operationMode = 'crossValidateFittedModelOnSingleSessionData';
     %operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     switch (operationMode)
@@ -69,8 +69,8 @@ function fitISETBioModelToAOSTFdata
         maxRecordedRGCeccArcMin, visualizedLocationsNum, ...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
         startingPointsNum);
-
 end
+
 
 function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
     trainModel, monkeyID, residualDefocusDiopters, ...
@@ -78,7 +78,6 @@ function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
     targetLcenterRGCindices, targetMcenterRGCindices, ...
     startingPointsNum)
     
-
     if (~crossValidateModel)
         sessionData = 'mean';
         d = loadUncorrectedDeltaFluoresenceResponses(monkeyID, sessionData);
@@ -88,7 +87,6 @@ function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
 
         theTrainedModel = [];
     else
-
         d1 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session1only'); 
         d2 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session2only');
         d3 = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session3only');
@@ -114,8 +112,8 @@ function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
             dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's3'};
         
             theTrainedModel = [];
-        elseif (crossValidateModel) && (~crossValidateModelAgainstAllSessions)
 
+        elseif (crossValidateModel) && (~crossValidateModelAgainstAllSessions)
             % Load the trained model params
             theTrainedModelFitsfilename = fitsFilename(residualDefocusDiopters, startingPointsNum, ...
                 crossValidateModel, crossValidateModelAgainstAllSessions, true, ...
@@ -156,7 +154,6 @@ function doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
             dCrossValidatedData{numel(dCrossValidatedData)}.dataSets = {'s3', 's2'};
         
         else
-
             % Load the trained model params
             theTrainedModelFitsfilename = fitsFilename(residualDefocusDiopters, startingPointsNum, ...
                 crossValidateModel, crossValidateModelAgainstAllSessions, true, ...
@@ -504,16 +501,15 @@ function [fittedParams, fittedSTFs, rmsErrors, centerConeCharacteristicRadiusDeg
                 % Retrieve the trained model and the training RMSerrors
                 switch (centerConeType)
                     case 'L'
-                        trainedModelFitParams = theTrainedModel.fittedParamsLcenterRGCs{dTrainSession}(iRGCindex, iCone,:);
-                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsLcenterRGCs{dTrainSession}(iRGCindex, iCone);
+                        trainedModelFitParams = theTrainedModel.fittedParamsLcenterRGCs{dTrainSession}(1,iRGCindex, iCone,:);
+                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsLcenterRGCs{dTrainSession}(1,iRGCindex, iCone);
                     case 'M'
-                        trainedModelFitParams = theTrainedModel.fittedParamsMcenterRGCs{dTrainSession}(iRGCindex, iCone,:);
-                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsMcenterRGCs{dTrainSession}(iRGCindex, iCone);
+                        trainedModelFitParams = theTrainedModel.fittedParamsMcenterRGCs{dTrainSession}(1,iRGCindex, iCone,:);
+                        rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsMcenterRGCs{dTrainSession}(1,iRGCindex, iCone);
                 end
 
                 % Fit the test data using the trained model (just scaling)
                 for iSession = 1:sessionsNum
-                    
                     fitResults = fitConePoolingDoGModelToSTF(...
                         squeeze(theMeasuredSTFdata(iSession,iRGCindex,:)), ...
                         squeeze(theMeasuredSTFerrorData(iSession,iRGCindex,:)), ...
@@ -678,19 +674,20 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
         % Determine the optical scaling factor for the fittedSTF to match the test data which may have a different overal
         % scale factor
+        scaleOnlyNoOffset = true;
+        subtractMeanFlag = 0;
 
         if (scaleOnlyNoOffset)
-            % NOTE: The scaling factor here is determined with respect to
-            % the meanSTF
-
             % Step 1. Find the mean from the 2 extreme values
-            meanSTF = 0.5*(min(theFittedSTF)+max(theFittedSTF));
+            meanSTF = subtractMeanFlag*mean(theFittedSTF);
 
             % Step 2. Subtract the meanSTF
-            theNormalizedFittedSTF = theFittedSTF - meanSTF;
+            theZeroMeanFittedSTF = theFittedSTF - meanSTF;
 
             % Step 3. Objective function with a single parameter: thescalingFactor
-            scalingObjective = @(scalingFactor) sum(weights' .* (meanSTF + theNormalizedFittedSTF*scalingFactor - theSTF').^2);
+            m = subtractMeanFlag*mean(theSTF);
+            theZeroMeanSTF = theSTF - m;
+            scalingObjective = @(scalingFactor) sum(weights' .* (theZeroMeanFittedSTF*scalingFactor - theZeroMeanSTF').^2);
 
             % Step 4. Initial params and bounds
             scalingFactorInitial = [1];
@@ -699,11 +696,14 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
              % Step 4. Find the optical scaling factor
             scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
-    
+
             % Apply the optimal scaling factor to theFittedSTF
-            theFittedSTF = meanSTF + theNormalizedFittedSTF * scalingFactor;
-            theFittedCenterSTF = theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingFactor;
-            theFittedSurroundSTF = theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingFactor;
+            theFittedSTF = meanSTF + theZeroMeanFittedSTF * scalingFactor;
+
+            m = subtractMeanFlag*mean(theFittedCenterSTF);
+            theFittedCenterSTF = m + (theFittedCenterSTF-m) * scalingFactor;
+            m = subtractMeanFlag*mean(theFittedSurroundSTF);
+            theFittedSurroundSTF = m + (theFittedSurroundSTF-m) * scalingFactor;
 
         else
             % Step 1. Normalize the fittedSTF in the range [0 1]
@@ -725,16 +725,18 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             theFittedCenterSTF = theFittedCenterSTF/max(theFittedCenterSTF(:)) * scalingParams(2);
             theFittedSurroundSTF = theFittedSurroundSTF/max(theFittedSurroundSTF) * scalingParams(2);
         end
-
-
-
     end
-
 
 
     % RMSerror
     N = numel(theSTF);        
-    fitResults.rmsErrors = 100*sqrt(1/N*sum((theSTF(:)-theFittedSTF(:)).^2,1));
+    residuals = theSTF(:)-theFittedSTF(:);
+
+    % Normalize residuals with respect to their range to make the 
+    % RMS error scale-independent
+    residualRange = max(residuals(:))-min(residuals(:));
+    residuals = residuals / residualRange;
+    fitResults.rmsErrors = 100*sqrt(1/N*sum(residuals.^2,1));
 
     % Form return struct
     fitResults.theFittedSTFs = theFittedSTF;
