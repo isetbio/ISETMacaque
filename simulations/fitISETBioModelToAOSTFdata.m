@@ -33,8 +33,8 @@ function fitISETBioModelToAOSTFdata
 
 
     %operationMode = 'fitModelOnSessionAveragedData';
-    %operationMode = 'fitModelOnSingleSessionData';
-    operationMode = 'crossValidateFittedModelOnSingleSessionData';
+    operationMode = 'fitModelOnSingleSessionData';
+    %operationMode = 'crossValidateFittedModelOnSingleSessionData';
     %operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     switch (operationMode)
