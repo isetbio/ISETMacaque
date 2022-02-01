@@ -731,12 +731,13 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     % RMSerror
     N = numel(theSTF);        
     residuals = theSTF(:)-theFittedSTF(:);
+    dataRange = prctile(theSTF(:),75) - prctile(theSTF(:),25);
 
-    % Normalize residuals with respect to their range to make the 
+    % Normalize residuals with respect to the measured data range to make the 
     % RMS error scale-independent
-    residualRange = max(residuals(:))-min(residuals(:));
-    residuals = residuals / residualRange;
-    fitResults.rmsErrors = 100*sqrt(1/N*sum(residuals.^2,1));
+    residuals = residuals / dataRange;
+    theRMSerror = 100*sqrt(1/N*sum(residuals.^2,1))
+    fitResults.rmsErrors = theRMSerror;
 
     % Form return struct
     fitResults.theFittedSTFs = theFittedSTF;
