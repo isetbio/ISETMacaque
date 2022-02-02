@@ -6,7 +6,7 @@
 \usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
 								% TeX will automatically convert eps --> pdf in pdflatex		
 \usepackage{amssymb}
-
+\usepackage{amsmath}
 \usepackage{dcolumn}
 \usepackage[table, svgnames, x11names]{xcolor}
 
@@ -43,19 +43,66 @@ The AO-delivered drifting monochromatic sinusoidal gratings used to measured RGC
 The generated scenes are subsequently passed via a diffraction-limited optical system model which accounts for blur in optical in a perfect AO system and which can also account for additional residual amount blur that may occur in a slightly imperfect AO system, for example due to a slight defocus of the stimulus with respect to the plane of cone inner segments. (Say something more here??). The amount of residual blur in not known a-priori, and it is estimated from the model as described below. 
 
 \subsection{Cone excitation response modeling}
-In the next stage, spatiotemporal cone excitation patterns to the employed stimuli are estimated from the computed temporal sequence of retinal spatial spectral irradiance images and an ISETBio model of the monkey's cone mosaic. The ISETBio model of the monkey's cone mosaic is generated using an iterative approach [Cottaris et al] from cone density maps measured during AO imaging. In this stage, retinal irradiance is weighted by each cone's spectral quantal efficiency, and spatially integrated within each cone's inner segment aperture. Assuming that cones are adapted to the mean background irradiance, the computed cone excitation responses are converted to cone contrast responses by first subtracting the excitation to the background stimulus and then dividing by it, separately for each cone. Eye movements are assumed to be zero, since the AO apparatus effectively stabilizes stimuli on the retina.
+In the next stage, an ISETBio model of the monkey's cone mosaic is generated using an iterative approach [Cottaris et al] from cone density maps measured during AO imaging. The temporal photon absorption excitation response, $E^j(\omega,t)$, of each cone-$j$ of the mosaic, to a drifting grating of spatial frequency $\omega$, is computed from the corresponding temporal sequence of retinal spatial spectral irradiance images, after weighing retinal irradiance by each cone's spectral quantal efficiency and spatially integrating the result within each cone's inner segment aperture. 
 
-\subsection{RGC spatial pooling modeling}
-Next, the computed spatiotemporal cone contrast responses are integrated over space by spatial pooling kernels which simulate convergence of cones to the center and surround mechanisms of an array of model RGCs. For each model RGC, cone inputs to the center and surround mechanism are are weighted and then pooled over space. The pooling weights are determined by the position of the cone driving the center mechanism, and three free parameters: the gain of the center mechanism, $K_c$, the gain of the surround mechanism, $K_s$, and the characteristic radius of the surround pooling mechanism, $R_s$, with the surround pooling mechanism modeled as a 2D circularly-symmetric Gaussian centered on the cone driving the RF center. Since the retinal location of the recorded RGCs is known only approximately (to lie within the central 40 $\mu m$), we construct many model RGCs, one for each cone within the central 40 $\mu m$ of the model cone mosaic. For each of these model RGCs, the $K_c$, $K_s$, and $R_s$ values are estimated by minimizing the error between the model STF and the measured STF. 
+\subsection{Converting cone excitation responses to cone contrast responses}
+Assuming that cones are adapted to the mean background irradiance, the excitation response of a cone-$j$ to a stimulus with spatial frequency $\omega$, $E^j(\omega,t)$, is converted to contrast response, $R^j(\omega, t)$, by first subtracting the excitation to the background stimulus, $E^j_o$, and then dividing by it, separately for each cone-$j$, i.e.:
+\begin{equation}
+R^j(\omega, t) = \frac{E^j(\omega,t) - E^j_o}{E^j_o}
+\end{equation}
+\noindent where
+$E^j_o$ is the excitation of cone-$j$, to the zero contrast (background) stimulus. This operation mimics the photocurrent generation process which converts cone absorption events in the inner segment into ionic currents flowing through the cone outer segment, and which in effect normalizes stimulus-induced cone excitations responses with respect to the background cone excitation responses.
+Eye movements are assumed to be zero, since the AO apparatus effectively stabilizes stimuli on the retina.
+
+
+\subsection{Computing model ganglion cells responses}
+Model ganglion cells responses, $\mbox{RGC}(\omega,t)$, are computed from the cone contrast responses assuming linear spatial pooling of cone contrast signals by the antagonistic center and the surround mechanisms, as follows:
+\begin{eqnarray}
+\mbox{RGC}(\omega,t) & = & \mbox{RGC}_c(\omega,t) - \mbox{RGC}_s(\omega,t) \\
+& = & \sum_{j} W_{c}^j  \times R^j(\omega, t) -  \sum_{j} W_{s}^j  \times R^j(\omega, t)
+\end{eqnarray}
+%
+\noindent where, $W_{c}^j, W_{s}^j$, are the spatial pooling weights with which the center and surround, respectively, mechanisms are summing the $R^j(\omega, t)$ responses. There is no temporal filtering, and no delay is introduced in the computation of center, $\mbox{RGC}_c(\omega,t)$, and surround $\mbox{RGC}_s(\omega,t)$ responses. 
 
 \subsection{Computing model RGC spatial transfer functions}
-STF of model RGCs are computed as follows. Following spatial integration of cone signals, the temporal response of a model RGC to a grating stimulus of a particular spatial frequency is fitted with a sinusoidal function whose temporal frequency is set to the temporal frequency of the drifting grating. The amplitude of the fitted sinusoid is taken as the magnitude of the STF at that spatial frequency, and the entire STF is obtained by repeating this procedure for stimuli of the examined spatial frequencies. 
+The STF of a model RGC, $\mbox{STF}^{m}(\omega)$, is computed as: 
+\begin{equation}
+\mbox{STF}^{m}(\omega) = \mbox{STF}_{c}^{m}(\omega) - \mbox{STF}_{s}^{m}(\omega)
+\end{equation}
+%
+\noindent with
+%
+\begin{eqnarray}
+\mbox{STF}_{c}^{m}(\omega) & = &\max_{t} \left \{ \mbox{RGC}_c(\omega,t)  \right \} \\ 
+\mbox{STF}_{s}^{m}(\omega) & = &\max_{t} \left \{ \mbox{RGC}_s(\omega,t)  \right \}
+\end{eqnarray}
 
-\subsection{Model fitting}
-In the final step of the model, a multi-start minimizer procedure is used to find the values of $K_c$, $K_s$, and $R_s$ parameters that minimize the error between the model STF and the measured STF. To minimize the chance of getting stuck to local minima of the error function, the multi-start minimizer is ran 1024 times, and the run resulting in the minimum rms error is used to extract the model parameters. This procedure is repeated for each of the assumed positions of the center driving cone within the central 40 $\mu m$, resulting in a spatial map of rms errors between the model STF and the measured STF.
+
+\subsection{Estimating cone pooling weights from the fluorescence-based STF measurements}
+
+The weights with which the center and surround mechanisms of a model RGC, are pooling signals from a cone-$j$ are computed as follows:
+\begin{eqnarray}
+W_c^j  & = & \begin{cases}
+   k_c \times \exp \left [ -\left( d_{j}/r_c \right) ^2 \right ], & \text{for the multi-cone RF center model}.\\
+   k_c, & \text{for the single-cone RF center model}.
+   \end{cases} \\
+W_s^j &= &k_s \times \exp \left [ -\left( d_{j}/r_s \right) ^2 \right ]
+\end{eqnarray}
+
+\noindent where $d_j$ is the distance between cone-$j$ and the spatial position of the center mechanism of the model RGC. The parameters $k_c$, $k_s$, $r_c$ and $r_s$ are determined by minimizing the weighted error between the model STF, $\mbox{STF}^{m}(\omega)$, and the measured STF, $\mbox{STF}^{\Delta F / F}(\omega)$, over all spatial frequencies, $\omega$:
+
+\begin{equation}
+\mbox{RMSE} = \displaystyle \sum_{\omega} \frac{1}{\epsilon({\omega})} {\left [  \mbox{STF}^{m}(\omega)  - \mbox{STF}^{\Delta F / F}(\omega) \right ] }^2
+\end{equation}
+where $\epsilon({\omega})$ is the standard error of the mean of the $\mbox{STF}^{\Delta F / F}(\omega)$ measurement. To minimize the chance of getting stuck to local minima of the error function, we employ a multi-start minimizer which is ran 1024 times, keeping the results from the run which results in the minimum rms error.
+
+Since the receptive field location of the recorded RGCs is only known approximately to lie within the central 40 $\mu m$, we repeat the above analysis a number of times, each time assuming that the model RGC receives its center-driving signal from cones in different parts of the central 40 $\mu m$ of the model cone mosaic. 
+
 
 \subsection{Model validation}
-To validate model performance, we use a cross-validation approach, in which we train the model by minimizing the error with respect to the STF measured in one recording session, and assess model performance by quantifying the error with respect to the STF measure at a different (cross-validated) recording session. Model performance is then quantified by averaging the RMS errors across the cross-validated sessions. This approach allows us to evaluate model robustness, and further enables comparison of performance across models with different number of parameters. For example, a model in which the RF center is allowed to pool signals in its RF center from more than one cone, has an extra parameter, the radius of the center, and therefore may fit the measured responses (averaged over all recording sessions0 slightly better than the single cone RF center model. However, by evaluating model performance in cross-validated sessions, we can decide whether the more elaborate model can generalize better than the simpler model, in which case it would indeed be more appropriate, or whether the better fit is due to overfitting some idiosyncracy present in the mean data which does not persist across sessions.
+To validate the extracted RF model parameters ($k_c$, $k_s$, $r_c$ and $r_s$), we employ a cross-validation approach, in which we train the model by minimizing the error with respect to the $\mbox{STF}^{\Delta F / F}$ measured in one recording session (in-sample error), and assess model performance by quantifying the error with respect to the $\mbox{STF}^{\Delta F / F}$ measured at the remaining recording sessions (out-of-sample error). Therefore, we run as many cross-validation assessments as there are recording sessions, each time training the model on a different session, $s_i$, and computing the average cross-validated error across the remaining sessions, $s_j \ne s_i$, $\mbox{RMSE}_{train = s_1\dots s_n}^{s_j \ne s_i}$. The selected model is the one with the minimal  cross-validated error. This analysis is repeated for each of the assumed receptive field center positions, and the final $k_c$, $k_s$, $r_c$ and $r_s$ values are chosen to be those which minimize the cross-validated error across all examined RF center positions.
+
+This cross-validation approach allows us to determine $k_c$, $k_s$, $r_c$ and $r_s$ model parameters with the maximal generalization potential, which are less likely to be prone to overfitting the training data set. This approach is also used to compare performance across models with different number of parameters, for example the single-cone RF center model, where the $r_c$ parameter is absent (in effect fixed to the underlying cone characteristic radius), vs. the multi-cone RF center model, where the $r_c$ parameter is allowed to vary.
 
 \newpage
 
