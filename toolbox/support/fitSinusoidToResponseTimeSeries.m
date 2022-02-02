@@ -28,15 +28,14 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
     maxAmplitude = max(abs(theResponse));
     theResponse = double(theResponse/maxAmplitude);
     
-    deltaPhaseDegs = 1.0;
     deltaAmplitude = 0.01;
-    phaseDegs = 0:deltaPhaseDegs:359;
+    phaseDegs = 0:1:179;
     phaseRadians = phaseDegs/180*pi;
     amplitudes = 0.8:deltaAmplitude:1.2;
     
     fTime = 2.0*pi*stimulusTemporalFrequencyHz*time;
-    
-    theMinResidual = Inf;
+    theResiduals = inf(360, numel(amplitudes));
+   
     % Search over phase
     for iPhase = 1:numel(phaseDegs)
         thePhaseRadians = phaseRadians(iPhase);
@@ -46,14 +45,19 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
         for iAmp = 1:numel(amplitudes)
             theAmplitude = amplitudes(iAmp);
             theSinewave = theAmplitude * theSine;
-            theResidual = sum((theSinewave-theResponse).^2);
-            
-            if (theResidual < theMinResidual)
-                theMinResidual = theResidual;
-                fittedParams = [theAmplitude*maxAmplitude phaseDegs(iPhase)];
-            end
+            theResiduals(iPhase,iAmp) = sum((theSinewave-theResponse).^2);
+            theResiduals(iPhase+180,iAmp) = sum((-theSinewave-theResponse).^2);
         end
     end
+    
+    [~,idx] = min(theResiduals(:));
+    [iPhase, iAmp] = ind2sub(size(theResiduals), idx);
+    if (iPhase > 179)
+        thePhaseDegs = phaseDegs(iPhase-180)+180;
+    else
+        thePhaseDegs = phaseDegs(iPhase);
+    end
+    fittedParams = [amplitudes(iAmp)*maxAmplitude thePhaseDegs];
     
     % Generate high-resolution fitted function
     if (~isempty(timeHR))
