@@ -850,6 +850,8 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         % The centerSTF is the amplitude of the sinusoid
         theModelSurroundSTF(iSF) = fittedParams(1);
         
+        % Taking the max, results in jaggedy STF shapes when the surround
+        % consists of just 1-2 cones.
         %theModelCenterSTF(iSF) = max(abs(squeeze(centerMechanismModulations(iSF,:))));
         %theModelSurroundSTF(iSF) = max(abs(squeeze(surroundMechanismModulations(iSF,:))));
 
@@ -864,6 +866,11 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         theModelSTF(iSF) = theModelCenterSTF(iSF) - theModelSurroundSTF(iSF);
 
 
+%       Old-way of sinusoid fitting to the center-surround responses.
+%       This forces the STF amplitude to be non-negative, which can lead to
+%       issues with the fluorescene STF data which for some cells go
+%       negative at low spatial frequencies.
+%
 %       [theFittedSinusoid, fittedParams] = ...
 %                 fitSinusoidToResponseTimeSeries(...
 %                     constants.temporalSupportSeconds, ...
