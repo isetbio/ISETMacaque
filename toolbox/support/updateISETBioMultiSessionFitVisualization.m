@@ -5,13 +5,16 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
     fitTitle, dTrainSession, dTestSession)
 
 
-    % mean over all sessions
+    % mean over all cross-validated sessions
     rmsErrors = squeeze(mean(rmsErrorsAllTestSessions,1, 'omitnan'));
 
-    % Plot the spatial map of rms errors (for different assumed RF center cone positions)
+    % max (over all cones) of the mean(over sessions) rmsError
     maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
+
+    % min (over all cones) of the mean(over sessions) rmsError
     [minRMSerror, minRMSerrorConeIndex] = min(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
 
+    % Plot the spatial map of rms errors (for different assumed RF center cone positions)
     % Clear the axMap axes
     cla(visStruct.axMap);
     hold(visStruct.axMap, 'on');
@@ -88,10 +91,11 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
     legend(visStruct.axSessionsRMSE, [p1, p2, p3], {sprintf('test session %d', dTestSession(1)), sprintf('test session %d', dTestSession(2)), 'mean over test sessions'});
     % Finish fit plot     
     set(visStruct.axSessionsRMSE, 'FontSize', 18);
-    set(visStruct.axSessionsRMSE, 'XLim', errorRange, 'XTick', 0:2:20, 'YLim', errorRange, 'YTick', 0:2:20);
+    set(visStruct.axSessionsRMSE, 'XLim', errorRange, 'XTick', 0:5:50, ...
+        'YLim', errorRange, 'YTick', 0:5:50);
     grid(visStruct.axSessionsRMSE, 'on');
     axis(visStruct.axSessionsRMSE, 'square');
-    xlabel(visStruct.axSessionsRMSE, sprintf('rms error (training session - %d)', dTrainSession));
+    xlabel(visStruct.axSessionsRMSE, sprintf('rms error (training, session-%d)', dTrainSession));
     ylabel(visStruct.axSessionsRMSE, 'rms error (test sessions)');
     title(visStruct.axSessionsRMSE, fitTitle, 'FontWeight', 'normal', 'FontSize', 15);
     
