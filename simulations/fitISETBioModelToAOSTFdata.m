@@ -472,7 +472,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
 
             if (isempty(d.test))
                 % Fit the model to the training data
-                fprintf(2,'\tFitting the model (best of %d different paths) using %s-cone %d/%d to training data\n', ...
+                fprintf(2,'\tTraining the model (best of %d different paths) using %s-cone %d/%d.\n', ...
                     startingPointsNum, centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters));
 
                 tStart = clock;
@@ -482,7 +482,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
                     startingPointsNum, []);
                 tEnd = clock;
-                fprintf(2,'Model training for %s-cone %d/%d took %2.2f minutes.\n', ...
+                fprintf(2,'\tModel training for %s-cone %d/%d took %2.2f minutes.\n', ...
                      centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), etime(tEnd, tStart)/60);
                 
                 % Keep fit results for each RGC and each RF center driving cone
