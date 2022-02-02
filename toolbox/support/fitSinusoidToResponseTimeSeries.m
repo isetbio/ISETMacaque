@@ -25,31 +25,41 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
 %    None
 %         
 
-    options = optimoptions('lsqcurvefit','Algorithm','levenberg-marquardt','Display','off');
+    options = optimset(...
+        'Display', 'off');
+    
+%         'Algorithm', 'interior-point',... % 'sqp', ... % 'interior-point',...
+%         'GradObj', 'off', ...
+%         'DerivativeCheck', 'off');
+    %, ...
+    %    'MaxFunEvals', 10^5, ...
+    %    'MaxIter', 10^3);
     
     % Model to fit
-    % f = baseline (0) + amplitude * sin(2*pi*F*time - phase)
-    sinFunction = @(params,time)(params(3)*0 + params(1) * sin(2.0*pi*stimulusTemporalFrequencyHz*time - params(2)/180*pi));
+    % f = amplitude * sin(2*pi*F*time - phase)
+    sinFunction = @(params,time)(params(1) * sin(2.0*pi*stimulusTemporalFrequencyHz*time - params(2)/180*pi));
 
     % Initial params
     initialParams(1) = 1.0;     % amplitude
     initialParams(2) = 0.0;     % phase
-    initialParams(3) = 0.0;     % baseline
+    
+    % Bounds
+    lowerBound = [0.5   -360];
+    upperBound = [1.0    360];
     
     maxAmplitude = max(abs(theResponse));
-    theResponse = theResponse/maxAmplitude;
-    
-    lowerBound = [0.5   -360     0];
-    upperBound = [1.0    360     0];
-    
+    theResponse = double(theResponse/maxAmplitude);
+
     % Fit
-    fittedParams = lsqcurvefit(sinFunction,initialParams, time, double(theResponse), lowerBound, upperBound, options);
+    objective = @(p) sum((sinFunction(p, time) - theResponse).^2);
+    fittedParams = fmincon(objective, initialParams,[],[],[],[],lowerBound,upperBound,[], options);
+    
     if (fittedParams(1) < 0)
         fittedParams(1) = -fittedParams(1);
         fittedParams(2) =  fittedParams(2) + 180;
     end
     fittedParams(1) = fittedParams(1) * maxAmplitude;
-
+    
     % Generate high-resolution fitted function
     if (~isempty(timeHR))
         theFittedResponse = sinFunction(fittedParams,timeHR);
