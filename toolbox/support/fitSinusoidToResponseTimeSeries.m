@@ -25,6 +25,62 @@ function [theFittedResponse, fittedParams] = fitSinusoidToResponseTimeSeries(tim
 %    None
 %         
 
+    maxAmplitude = max(abs(theResponse));
+    theResponse = double(theResponse/maxAmplitude);
+    
+    deltaPhaseDegs = 1.0;
+    deltaAmplitude = 0.01;
+    phaseDegs = 0:deltaPhaseDegs:359;
+    phaseRadians = phaseDegs/180*pi;
+    amplitudes = 0.8:deltaAmplitude:1.2;
+    
+    fTime = 2.0*pi*stimulusTemporalFrequencyHz*time;
+    
+    theMinResidual = Inf;
+    % Search over phase
+    for iPhase = 1:numel(phaseDegs)
+        thePhaseRadians = phaseRadians(iPhase);
+        theSine = sin(fTime - thePhaseRadians);
+        
+        % Search over amplitude
+        for iAmp = 1:numel(amplitudes)
+            theAmplitude = amplitudes(iAmp);
+            theSinewave = theAmplitude * theSine;
+            theResidual = sum((theSinewave-theResponse).^2);
+            
+            if (theResidual < theMinResidual)
+                theMinResidual = theResidual;
+                fittedParams = [theAmplitude*maxAmplitude phaseDegs(iPhase)];
+            end
+        end
+    end
+    
+    % Generate high-resolution fitted function
+    if (~isempty(timeHR))
+        fTime = 2.0*pi*stimulusTemporalFrequencyHz*timeHR;
+        theFittedResponse = fittedParams(1) * sin(fTime - fittedParams(2)/180*pi);
+    else
+        theFittedResponse = [];
+    end
+    
+    
+    debug = false;
+    if (debug)
+        timeHR = linspace(time(1), time(end), 100);
+        fTime = 2.0*pi*stimulusTemporalFrequencyHz*timeHR;
+        theFittedResponse = fittedParams(1) * sin(fTime - fittedParams(2)/180*pi);
+        figure(1); clf;
+        plot(time, theResponse*maxAmplitude, 'ks');
+        hold on;
+        plot(timeHR, theFittedResponse, 'r-');
+        set(gca, 'YLim', [-1 1]);
+        pause
+    end
+    
+end
+
+
+function OLD
     options = optimset(...
         'Display', 'off');
     
