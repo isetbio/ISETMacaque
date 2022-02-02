@@ -87,7 +87,6 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
 
     % Plot the actual RF cone weights for the cone resulting in minRMSerror (minRMSerrorConeIndex)
     conesNum = size(theConeMosaic.coneRFpositionsDegs,1);
-    size(fittedParams)
     Kc = fittedParams(iRGCindex, minRMSerrorConeIndex,1);
     KsToKc = fittedParams(iRGCindex, minRMSerrorConeIndex,2);
     Ks = Kc * KsToKc;

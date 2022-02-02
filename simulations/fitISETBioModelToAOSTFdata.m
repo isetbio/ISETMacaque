@@ -9,7 +9,7 @@ function fitISETBioModelToAOSTFdata
     % the central 6 arcmin of the fovea"
     maxRecordedRGCeccArcMin = 6;
 
-    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [1]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
     
     % How many input cones to use
@@ -63,12 +63,15 @@ function fitISETBioModelToAOSTFdata
             trainModel = false;
     end
 
-    
+    tStarted = clock;
     doIt(crossValidateModel, crossValidateModelAgainstAllSessions, ...
         trainModel, monkeyID, residualDefocusDiopters, ...
         maxRecordedRGCeccArcMin, visualizedLocationsNum, ...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
         startingPointsNum);
+    tFinished = clock;
+    secondsLapsed = etime(tFinished, tStarted);
+    fprintf('Finished in %2.2f hours\n', secondsLapsed/60/60);
 end
 
 
@@ -825,13 +828,30 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     theModelSTF = zeros(1, sfsNum);
     theModelCenterSTF = zeros(1, sfsNum);
     theModelSurroundSTF = zeros(1, sfsNum);
-    timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
+    %timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
 
-        % Retrieve the time-series sesponse for this spatial frequency
-        theModelCenterSTF(iSF) = max(abs(squeeze(centerMechanismModulations(iSF,:))));
-        theModelSurroundSTF(iSF) = max(abs(squeeze(surroundMechanismModulations(iSF,:))));
+        % Fit a sinusoid to the center modulation
+        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                    constants.temporalSupportSeconds, ...
+                    centerMechanismModulations(iSF,:), ...
+                    WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                    []);
+        % The centerSTF is the amplitude of the sinusoid
+        theModelCenterSTF(iSF) = fittedParams(1);
+
+        % Fit a sinusoid to the center modulation
+        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                    constants.temporalSupportSeconds, ...
+                    surroundMechanismModulations(iSF,:), ...
+                    WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                    []);
+        % The centerSTF is the amplitude of the sinusoid
+        theModelSurroundSTF(iSF) = fittedParams(1);
+        
+        %theModelCenterSTF(iSF) = max(abs(squeeze(centerMechanismModulations(iSF,:))));
+        %theModelSurroundSTF(iSF) = max(abs(squeeze(surroundMechanismModulations(iSF,:))));
 
         % The model STF = centerSTF - surroundSTF. This way we can account
         % for negative fluorescence values, interpreting them as points at which 
@@ -843,21 +863,14 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         % the min of the fluorescene STF.
         theModelSTF(iSF) = theModelCenterSTF(iSF) - theModelSurroundSTF(iSF);
 
-%       theTimeSeriesResponse = modelRGCmodulations(iSF,:);
-%       if (1==2)
-%             % Amplitude of modulation by fitting the entire time-series
-%             [theFittedSinusoid, fittedParams] = ...
+
+%       [theFittedSinusoid, fittedParams] = ...
 %                 fitSinusoidToResponseTimeSeries(...
 %                     constants.temporalSupportSeconds, ...
-%                     theTimeSeriesResponse, ...
+%                     modelRGCmodulations(iSF,:), ...
 %                     WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
 %                     timeHR);
-%              theModelSTF(iSF) = fittedParams(1);
-%       else
-%             % Amplitude of modulation is just the max of the time-series
-%             theModelSTF(iSF) = max(abs(theTimeSeriesResponse(:)));
-%       end
-
-        
+%       theModelSTF(iSF) = fittedParams(1);
+    
     end
 end
