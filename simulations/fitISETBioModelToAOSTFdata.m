@@ -3,7 +3,7 @@ function fitISETBioModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 128;
+    startingPointsNum = 256;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
