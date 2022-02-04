@@ -58,7 +58,7 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
 
     errorRange(1)= round(max([0 min([min(rmsErrorsTrain(rmsErrorsTrain>0)) min(rmsErrorsAllTestSessions(rmsErrorsAllTestSessions>0))])-1]));
     errorRange(2)= round(max([max(rmsErrorsTrain(:)) max(rmsErrorsAllTestSessions(:))])+1);
-    plot(visStruct.axSessionsRMSE, [errorRange(1) errorRange(2)], [errorRange(1) errorRange(2)], 'k-', 'LineWidth', 1.0);
+    plot(visStruct.axSessionsRMSE, [errorRange(1) errorRange(2)], [errorRange(1) errorRange(2)], 'k-', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.0);
     hold(visStruct.axSessionsRMSE, 'on');
 
     p1 = scatter(visStruct.axSessionsRMSE, ...
@@ -104,7 +104,7 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
 
     
 
-    legend(visStruct.axSessionsRMSE, [p1, p2], {sprintf('test session %d', dTestSession(1)), sprintf('test session %d', dTestSession(2))}, ...
+    legend(visStruct.axSessionsRMSE, [p1, p2], {sprintf('session %d', dTestSession(1)), sprintf('session %d', dTestSession(2))}, ...
         'location', 'SouthEast');
     % Finish fit plot     
     set(visStruct.axSessionsRMSE, 'FontSize', 18);
@@ -112,8 +112,8 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
         'YLim', errorRange, 'YTick', 0:5:50);
     grid(visStruct.axSessionsRMSE, 'on');
     axis(visStruct.axSessionsRMSE, 'square');
-    xlabel(visStruct.axSessionsRMSE, sprintf('rms error (training, session-%d)', dTrainSession));
-    ylabel(visStruct.axSessionsRMSE, 'rms error (test sessions)');
+    xlabel(visStruct.axSessionsRMSE, sprintf('training RMSE (session-%d)', dTrainSession));
+    ylabel(visStruct.axSessionsRMSE, 'cv-RMSE');
     %title(visStruct.axSessionsRMSE, fitTitle, 'FontWeight', 'normal', 'FontSize', 15);
     
     
