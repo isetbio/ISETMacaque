@@ -135,12 +135,12 @@ $\mbox{STF}_{c}^{m}(\omega)$ and $\mbox{STF}_{s}^{m}(\omega)$ been the STFs of t
 The weights with which the center and surround mechanisms of a model RGC, are pooling signals from a cone-$j$ are derived assuming a Gaussian pooling profiles,
 \begin{eqnarray}
 W_c^j  & = & \begin{cases}
-    \exp \left [ -\left( d_{j}/r_c \right) ^2 \right ], & \text{for the multi-cone RF center model}.\\
-   1, & \text{for the single-cone RF center model}.
+   k_c \times  \exp \left [ -\left( d_{j}/r_c \right) ^2 \right ], & \text{for the multi-cone RF center model}.\\
+   k_c, & \text{for the single-cone RF center model}.
    \end{cases} \\
 W_s^j &= &k_s \times \exp \left [ -\left( d_{j}/r_s \right) ^2 \right ]
 \end{eqnarray}
-\noindent where $d_j$ is the distance between cone-$j$ and the spatial position of the center mechanism of the model RGC (which is the spatial position of the cone driving the center mechanism). The parameters $k_s$, $r_c$, and $r_s$, which represent the surround peak sensitivity and the center and surround characteristic radii, respectively, of the Difference of Gaussians (DoG) RF model, are determined by minimizing the weighted error between the model STF, $\mbox{STF}^{m}(\omega)$, and the measured STF, $\mbox{STF}^{\Delta F / F}(\omega)$, accumulated over all spatial frequencies, $\omega$:
+\noindent where $d_j$ is the distance between cone-$j$ and the spatial position of the center mechanism of the model RGC (which is the spatial position of the cone driving the center mechanism). The parameters $k_c$, $k_s$, $r_c$, and $r_s$, which represent the surround peak sensitivity and the center and surround characteristic radii, respectively, of the Difference of Gaussians (DoG) RF model, are determined by minimizing the weighted error between the model STF, $\mbox{STF}^{m}(\omega)$, and the measured STF, $\mbox{STF}^{\Delta F / F}(\omega)$, accumulated over all spatial frequencies, $\omega$:
 
 \begin{equation}
 \mbox{RMSE} = \displaystyle \sum_{\omega} \frac{1}{\epsilon({\omega})} \times {\left [  \mbox{STF}^{m}(\omega)  - \mbox{STF}^{\Delta F / F}(\omega) \right ] }^2
