@@ -4,12 +4,17 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
     fittedParams, rmsErrorsAllTestSessions, rmsErrorsTrain, ...
     examinedSpatialFrequencies, fittedSTFs, ...
     theMeasuredSTFdata, theMeasuredSTFerrorData, ...
+    theTrainingSTFs, ...
+    theTrainingSTFdata, ...
+    theTrainingSTFerrorData, ...
     fitTitle, dTrainSession, dTestSession)
 
 
-
     % mean over all cross-validated sessions
-    rmsErrors = squeeze(mean(rmsErrorsAllTestSessions,1, 'omitnan'));
+    cvSessionWeights = [1 1];
+    sessionWeights = repmat(cvSessionWeights(:), [1 size(rmsErrorsAllTestSessions,2) size(rmsErrorsAllTestSessions,3)]);
+    rmsErrors = squeeze(mean(sessionWeights.*rmsErrorsAllTestSessions, 1, 'omitnan'));
+
 
     % max (over all cones) of the mean(over sessions) rmsError
     maxRMSerror = max(squeeze(rmsErrors(iRGCindex,1:iCone)), [], 2, 'omitnan');
@@ -183,40 +188,70 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
     session1Color = [0.7 0.2 0.8]*rr + [1 1 1]*(1-rr);
     session2Color = [0.3 0.7 0.2]*rr + [1  1 1]*(1-rr);
 
-    % Session 1 fitted STF with scaled STF from training model
+    % The training STF
+    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(theTrainingSTFs(minRMSerrorConeIndex,:)), 'k-', ...
+        'Color', 0.4*[1 1 1], 'LineWidth', 4.0);
+    hold(visStruct.axSTFfits, 'on');
+    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(theTrainingSTFs(minRMSerrorConeIndex,:)), 'k-', ...
+        'Color', 0.9*[1 1 1], 'LineWidth', 1.5);
+
+
+
+    % Cross-validated session 1 fitted STF with scaled STF from training model
     plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(1, minRMSerrorConeIndex,:)), 'k-', ...
         'Color', session1Color*0.5, 'LineWidth', 4.0);
     hold(visStruct.axSTFfits, 'on');
     plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(1, minRMSerrorConeIndex,:)), 'k-', ...
         'Color', session1Color, 'LineWidth', 1.5);
+
+
+    % Cross-validated session 2 fitted STF with scaled STF from training model
+    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(2, minRMSerrorConeIndex,:)), 'k-', ...
+        'Color', session2Color*0.5, 'LineWidth', 4.0);
+    
+    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(2, minRMSerrorConeIndex,:)), 'k-', ...
+        'Color', session2Color, 'LineWidth', 1.5);
+
+
+    % Training session stderr STF
+    for iSF = 1:numel(examinedSpatialFrequencies)
+        plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
+            theTrainingSTFdata(1,iSF) + theTrainingSTFerrorData(1, iSF)*[-1 1], '-', ...
+            'Color', 0.4*[1 1 1], 'LineWidth', 4.0);
+        plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
+            theTrainingSTFdata(1,iSF) + theTrainingSTFerrorData(1, iSF)*[-1 1], '-', ...
+            'Color', 0.9*[1 1 1], 'LineWidth', 1);
+    end
+    % Training session mean STF
+    plot(visStruct.axSTFfits, examinedSpatialFrequencies, theTrainingSTFdata(1,:), 'o', ...
+        'MarkerSize', 14, 'MarkerFaceColor', 0.9*[1 1 1], 'MarkerEdgeColor', 0.4*[1 1 1], ...
+        'LineWidth', 2.0);
+
     % Session 1 std.err STF
     for iSF = 1:numel(examinedSpatialFrequencies)
         plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
             theMeasuredSTFdata(1,iSF) + theMeasuredSTFerrorData(1, iSF)*[-1 1], '-', ...
-            'Color', session1Color*0.5, 'LineWidth', 3.0);
+            'Color', session1Color*0.5, 'LineWidth', 4.0);
         plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
             theMeasuredSTFdata(1,iSF) + theMeasuredSTFerrorData(1, iSF)*[-1 1], '-', ...
-            'Color', session1Color, 'LineWidth', 1.5);
+            'Color', session1Color, 'LineWidth', 1);
     end
     % Session 1 mean STF
     plot(visStruct.axSTFfits, examinedSpatialFrequencies, theMeasuredSTFdata(1,:), 'o', ...
         'MarkerSize', 14, 'MarkerFaceColor', session1Color, 'MarkerEdgeColor', session1Color*0.5, ...
         'LineWidth', 2.0);
 
-    % Session 2 fitted STF with scaled STF from training model
-    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(2, minRMSerrorConeIndex,:)), 'k-', ...
-        'Color', session2Color*0.5, 'LineWidth', 4.0);
+
+
     
-    plot(visStruct.axSTFfits, examinedSpatialFrequencies, squeeze(fittedSTFs(2, minRMSerrorConeIndex,:)), 'k-', ...
-        'Color', session2Color, 'LineWidth', 1.5);
     % Session 2 std.err STF
     for iSF = 1:numel(examinedSpatialFrequencies)
         plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
             theMeasuredSTFdata(2,iSF) + theMeasuredSTFerrorData(2, iSF)*[-1 1], '-', ...
-            'Color', session2Color*0.5, 'LineWidth', 3.0);
+            'Color', session2Color*0.5, 'LineWidth', 4.0);
         plot(visStruct.axSTFfits, examinedSpatialFrequencies(iSF)*[1 1], ...
             theMeasuredSTFdata(2,iSF) + theMeasuredSTFerrorData(2, iSF)*[-1 1], '-', ...
-            'Color', session2Color, 'LineWidth', 1.5);
+            'Color', session2Color, 'LineWidth', 1);
     end
     % Session 2 mean STF
     plot(visStruct.axSTFfits, examinedSpatialFrequencies, theMeasuredSTFdata(2,:), 'o', ...
@@ -264,10 +299,10 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
             surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
             rfProfile = centerProfile-surroundProfile;
             rfProfile = rfProfile/max(rfProfile)*maxReferenceProfile;
-            linePlotHandle2 = plot(visStruct.axRF, xMicrons, rfProfile, '-', 'Color', [0.0 0.0 0.0], 'LineWidth', 1.5);
+            linePlotHandle2 = plot(visStruct.axRF, xMicrons, rfProfile, '-', 'Color', [0.0 0.0 0.0], 'LineWidth', 1.0);
 
             % Opacity of lines : 0.5
-            linePlotHandle2.Color = [linePlotHandle2.Color 0.25];
+            linePlotHandle2.Color = [linePlotHandle2.Color 0.5];
         end
     end
     
@@ -298,8 +333,8 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
          baseline, faceColor, edgeColor, faceAlpha, lineWidth);
 
     % Plot the minRMS RGC profile
-    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 4, 'Color', [0.4 0 0]);
-    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 1.5);
+    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 5, 'Color', [0.4 0.4 0.4]);
+    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 1.5, 'Color', [0.9 0.9 0.9]);
 
 
     % Plot the cones aperture schematics
