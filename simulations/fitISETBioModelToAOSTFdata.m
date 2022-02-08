@@ -3,18 +3,21 @@ function fitISETBioModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 4;
+    startingPointsNum = 256;
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
-    maxRecordedRGCeccArcMin = 1;
+    maxRecordedRGCeccArcMin = 1.5; % 6
+
+    % How many input cones to . Dont use less than 2 because
+    % of issues with MATLAB's last dimenion dropping
+    visualizedLocationsNum = 6; %Inf;
+
 
     targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
     
-    % How many input cones to . Dont use less than 2 because
-    % of issues with MATLAB's last dimenion dropping
-    visualizedLocationsNum = 2; %Inf;
+    
 
     
     %residualDefocusDiopters = 0.000;

@@ -120,8 +120,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                 fittedSTFs(1,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
 
                 theTrainingFittedSTFs(1,iRGCindex, iCone,:) = fittedSTFs(1,iRGCindex, iCone,:);
-                size(rmsErrors)
-                pause
+
             else
                 % Cross-validate the fitted model to the test data
                 dTrainSession = str2num(strrep(d.dataSets{1}, 's', ''));
@@ -198,7 +197,6 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
 
 
             if (sessionsNum == 1)
-                size(rmsErrors)
                 % Single session. visualize fits
                 % Update visualization for this assumed RFcenter cone
                 updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...

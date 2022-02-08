@@ -254,8 +254,13 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
 
     weights = 1./theSTFstdErr;
-    objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants) - theSTF').^2);
-   
+    fitAbsoluteValueOfResponses = true;
+    if (fitAbsoluteValueOfResponses)
+        objective = @(p) sum(weights' .* (abs(ISETBioComputedSTF(p, constants)) - abs(theSTF')).^2);
+    else
+        objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants) - theSTF').^2);
+    end
+
     options = optimset(...
         'Display', 'off', ...
         'Algorithm', 'interior-point',... % 'sqp', ... % 'interior-point',...
