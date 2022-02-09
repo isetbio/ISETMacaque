@@ -7,14 +7,14 @@ function fitISETBioModelToAOSTFdata
     
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
-    maxRecordedRGCeccArcMin = 1.5; % 6
+    maxRecordedRGCeccArcMin = 2; % 6
 
     % How many input cones to . Dont use less than 2 because
     % of issues with MATLAB's last dimenion dropping
-    visualizedLocationsNum = 6; %Inf;
+    visualizedLocationsNum = 12; %Inf;
 
 
-    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [3]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
     
     
