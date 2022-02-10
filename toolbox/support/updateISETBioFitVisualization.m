@@ -249,8 +249,8 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
         % More than 1 cone in RF center, so compute radiusRatio based on sqrt(cones)
         radiusRatio = sqrt(numel(theBestFitSurroundConeIndices) / numel(theBestFitCenterConeIndices));
     end
-    sensitivityRatio = Kc/Ks
-    sensitivityRatio = (Kc * max(theBestFitCenterConeWeights)) / (Ks * max(theBestFitSurroundConeWeights))
+    
+    sensitivityRatio = (Kc * max(theBestFitCenterConeWeights)) / (Ks * max(theBestFitSurroundConeWeights));
     
     
 
