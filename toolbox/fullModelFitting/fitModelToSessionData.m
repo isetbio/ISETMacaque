@@ -1,6 +1,10 @@
-function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharacteristicRadiusDegs] = ...
-    fitModelToSessionData(theTrainedModel, modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters, ...
-    d, crossValidationRun, startingPointsNum, centerConeType, modelVariant, targetRGCindices)
+function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
+    centerConeCharacteristicRadiusDegs, centerConesFractionalNum, centroidPosition, ...
+    centerConeIndices, centerConeWeights, surroundConeIndices, surroundConeWeights] = fitModelToSessionData(...
+                theTrainedModel, modelSTFrunData, ...
+                indicesOfModelConesDrivingTheRGCcenters, ...
+                d, crossValidationRun, startingPointsNum, ...
+                centerConeType, modelVariant, targetRGCindices)
 
     assert( ((isempty(d.test)) == isempty(theTrainedModel)), ...
         sprintf('Incosistent d.test and theTrainedModel params'));
@@ -68,11 +72,15 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
     end
 
     % Initialize
-    centerConesNum = numel(indicesOfModelConesDrivingTheRGCcenters);
-    rmsErrors = nan(sessionsNum, rgcCellsNum, centerConesNum);
+    examinedCenterConesNum = numel(indicesOfModelConesDrivingTheRGCcenters);
+    rmsErrors = nan(sessionsNum, rgcCellsNum, examinedCenterConesNum);
     rmsErrorsTrain = [];
-    fittedParams = zeros(sessionsNum, rgcCellsNum, centerConesNum,3);
-    fittedSTFs = zeros(sessionsNum, rgcCellsNum, centerConesNum,sfsNum);
+    if (strcmp(modelVariant.centerConesSchema, 'single'))
+        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,3);
+    else
+        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,4);
+    end
+    fittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
 
     for iRGCindex = 1:rgcCellsNum
         
@@ -109,6 +117,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                     squeeze(theMeasuredSTFdata(1,iRGCindex,:)), ...
                     squeeze(theMeasuredSTFerrorData(1,iRGCindex,:)), ...
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
+                    modelVariant, ...
                     startingPointsNum, []);
                 tEnd = clock;
                 fprintf(2,'\tModel training for %s-cone %d/%d took %2.2f minutes.\n', ...
@@ -116,6 +125,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                 
                 % Keep fit results for each RGC and each RF center driving cone
                 fittedParams(1,iRGCindex, iCone,:) = fitResults.fittedParams;
+
                 rmsErrors(1,iRGCindex, iCone) = fitResults.rmsErrors;
                 fittedSTFs(1,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
 
@@ -159,6 +169,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                         squeeze(theMeasuredSTFdata(iSession,iRGCindex,:)), ...
                         squeeze(theMeasuredSTFerrorData(iSession,iRGCindex,:)), ...
                         modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
+                        modelVariant, ...
                         startingPointsNum, trainedModelFitParams);
 
                     fittedParams(iSession,iRGCindex, iCone,:) = fitResults.fittedParams;
@@ -174,7 +185,11 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
             centerConeCharacteristicRadiusDegs(iCone) = fitResults.centerConeCharacteristicRadiusDegs;
             surroundConeIndices{iCone} = fitResults.surroundConeIndices;
             surroundConeWeights{iCone} = fitResults.surroundConeWeights;
-
+            centerConeIndices{iCone} = fitResults.centerConeIndices;
+            centerConeWeights{iCone} = fitResults.centerConeWeights;
+            centerConesFractionalNum{iCone} = fitResults.centerConesFractionalNum;
+            centroidPosition{iCone} = fitResults.centroidPosition;
+            
             if (isempty(d.test))
                 % Display the training model params
                 for iParam = 1:numel(fitResults.paramNames)
@@ -203,6 +218,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                     indicesOfModelConesDrivingTheRGCcenters, ...
                     modelSTFrunData.theConeMosaic, ...
                     centerConeCharacteristicRadiusDegs, ...
+                    centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
                     surroundConeIndices, surroundConeWeights, ...
                     squeeze(fittedParams(1,:,:,:)), squeeze(rmsErrors(1,:,:)), rmsErrorsTrain, ...
                     modelSTFrunData.examinedSpatialFrequencies, fittedSTFs, ...
@@ -215,6 +231,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, centerConeCharact
                     indicesOfModelConesDrivingTheRGCcenters, ...
                     modelSTFrunData.theConeMosaic, ...
                     centerConeCharacteristicRadiusDegs, ...
+                    centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
                     surroundConeIndices, surroundConeWeights, ...
                     squeeze(fittedParams(1,:,:,:)), rmsErrors, rmsErrorsTrain, ...
                     modelSTFrunData.examinedSpatialFrequencies, ...
@@ -235,7 +252,9 @@ end
 
 
 function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
-                     modelSTFrunData, centerModelConeIndex, startingPointsNum, ...
+                     modelSTFrunData, centerModelConeIndex, ...
+                     modelVariant, ...
+                     startingPointsNum, ...
                      trainedModelFitParams)
 
     allowableSurroundConeTypes = [ ...
@@ -244,6 +263,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     constants.allowableSurroundConeTypes = allowableSurroundConeTypes;
     constants.centerConeIndex = centerModelConeIndex;
+    constants.centerConesSchema = modelVariant.centerConesSchema;
     constants.allConePositions = modelSTFrunData.theConeMosaic.coneRFpositionsDegs;
     constants.allConeTypes = modelSTFrunData.theConeMosaic.coneTypes;
     constants.coneMosaicSpatiotemporalActivation = modelSTFrunData.coneMosaicSpatiotemporalActivation;
@@ -255,10 +275,11 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     weights = 1./theSTFstdErr;
     fitAbsoluteValueOfResponses = true;
+    visualizeCenterWeights = false;
     if (fitAbsoluteValueOfResponses)
-        objective = @(p) sum(weights' .* (abs(ISETBioComputedSTF(p, constants)) - abs(theSTF')).^2);
+        objective = @(p) sum(weights' .* (abs(ISETBioComputedSTF(p, constants, visualizeCenterWeights)) - abs(theSTF')).^2);
     else
-        objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants) - theSTF').^2);
+        objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - theSTF').^2);
     end
 
     options = optimset(...
@@ -287,13 +308,24 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         'high', 40, ...
         'initial', 5);
 
-    %                Kc            kS/kC              RsToCenterConeRc
-    paramsInitial = [kc.initial    KsToKc.initial     RsToCenterConeRc.initial];
-    lowerBound    = [kc.low        KsToKc.low         RsToCenterConeRc.low];
-    upperBound    = [kc.high       KsToKc.high        RsToCenterConeRc.high];
+    %                Kc            kS/kC              RsToCenterConeRc          
+    paramsInitial = [kc.initial    KsToKc.initial     RsToCenterConeRc.initial  ];
+    lowerBound    = [kc.low        KsToKc.low         RsToCenterConeRc.low      ];
+    upperBound    = [kc.high       KsToKc.high        RsToCenterConeRc.high     ];
     paramNames    = {'Kc', 'kS/kC',  'RsToCenterConeRc'};
     
-    
+    if (strcmp(constants.centerConesSchema, 'variable'))
+        % Add 4-th parameter, the number of center cones
+        RcToCenterConeRc = struct(...
+            'low', 1.0, ...
+            'high', 3.0, ...
+            'initial', 1.1);
+        paramNames{numel(paramNames)+1} = 'RcToCenterConeRc';
+        paramsInitial(numel(paramsInitial)+1) = RcToCenterConeRc.initial;
+        lowerBound(numel(lowerBound)+1) = RcToCenterConeRc.low;
+        upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
+    end
+
  
     if (isempty(trainedModelFitParams))
         % Fit model to data
@@ -311,25 +343,29 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
                             );
         
             displayProgress = 'off';
+            useParallel = true;
             ms = MultiStart(...
                            'Display', displayProgress, ... %'FunctionTolerance', 2e-4, ...
                            'StartPointsToRun','bounds-ineqs', ...  % run only initial points that are feasible with respect to bounds and inequality constraints.
-                           'UseParallel', true);
+                           'UseParallel', useParallel);
         
             % Run the multi-start
             [trainedModelFitParams,errormulti] = run(ms, problem, startingPointsNum);
         end
 
         % Compute the fitted STF
+        visualizeCenterWeights = true;
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
-         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants);
-    
+         centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
+         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants, visualizeCenterWeights);
+
         % Return dublicate of the fittedSTF
         trainedModelFittedSTF = theFittedSTF;
     else
 
         % Compute the fittedSTF using the trained model
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
+         centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
          surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants);
 
         % Keep a copy so we can return it in the struct fitResults.fittedParamsSTF
@@ -380,14 +416,82 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     fitResults.surroundConeIndices = surroundConeIndices;
     fitResults.surroundConeWeights = surroundConeWeights;
+    fitResults.centerConeIndices = centerConeIndices;
+    fitResults.centerConeWeights = centerConeWeights;
+
+    fitResults.centerConesFractionalNum = centerConesFractionalNum;
+    fitResults.centroidPosition = centroidPosition;
     fitResults.paramNames = paramNames;
     fitResults.paramsLowerBound = lowerBound;
     fitResults.paramsUpperBound = upperBound;
 end
 
-function [surroundConeIndices, surroundConeWeights] = surroundConeIndicesAndWeightsFast(RsDegs, constants)
+function  [centerConeIndices, centerConeWeights, ...
+    centerConesFractionalNum, centroidPosition] = centerConeIndicesAndWeights(RcDegs, constants)
+
+    if (isnan(RcDegs))
+        centerConeWeights = 1;
+        centerConeIndices = constants.centerConeIndex;
+        centerConesFractionalNum = 1;
+        centroidPosition = constants.allConePositions(constants.centerConeIndex,:);
+    else
+        % Determine how many cones are feeding into the center as (Rc/coneRc)^2
+        centerConesFractionalNum = (RcDegs/constants.centerConeCharacteristicRadiusDegs)^2;
+        
+        if (centerConesFractionalNum <= 1.01)
+            centerConeWeights = 1;
+            centerConeIndices = constants.centerConeIndex;
+            centerConesFractionalNum = 1;
+            centroidPosition = constants.allConePositions(constants.centerConeIndex,:);
+            return;
+        end
+
+        % Find the distances from the centerCone to all other cones
+        d = sqrt(sum((bsxfun(@minus, constants.allConePositions, constants.allConePositions(constants.centerConeIndex,:))).^2,2));
+
+        % Sort the distances from lowest to highest
+        [~, sortedConeIndices] = sort(d, 'ascend');
+
+        % centerConeIndices is the first ceil(centerConesFractionalNum)
+        sortedConeIndices = sortedConeIndices(1:ceil(centerConesFractionalNum));
+
+        % Find the weights for the weighted centroid
+        centroidWeights(1:floor(centerConesFractionalNum)) = 1;
+        centroidWeights(ceil(centerConesFractionalNum)) = ceil(centerConesFractionalNum)-centerConesFractionalNum;
+
+        % Compute weighted centroid position
+        for k = 1:numel(centroidWeights)
+            weightedPos = constants.allConePositions(sortedConeIndices(k),:) * centroidWeights(k);
+            if (k == 1)
+                centroidPosition = weightedPos;
+            else
+                centroidPosition = centroidPosition + weightedPos;
+            end
+        end
+        centroidPosition = centroidPosition / sum(centroidWeights);
+
+        % Gaussian weights with cone distance from centroid
+        d = sqrt(sum((bsxfun(@minus, constants.allConePositions(sortedConeIndices,:), centroidPosition)).^2,2));
+        centerConeWeights = exp(-(d/RcDegs).^2);
+
+        minSensitivity = 1/100;
+        idx = find(centerConeWeights >= minSensitivity);
+
+        % Return indices and connection weights of the center cones
+        centerConeIndices = sortedConeIndices(idx);
+        centerConeWeights = centerConeWeights(idx);
+        centerConeIndices = reshape(centerConeIndices, [1 numel(centerConeIndices)]);
+        centerConeWeights = reshape(centerConeWeights, [1 numel(centerConeIndices)]);
+
+    end
+
+end
+
+
+function [surroundConeIndices, surroundConeWeights] = surroundConeIndicesAndWeights(RsDegs, constants, centerPosition)
+
     % Gaussian weights for the surround cones    
-    d = sqrt(sum((bsxfun(@minus, constants.allConePositions, constants.allConePositions(constants.centerConeIndex,:))).^2,2));
+    d = sqrt(sum((bsxfun(@minus, constants.allConePositions, centerPosition)).^2,2));
     surroundWeights = exp(-(d/RsDegs).^2);
 
     % Threshold sensitivity for inclusion to the surround summation mechanism
@@ -411,37 +515,87 @@ end
 
 
 function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
-              surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(DoGparams, constants)
+              centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
+              surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(DoGparams, constants, visualizeCenterWeights)
+
+    Kc = DoGparams(1);
+    if (strcmp(constants.centerConesSchema, 'single'))
+        RcDegs = nan;
+    else
+        RcDegs = DoGparams(4)*constants.centerConeCharacteristicRadiusDegs;
+    end
 
     KsToKc = DoGparams(2);
-    Kc = DoGparams(1);
     Ks = Kc * KsToKc;
     RsDegs = DoGparams(3)*constants.centerConeCharacteristicRadiusDegs;
-    
-    % Determine surround cone indices and weights
+
+   
+    % Determine center cone indices and weights
+    [centerConeIndices, centerConeWeights, centerConesFractionalNum, centroidPosition] = ...
+        centerConeIndicesAndWeights(RcDegs, constants);
+
+     % Determine surround cone indices and weights
     [surroundConeIndices, surroundConeWeights] = ...
-        surroundConeIndicesAndWeightsFast(RsDegs, constants);
+        surroundConeIndicesAndWeights(RsDegs, constants, centroidPosition);
+
+    if (visualizeCenterWeights)
+        figure(111); clf;
+        hold on
+        for k = 1:numel(centerConeIndices)
+            theConeIndex = centerConeIndices(k);
+            theConePos = constants.allConePositions(theConeIndex,:);
+            theConeWeight = centerConeWeights(k);
+            theMarkerSize = max([1, theConeWeight*100]);
+            if (theConeIndex == constants.centerConeIndex)
+                theConeColor = [1 0 0];
+            else
+                theConeColor = [0 0 0];
+            end
+            plot(theConePos(1), theConePos(2), 'o', 'MarkerSize', theMarkerSize, 'Color', theConeColor);
+            plot(centroidPosition(1), centroidPosition(2), 'bx', 'MarkerSize', 14);
+        end
+        xRange(1) = min(constants.allConePositions(centerConeIndices,1))-3/60;
+        xRange(2) = max(constants.allConePositions(centerConeIndices,1))+3/60;
+        yRange(1) = min(constants.allConePositions(centerConeIndices,2))-3/60;
+        yRange(2) = max(constants.allConePositions(centerConeIndices,2))+3/60;
+
+        set(gca, 'XLim', xRange, 'YLim', yRange);
+        set(gca, 'FontSize', 18);
+        title(sprintf('centerConesFractionalNum = %2.3f', centerConesFractionalNum));
+        drawnow;
+    end
 
     %sfsNum = size(constants.coneMosaicSpatiotemporalActivation,1);
     %tBinsNum = size(constants.coneMosaicSpatiotemporalActivation,2);
     %conesNum = size(constants.coneMosaicSpatiotemporalActivation,3);
 
     % Center model cone responses
-    centerMechanismModulations = constants.coneMosaicSpatiotemporalActivation(:,:,constants.centerConeIndex);
+    centerMechanismInputModulations = constants.coneMosaicSpatiotemporalActivation(:,:,centerConeIndices);
     
+    % Weighted pooling of center model cone responses
+    weightedCenterModulations = bsxfun(@times, centerMechanismInputModulations, reshape(centerConeWeights, [1 1 numel(centerConeWeights)]));
+
+    % Sum weighted center cone responses
+    totalCenterResponse = sum(weightedCenterModulations,3);
+
+    % Apply center gain
+    centerMechanismModulations = Kc * totalCenterResponse;
+
+
     % Surround model cone responses
     surroundMechanismInputModulations = constants.coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices);
 
-    % Apply center gain
-    centerMechanismModulations = Kc * centerMechanismModulations;
-
     % Weighted pooling of surround model cone responses
-    surroundConeWeights = reshape(surroundConeWeights, [1 1 numel(surroundConeWeights)]);
-    weightedSurroundModulations = bsxfun(@times, surroundMechanismInputModulations, surroundConeWeights);
-
-    % Apply surround gain
-    surroundMechanismModulations = Ks * sum(weightedSurroundModulations,3);
+    weightedSurroundModulations = bsxfun(@times, surroundMechanismInputModulations, reshape(surroundConeWeights, [1 1 numel(surroundConeWeights)]));
     
+    % Sum weighted surround cone responses
+    totalSurroundResponse = sum(weightedSurroundModulations,3);
+
+    % Apply surround gain 
+    surroundMechanismModulations = Ks * totalSurroundResponse;
+    
+
+
     % Composite center-surround responses
     modelRGCmodulations = centerMechanismModulations - surroundMechanismModulations;
     

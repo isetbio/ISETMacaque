@@ -1,6 +1,8 @@
 function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     indicesOfModelConesDrivingTheRGCcenters, theConeMosaic, ...
-    centerConeCharacteristicRadiusDegs, surroundConeIndices, surroundConeWeights, ...
+    centerConeCharacteristicRadiusDegs, ...
+    centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum,...
+    surroundConeIndices, surroundConeWeights, ...
     fittedParams, rmsErrors, rmsErrorsTrain, examinedSpatialFrequencies, fittedSTFs, ...
     theMeasuredSTFdata, theMeasuredSTFerrorData, fitTitle)
 
@@ -88,20 +90,30 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     % Plot the actual RF cone weights for the cone resulting in minRMSerror (minRMSerrorConeIndex)
     conesNum = size(theConeMosaic.coneRFpositionsDegs,1);
     Kc = fittedParams(iRGCindex, minRMSerrorConeIndex,1);
+
+
     KsToKc = fittedParams(iRGCindex, minRMSerrorConeIndex,2);
     Ks = Kc * KsToKc;
     
+    theBestFitSurroundConeIndices = surroundConeIndices{minRMSerrorConeIndex};
+    theBestFitSurroundConeWeights = surroundConeWeights{minRMSerrorConeIndex};
+    theBestFitCenterConeIndices = centerConeIndices{minRMSerrorConeIndex};
+    theBestFitCenterConeWeights = centerConeWeights{minRMSerrorConeIndex};
+
     theConeWeights = zeros(1, conesNum);
-    theConeWeights(surroundConeIndices{minRMSerrorConeIndex}) = -Ks * surroundConeWeights{minRMSerrorConeIndex};
-    theConeWeights(indicesOfModelConesDrivingTheRGCcenters(minRMSerrorConeIndex)) = ...
-        theConeWeights(indicesOfModelConesDrivingTheRGCcenters(minRMSerrorConeIndex)) + Kc;
+    theConeWeights(theBestFitSurroundConeIndices) = -Ks * theBestFitSurroundConeWeights;
+    
+    theConeWeights(theBestFitCenterConeIndices) = ...
+        theConeWeights(theBestFitCenterConeIndices) + Kc*theBestFitCenterConeWeights;
 
     centerConePositionMicrons = theConeMosaic.coneRFpositionsMicrons(indicesOfModelConesDrivingTheRGCcenters(minRMSerrorConeIndex),:);
+    centerConePositionDegs = theConeMosaic.coneRFpositionsDegs(indicesOfModelConesDrivingTheRGCcenters(minRMSerrorConeIndex),:);
     xRangeMicrons = centerConePositionMicrons(1) + 10*[-1 1];
     yRangeMicrons = centerConePositionMicrons(2) + 10*[-1 1];
+
     exclusivelySurroundConeIndices = find(theConeWeights<0);
     if (isempty(exclusivelySurroundConeIndices))
-        maxActivationRange = Kc;
+        maxActivationRange = Kc*max(theBestFitCenterConeWeights);
     else
         maxActivationRange = max(abs(theConeWeights(exclusivelySurroundConeIndices)));
     end
@@ -126,23 +138,58 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     cla(visStruct.axRF);
 
     xArcMin = -4:0.01:4;
-    xDegs = xArcMin/60;
-    xMicrons = centerConePositionMicrons(1) + xDegs * WilliamsLabData.constants.micronsPerDegreeRetinalConversion; 
-
+    xMicrons = centerConePositionMicrons(1) + xArcMin/60 * WilliamsLabData.constants.micronsPerDegreeRetinalConversion; 
+    xDegs = centerConePositionDegs(1) + xArcMin/60;
     hold(visStruct.axRF, 'on');
     
     % Compute the minRMSerror profile
+    theBestFitCenterConeIndices = centerConeIndices{minRMSerrorConeIndex};
+    theBestFitCenterConeWeights = centerConeWeights{minRMSerrorConeIndex};
+    theBestFitCentroidPosition = centroidPosition{minRMSerrorConeIndex};
+    
     Kc = fittedParams(iRGCindex, minRMSerrorConeIndex,1);
     KsToKc = fittedParams(iRGCindex, minRMSerrorConeIndex,2);
     Ks = Kc * KsToKc;
     RcDegs = centerConeCharacteristicRadiusDegs(minRMSerrorConeIndex);
     RsDegs = fittedParams(iRGCindex, minRMSerrorConeIndex,3)*RcDegs;
-    centerProfile = Kc * exp(-(xDegs/RcDegs).^2);
-    surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
-    referenceProfile = centerProfile - surroundProfile;
+
+    for iCenterCone = 1:numel(theBestFitCenterConeIndices)
+        theConePosDegs = theConeMosaic.coneRFpositionsDegs(theBestFitCenterConeIndices(iCenterCone),:);
+        theConeGain = theBestFitCenterConeWeights(iCenterCone);
+        if (iCenterCone == 1)
+            centerProfile = theConeGain * exp(-((xDegs-theConePosDegs(1))/RcDegs).^2);
+        else
+            centerProfile = centerProfile + theConeGain * exp(-((xDegs-theConePosDegs(1))/RcDegs).^2);
+        end
+    end
+    referenceCenterProfile = Kc * centerProfile;
+
+
+    referenceSurroundProfile = Ks * exp(-((xDegs-theBestFitCentroidPosition(1))/RsDegs).^2);
+    referenceProfile = referenceCenterProfile - referenceSurroundProfile;
     maxReferenceProfile = max(referenceProfile);
 
-    % Plot the RGC profile for all other which result in higher RMSerrors 
+    % Plot the minRMSerror  center profile
+    faceColor = 1.7*[100 0 30]/255;
+    edgeColor = [0.7 0.2 0.2];
+    faceAlpha = 0.4;
+    lineWidth = 1.0;
+    baseline = 0;
+    shadedAreaPlot(visStruct.axRF, xMicrons, referenceCenterProfile, ...
+         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
+    
+    % Plot the minRMSerror surround profile
+    faceColor = [75 150 200]/255;
+    edgeColor = [0.3 0.3 0.7];
+    shadedAreaPlot(visStruct.axRF, xMicrons, -referenceSurroundProfile, ...
+         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
+
+    % Plot the minRMS RGC profile
+    plot(visStruct.axRF, xMicrons, referenceProfile, 'r-', 'LineWidth', 4, 'Color', [0.4 0 0]);
+    plot(visStruct.axRF, xMicrons, referenceProfile, 'r-', 'LineWidth', 1.5);
+
+
+    % Plot the RGC profile for all other examined cone positions which result in higher RMSerrors 
     for iiCone = 1:iCone
         if (iiCone ~= minRMSerrorConeIndex)
             Kc = fittedParams(iRGCindex, iiCone,1);
@@ -150,8 +197,24 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
             Ks = Kc * KsToKc;
             RcDegs = centerConeCharacteristicRadiusDegs(iiCone);
             RsDegs = fittedParams(iRGCindex, iiCone,3)*RcDegs;
-            centerProfile = Kc * exp(-(xDegs/RcDegs).^2);
-            surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
+
+            theCurrentFitCenterConeIndices = centerConeIndices{iiCone};
+            theCurrentFitCenterConeWeights = centerConeWeights{iiCone};
+            theCurrentFitCentroidPosition = centroidPosition{iiCone};
+
+            for iCenterCone = 1:numel(theCurrentFitCenterConeIndices)
+                theConePosDegs = theConeMosaic.coneRFpositionsDegs(theCurrentFitCenterConeIndices(iCenterCone),:);
+                theConeGain = theCurrentFitCenterConeWeights(iCenterCone);
+                
+                if (iCenterCone == 1)
+                    centerProfile = theConeGain * exp(-((xDegs-theConePosDegs(1))/RcDegs).^2);
+                else
+                    centerProfile = centerProfile + theConeGain * exp(-((xDegs-theConePosDegs(1))/RcDegs).^2);
+                end
+            end
+            centerProfile = Kc * centerProfile;
+            surroundProfile = Ks * exp(-((xDegs-theCurrentFitCentroidPosition(1))/RsDegs).^2);
+
             rfProfile = centerProfile-surroundProfile;
             rfProfile = rfProfile/max(rfProfile)*maxReferenceProfile;
             linePlotHandle2 = plot(visStruct.axRF, xMicrons, rfProfile, '-', 'Color', [0.0 0.0 0.0], 'LineWidth', 1.5);
@@ -160,36 +223,6 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
         end
     end
     
-
-    % Plot the minRMSerror profile
-    Kc = fittedParams(iRGCindex, minRMSerrorConeIndex,1);
-    KsToKc = fittedParams(iRGCindex, minRMSerrorConeIndex,2);
-    Ks = Kc * KsToKc;
-    RcDegs = centerConeCharacteristicRadiusDegs(minRMSerrorConeIndex);
-    RsDegs = fittedParams(iRGCindex, minRMSerrorConeIndex,3)*RcDegs;
-    centerProfile = Kc * exp(-(xDegs/RcDegs).^2);
-    surroundProfile = Ks * exp(-(xDegs/RsDegs).^2);
-
-    % Plot the minRMSerror  center profile
-    faceColor = 1.7*[100 0 30]/255;
-    edgeColor = [0.7 0.2 0.2];
-    faceAlpha = 0.4;
-    lineWidth = 1.0;
-    baseline = 0;
-    shadedAreaPlot(visStruct.axRF, xMicrons, centerProfile, ...
-         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
-    
-    
-    % Plot the minRMSerror surround profile
-    faceColor = [75 150 200]/255;
-    edgeColor = [0.3 0.3 0.7];
-    shadedAreaPlot(visStruct.axRF, xMicrons, -surroundProfile, ...
-         baseline, faceColor, edgeColor, faceAlpha, lineWidth);
-
-    % Plot the minRMS RGC profile
-    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 4, 'Color', [0.4 0 0]);
-    plot(visStruct.axRF, xMicrons, centerProfile-surroundProfile, 'r-', 'LineWidth', 1.5);
-
 
     % Plot the cones aperture schematics
     coneDiameterArcMin = RcDegs/sqrt(2.0)/0.204*60;
@@ -204,19 +237,31 @@ function updateISETBioFitVisualization(visStruct, iRGCindex, iCone, ...
     end
 
     hold(visStruct.axRF, 'off');
-    set(visStruct.axRF, 'YColor', 'none', 'YLim', max(centerProfile)*[-0.5 1.05], 'YTick', [0], ...
+    set(visStruct.axRF, 'YColor', 'none', 'YLim', max(referenceCenterProfile)*[-0.5 1.05], 'YTick', [0], ...
         'XLim', xRangeMicrons, 'XTick', -40:2:40, 'FontSize', 18);
     xlabel(visStruct.axRF,'retinal space (microns)');
     xtickangle(visStruct.axRF, 0);
 
+    % Compute Rs/Rc and Kc/Ks ratios
+    if (numel(theBestFitCenterConeIndices) == 1)
+        radiusRatio = RsDegs/RcDegs;
+    else
+        % More than 1 cone in RF center, so compute radiusRatio based on sqrt(cones)
+        radiusRatio = sqrt(numel(theBestFitSurroundConeIndices) / numel(theBestFitCenterConeIndices));
+    end
+    sensitivityRatio = Kc/Ks
+    sensitivityRatio = (Kc * max(theBestFitCenterConeWeights)) / (Ks * max(theBestFitSurroundConeWeights))
+    
+    
+
     if (isempty(rmsErrorsTrain))
         title(visStruct.axRF, sprintf('Rs/Rc: %2.2f, Kc/Ks: %2.2f, RMSE: %2.2f', ...
-            RsDegs/RcDegs, 1./KsToKc, ...
+            radiusRatio, sensitivityRatio, ...
             rmsErrors(iRGCindex,minRMSerrorConeIndex)), ...
             'FontWeight', 'normal', 'FontSize', 15);
     else
         title(visStruct.axRF, sprintf('Rs/Rc: %2.2f, Kc/Ks: %2.2f, RMSE: %2.2f/%2.2f (test/train)', ...
-            RsDegs/RcDegs, 1./KsToKc, ...
+            radiusRatio, sensitivityRatio, ...
             rmsErrors(iRGCindex,minRMSerrorConeIndex), ...
             rmsErrorsTrain(iRGCindex,minRMSerrorConeIndex)), ...
             'FontWeight', 'normal', 'FontSize', 15);
