@@ -3,16 +3,16 @@ function fitISETBioModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     targetLcenterRGCindices = [10]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
-    targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
+      % [1 2 4];   % the non-low pass cells
     
-    centerConesSchema =   'variable';
+    centerConesSchema =   'single';
 
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
     %residualDefocusDiopters = 0.040;
     %residualDefocusDiopters = 0.055;
     %residualDefocusDiopters = 0.063;
-    residualDefocusDiopters = 0.000;
+    residualDefocusDiopters = 0.067;
     %residualDefocusDiopters = 0.072;
     %residualDefocusDiopters = 0.075;
     %residualDefocusDiopters = 0.085;
@@ -20,9 +20,37 @@ function fitISETBioModelToAOSTFdata
     %residualDefocusDiopters = 0.125;
     %residualDefocusDiopters = 0.150;
 
+    targetMcenterRGCindices = [];
+    targetLcenterRGCindices = [1];
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
         centerConesSchema, residualDefocusDiopters);
+    
+    targetLcenterRGCindices = [3];
+    batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+
+     targetLcenterRGCindices = [4];
+      batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+    
+     targetLcenterRGCindices = [5];
+      batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+    
+     targetLcenterRGCindices = [6];
+      batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+    
+     targetLcenterRGCindices = [7];
+      batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+        
 
 end
 
