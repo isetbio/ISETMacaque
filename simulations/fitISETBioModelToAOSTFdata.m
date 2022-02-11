@@ -2,6 +2,34 @@ function fitISETBioModelToAOSTFdata
 % Use the ISETBio computed M838 cone mosaic responses with a single cone 
 % spatial pooling (DoG) model to fit the measured STF data
 
+    targetLcenterRGCindices = [10]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
+    
+    centerConesSchema =   'variable';
+
+    %residualDefocusDiopters = 0.000;
+    %residualDefocusDiopters = 0.020;
+    %residualDefocusDiopters = 0.040;
+    %residualDefocusDiopters = 0.055;
+    %residualDefocusDiopters = 0.063;
+    residualDefocusDiopters = 0.000;
+    %residualDefocusDiopters = 0.072;
+    %residualDefocusDiopters = 0.075;
+    %residualDefocusDiopters = 0.085;
+    %residualDefocusDiopters = 0.100;
+    %residualDefocusDiopters = 0.125;
+    %residualDefocusDiopters = 0.150;
+
+    batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+        centerConesSchema, residualDefocusDiopters);
+
+end
+
+function batchFitISETBioModelToAOSTFdata(...
+    targetLcenterRGCindices, targetMcenterRGCindices, ...
+    centerConesSchema, residualDefocusDiopters)
+
     % Multi-start >1 or single attempt
     startingPointsNum = 256;
     
@@ -12,28 +40,11 @@ function fitISETBioModelToAOSTFdata
     % How many input cones to . Dont use less than 2 because
     % of issues with MATLAB's last dimenion dropping
     visualizedLocationsNum = 7; %Inf;
-
-
-    targetLcenterRGCindices = [1]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
-    targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
     
-    
-    residualDefocusDiopters = 0.000;
-    %residualDefocusDiopters = 0.020;
-    %residualDefocusDiopters = 0.040;
-    %residualDefocusDiopters = 0.055;
-    %residualDefocusDiopters = 0.063;
-    %residualDefocusDiopters = 0.067;
-    %residualDefocusDiopters = 0.072;
-    %residualDefocusDiopters = 0.075;
-    %residualDefocusDiopters = 0.085;
-    %residualDefocusDiopters = 0.100;
-    %residualDefocusDiopters = 0.125;
-    %residualDefocusDiopters = 0.150;
 
     % Select which model to run
     modelVariant = struct(...
-        'centerConesSchema',  'variable', ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
+        'centerConesSchema',  centerConesSchema, ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
         'residualDefocusDiopters', residualDefocusDiopters, ...
         'coneCouplingLambda', 0);
 
