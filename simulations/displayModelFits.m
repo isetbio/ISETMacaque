@@ -1,6 +1,6 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 8;
+    targetLcenterRGCindices = 10;
     targetMcenterRGCindices = [];
     residualDefocusDiopters = 0.000;
     modelVariant = struct(...
