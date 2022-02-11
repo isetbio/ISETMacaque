@@ -75,11 +75,6 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
     examinedCenterConesNum = numel(indicesOfModelConesDrivingTheRGCcenters);
     rmsErrors = nan(sessionsNum, rgcCellsNum, examinedCenterConesNum);
     rmsErrorsTrain = [];
-    if (strcmp(modelVariant.centerConesSchema, 'single'))
-        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,3);
-    else
-        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,4);
-    end
     fittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
 
     for iRGCindex = 1:rgcCellsNum
@@ -123,12 +118,14 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                 fprintf(2,'\tModel training for %s-cone %d/%d took %2.2f minutes.\n', ...
                      centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), etime(tEnd, tStart)/60);
                 
-                % Keep fit results for each RGC and each RF center driving cone
+                % Keep fit results for each RGC and each RF center driving con
+                if (iRGCindex==1)&&(iCone==1)
+                    fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,numel(fitResults.fittedParams));
+                end
+                
                 fittedParams(1,iRGCindex, iCone,:) = fitResults.fittedParams;
-
                 rmsErrors(1,iRGCindex, iCone) = fitResults.rmsErrors;
                 fittedSTFs(1,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
-
                 theTrainingFittedSTFs(1,iRGCindex, iCone,:) = fittedSTFs(1,iRGCindex, iCone,:);
 
             else
