@@ -8,7 +8,7 @@ Training single session models
 | **L5**  | best rms:(xx.x, yy.y, zz.z)     | best rms:(xx.x, yy.y, zz.z)  |                             |
 | **L6**  | best rms:(xx.x, yy.y, zz.z)     | best rms:(xx.x, yy.y, zz.z)  |                             |
 | **L7**  | best rms:(xx.x, yy.y, zz.z)     | best rms:(xx.x, yy.y, zz.z)  |                             |
-| **L8**  | **best rms:(13.6, 30.5, 29.2)** | best rms:(32.3, 40.7, 32.1)  | pending (Santorini)         |
+| **L8**  | **best rms:(13.6, 30.5, 29.2)** | best rms:(32.3, 40.7, 32.1)  | best rms:(xx.x, yy.y, zz.z) |
 | **L10** | best rms:(xx.x, yy.y, zz.z)     | best rms:(xx.x, yy.y, zz.z)  | best rms:(xx.x, yy.y, zz.z) |
 | **L11** | best rms:(xx.x, yy.y, zz.z)     | pending (leviathan)          | best rms:(32.3, 40.7, 32.1) |
 | **M1**  |                                 |                              |                             |
