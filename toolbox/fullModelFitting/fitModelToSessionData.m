@@ -332,7 +332,8 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
     end
 
-    if (modelTransducerFunctionAccountsForResponseOffset)
+    
+    if (modelVariant.transducerFunctionAccountsForResponseOffset)
         % Add Dc Term
         dcTerm = struct(...
                 'low', -0.3, ...
@@ -396,7 +397,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % scale factor
     
         % Objective function with a single parameter: thescalingFactor
-        if (modelTransducerFunctionAccountsForResponseOffset)
+        if (modelVariant.transducerFunctionAccountsForResponseOffset)
             dcTerm = trainedModelFitParams(end);
         else
             dcTerm = 0;
@@ -553,7 +554,7 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         if (modelTransducerFunctionAccountsForResponseOffset)
             dcTerm = DoGparams(4);
         else
-            dxTerm = 0;
+            dcTerm = 0;
         end
     else
         RcDegs = DoGparams(4)*constants.centerConeCharacteristicRadiusDegs;

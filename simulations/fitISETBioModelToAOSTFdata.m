@@ -4,7 +4,8 @@ function fitISETBioModelToAOSTFdata
 
     
     targetMcenterRGCindices = [];  % [1 2 4];   % the non-low pass cells
-    
+    targetLcenterRGCindices = [11];
+
     centerConesSchema =   'single';
 
     
