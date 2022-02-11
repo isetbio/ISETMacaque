@@ -2,12 +2,14 @@ function displayModelFits()
 
     targetLcenterRGCindices = 10;
     targetMcenterRGCindices = [];
-    residualDefocusDiopters = 0.000;
+    residualDefocusDiopters = 0.00;
     modelVariant = struct(...
         'centerConesSchema',  'variable', ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
         'residualDefocusDiopters', residualDefocusDiopters, ...
         'coneCouplingLambda', 0);
 
+    modelVariant.transducerFunctionAccountsForResponseOffset = false;
+    modelVariant.transducerFunctionAccountsForResponseSign = true;
 
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;
@@ -80,11 +82,16 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
        'topMargin',      0.005);
    
      % Plot RFs at all examined positions
+     
+     
      hFig = figure(figNo); clf;
-     set(hFig, 'Position', [10 10 690 1130], 'Color', [1 1 1]);
+     set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1]);
      
      % Sort RMSE, largest to smallest
-     [~,sortedPositionIndices] = sort(dModel.rmsErrors, 'descend');
+     %[~,sortedPositionIndices] = sort(dModel.rmsErrors, 'descend');
+     
+     % No sorting
+     sortedPositionIndices = 1:numel(dModel.rmsErrors);
      
      for iSortedPosition = 1:numel(sortedPositionIndices)
          

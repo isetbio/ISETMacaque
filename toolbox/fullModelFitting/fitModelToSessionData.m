@@ -4,8 +4,9 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                 theTrainedModel, modelSTFrunData, ...
                 indicesOfModelConesDrivingTheRGCcenters, ...
                 d, crossValidationRun, startingPointsNum, ...
-                centerConeType, modelVariant, targetRGCindices)
+                centerConeType, modelVariant, targetRGCindices, varargin)
 
+   
     assert( ((isempty(d.test)) == isempty(theTrainedModel)), ...
         sprintf('Incosistent d.test and theTrainedModel params'));
 
@@ -76,9 +77,9 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
     rmsErrors = nan(sessionsNum, rgcCellsNum, examinedCenterConesNum);
     rmsErrorsTrain = [];
     if (strcmp(modelVariant.centerConesSchema, 'single'))
-        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,3);
-    else
         fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,4);
+    else
+        fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,5);
     end
     fittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
 
@@ -119,6 +120,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                     modelSTFrunData, indicesOfModelConesDrivingTheRGCcenters(iCone), ...
                     modelVariant, ...
                     startingPointsNum, []);
+
                 tEnd = clock;
                 fprintf(2,'\tModel training for %s-cone %d/%d took %2.2f minutes.\n', ...
                      centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), etime(tEnd, tStart)/60);
@@ -257,6 +259,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
                      startingPointsNum, ...
                      trainedModelFitParams)
 
+
     allowableSurroundConeTypes = [ ...
         modelSTFrunData.theConeMosaic.LCONE_ID ...
         modelSTFrunData.theConeMosaic.MCONE_ID ];
@@ -264,6 +267,9 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     constants.allowableSurroundConeTypes = allowableSurroundConeTypes;
     constants.centerConeIndex = centerModelConeIndex;
     constants.centerConesSchema = modelVariant.centerConesSchema;
+    constants.modelTransducerFunctionAccountsForResponseOffset = modelVariant.transducerFunctionAccountsForResponseOffset;
+    constants.modelTransducerFunctionAccountsForResponseSign = modelVariant.transducerFunctionAccountsForResponseSign;
+
     constants.allConePositions = modelSTFrunData.theConeMosaic.coneRFpositionsDegs;
     constants.allConeTypes = modelSTFrunData.theConeMosaic.coneTypes;
     constants.coneMosaicSpatiotemporalActivation = modelSTFrunData.coneMosaicSpatiotemporalActivation;
@@ -326,7 +332,21 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
     end
 
- 
+    if (modelTransducerFunctionAccountsForResponseOffset)
+        % Add Dc Term
+        dcTerm = struct(...
+                'low', -0.3, ...
+                'high', 0.3, ...
+                'initial', 0.0);
+    
+        paramNames{numel(paramNames)+1} = 'dcTerm';
+        paramsInitial(numel(paramsInitial)+1) = dcTerm.initial;
+        lowerBound(numel(lowerBound)+1) = dcTerm.low;
+        upperBound(numel(upperBound)+1) = dcTerm.high;
+    end
+
+
+
     if (isempty(trainedModelFitParams))
         % Fit model to data
         if (startingPointsNum <= 1)
@@ -376,7 +396,12 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % scale factor
     
         % Objective function with a single parameter: thescalingFactor
-        scalingObjective = @(scalingFactor) sum(weights' .* (theFittedSTF*scalingFactor - theSTF').^2);
+        if (modelTransducerFunctionAccountsForResponseOffset)
+            dcTerm = trainedModelFitParams(end);
+        else
+            dcTerm = 0;
+        end
+        scalingObjective = @(scalingFactor) sum(weights' .* (dcTerm+(theFittedSTF-dcTerm)*scalingFactor - theSTF').^2);
 
         % Initial params and bounds for the scalingFactor
         scalingFactorInitial = [1];
@@ -387,7 +412,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
 
         % Apply the optimal scaling factor to theFittedSTF
-        theFittedSTF = theFittedSTF * scalingFactor;
+        theFittedSTF = dcTerm + (theFittedSTF-dcTerm) * scalingFactor;
         theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
         theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
     end
@@ -516,13 +541,27 @@ end
 
 function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
               centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
-              surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(DoGparams, constants, visualizeCenterWeights)
+              surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(...
+              DoGparams, constants, visualizeCenterWeights)
+
+    modelTransducerFunctionAccountsForResponseOffset = constants.modelTransducerFunctionAccountsForResponseOffset;
+    modelTransducerFunctionAccountsForResponseSign = constants.modelTransducerFunctionAccountsForResponseSign;
 
     Kc = DoGparams(1);
     if (strcmp(constants.centerConesSchema, 'single'))
         RcDegs = nan;
+        if (modelTransducerFunctionAccountsForResponseOffset)
+            dcTerm = DoGparams(4);
+        else
+            dxTerm = 0;
+        end
     else
         RcDegs = DoGparams(4)*constants.centerConeCharacteristicRadiusDegs;
+        if (modelTransducerFunctionAccountsForResponseOffset)
+            dcTerm = DoGparams(5);
+        else
+            dcTerm = 0;
+        end
     end
 
     KsToKc = DoGparams(2);
@@ -608,23 +647,27 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     %timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
-        % Fit a sinusoid to the center modulation
-        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-            constants.temporalSupportSeconds, ...
-            centerMechanismModulations(iSF,:), ...
-            WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-            []);
-        % The centerSTF is the amplitude of the sinusoid
-        theModelCenterSTF(iSF) = fittedParams(1);
 
-        % Fit a sinusoid to the center modulation
-        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-            constants.temporalSupportSeconds, ...
-            surroundMechanismModulations(iSF,:), ...
-            WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-            []);
-        % The centerSTF is the amplitude of the sinusoid
-        theModelSurroundSTF(iSF) = fittedParams(1);
+        if (modelTransducerFunctionAccountsForResponseSign) 
+            % Fit a sinusoid to the center modulation
+            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                constants.temporalSupportSeconds, ...
+                centerMechanismModulations(iSF,:), ...
+                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                []);
+            % The centerSTF is the amplitude of the sinusoid
+            theModelCenterSTF(iSF) = fittedParams(1);
+     
+            % Fit a sinusoid to the center modulation
+            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                constants.temporalSupportSeconds, ...
+                surroundMechanismModulations(iSF,:), ...
+                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                []);
+            % The centerSTF is the amplitude of the sinusoid
+            theModelSurroundSTF(iSF) = fittedParams(1);
+        end
+
 
         % Fit sinusoid to the compund center-surround responses.
         % This forces the STF amplitude to be non-negative, which can lead to
@@ -640,12 +683,20 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
             WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
             []);
 
-        if (theModelCenterSTF(iSF) > theModelSurroundSTF(iSF))
-            sign = 1;
+        if (modelTransducerFunctionAccountsForResponseSign) 
+            if (theModelCenterSTF(iSF) > theModelSurroundSTF(iSF))
+                % Center response dominates, keep sign
+                sign = 1;  
+            else
+                % Surround response dominates, revert sign
+                sign = -1;
+            end
         else
-            sign = -1;
+            % no sign
+            sign = 1;
         end
 
-        theModelSTF(iSF) = sign*fittedParams(1);
+        % The STF is the dc (if enabled) + signed (if enabled) amplitude of the sinusoid
+        theModelSTF(iSF) = dcTerm + sign * fittedParams(1);
     end
 end
