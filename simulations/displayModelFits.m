@@ -1,73 +1,117 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 10;
+    targetLcenterRGCindices = 1;
     targetMcenterRGCindices = [];
-    residualDefocusDiopters = 0.00;
-    modelVariant = struct(...
-        'centerConesSchema',  'variable', ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
-        'residualDefocusDiopters', residualDefocusDiopters, ...
-        'coneCouplingLambda', 0);
-
-
+   
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;
     startingPointsNum = 256;
     
-    % Load the model trained on each session
+    % Load the trained models
     crossValidateModel = true;
     crossValidateModelAgainstAllSessions = false;
     trainModel = true;
-            
-    theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
-                crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
-                targetLcenterRGCindices, targetMcenterRGCindices);
-            
-
-    % Load fitted model data for th3 3 training sessions
-    [d1Model, d1Data, targetRGCID] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, 1);
-    [d2Model, d2Data, targetRGCID] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, 2);
-    [d3Model, d3Data, targetRGCID] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, 3);
     
-    % Load cone mosaic data
-    c = loadConeMosaicData(monkeyID, maxRecordedRGCeccArcMin);
-     
-    sParams = struct(...
-        'PolansSubject', [], ...                % [] = diffraction-limited optics
-        'modelVariant', modelVariant, ... 
-        'visualStimulus', struct(...
-                 'type', 'WilliamsLabStimulus', ...
-                 'stimulationDurationCycles', 6));
-
-    % Load the ISETBio computed time-series responses for the simulated STF run
-    modelSTFrunData = loadPrecomputedISETBioConeMosaicSTFrunData(monkeyID, sParams);
-    
-
     % Form exportsDir
     rootDirName = ISETmacaqueRootPath();
     exportsDir = fullfile(strrep(rootDirName, 'toolbox', ''), 'simulations/generatedData/exports');
+   
     
-    % Plot session 1 data, RFs and fits
-    hFig = plotRFdata(1, d1Model, d1Data, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic);
-    pdfFileName = sprintf('%s_session_1_centerConesSchema_%s_residualDefocus_%2.3fD_coneCouplingLambda_%2.3f.pdf', targetRGCID, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, modelVariant.coneCouplingLambda);
-    NicePlot.exportFigToPDF(fullfile(exportsDir, pdfFileName), hFig, 300);
+    centerConesSchemata = {'single', 'variable', 'variable'};
+    residualDefocusDiopters = [0.067 0.067 0];
     
-    % Plot session 2 data, RFs and fits
-    hFig = plotRFdata(2, d2Model, d2Data, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic);
-    pdfFileName = sprintf('%s_session_2_centerConesSchema_%s_residualDefocus_%2.3fD_coneCouplingLambda_%2.3f.pdf', targetRGCID, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, modelVariant.coneCouplingLambda);
-    NicePlot.exportFigToPDF(fullfile(exportsDir, pdfFileName), hFig, 300);
+
+    for sessionIndex = 1:3
     
-    % Plot session 3 data, RFs and fits
-    hFig = plotRFdata(3, d3Model, d3Data, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic);
-    pdfFileName = sprintf('%s_session_3_centerConesSchema_%s_residualDefocus_%2.3fD_coneCouplingLambbda_%2.3f.pdf', targetRGCID, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, modelVariant.coneCouplingLambda);
-    NicePlot.exportFigToPDF(fullfile(exportsDir, pdfFileName), hFig, 300);
+        for iModel = 1:numel(centerConesSchemata)
+
+            modelVariant = struct(...
+                'centerConesSchema', centerConesSchemata{iModel}, ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
+                'residualDefocusDiopters', residualDefocusDiopters(iModel), ...
+                'coneCouplingLambda', 0);
+
+            sParams = struct(...
+                'PolansSubject', [], ...                % [] = diffraction-limited optics
+                'modelVariant', modelVariant, ... 
+                'visualStimulus', struct(...
+                         'type', 'WilliamsLabStimulus', ...
+                         'stimulationDurationCycles', 6));
+
+            if (iModel == 1)
+                % Load the ISETBio computed time-series responses for the simulated STF run
+                modelSTFrunData = loadPrecomputedISETBioConeMosaicSTFrunData(monkeyID, sParams);
+            end
+
+            theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
+                    crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
+                    targetLcenterRGCindices, targetMcenterRGCindices);
+
+            % Load fitted model data 
+            [dModel, dData, targetRGCID] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex);
+            
+            % Recompute the errors
+            nSFs = numel(dData.dFresponses);
+            for iPos = 1:size(dModel.fittedSTFs,1)
+                residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
+                theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
+            end
+            
+
+            % Plot model fits and data
+            hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
+                sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
+            pdfFileName = sprintf('%s_session_%d_centerConesSchema_%s_residualDefocus_%2.3fD_coneCouplingLambda_%2.3f.pdf', ...
+                targetRGCID, sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, modelVariant.coneCouplingLambda);
+            NicePlot.exportFigToPDF(fullfile(exportsDir, pdfFileName), hFig, 300);
+        end % iModel
+    end
     
-    %hFig1 = plotSTFFits(1, d1Model, d1Data, modelSTFrunData.examinedSpatialFrequencies);
-    %hFig2 = plotSTFFits(2, d2Model, d2Data, modelSTFrunData.examinedSpatialFrequencies);
-    %hFig3 = plotSTFFits(3, d3Model, d3Data, modelSTFrunData.examinedSpatialFrequencies);
+    % Plot model performance across examined positions
+    hFigSummary = figure(100); clf;
+  
+    referenceSession = 1;
+    referenceModel = 1;
+    referencePosition = 1;
+    referencePerformance = theErrors(referenceSession,referenceModel,referencePosition);
+    positionIndices = 1:size(theErrors,3);
+    for sessionIndex = 1:3      
+        subplot(1, 3, sessionIndex);
+        performances = squeeze(theErrors(sessionIndex,:,:));
+        bar(positionIndices, performances/referencePerformance);
+        xlabel('examined RF center position index');
+        ylabel('relative rms error');
+        legend({...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{1},residualDefocusDiopters(1)), ...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{2},residualDefocusDiopters(2)), ...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{3},residualDefocusDiopters(3)), ...
+            });
+        title(sprintf('%sRGC (session %d)',targetRGCID, sessionIndex));
+        set(gca, 'FontSize', 18, 'XTick', 1:10, 'XLim', [0 numel(positionIndices)+1], 'YLim', [0.3 3], 'YTick', [0.3 0.5 0.67 1 1.5 2 3]);
+        grid on
+    end
+    
+    hFigSummary2 = figure(101); clf;
+    sessionIndices = 1:1:size(theErrors,1);
+    for positionIndex = 1:numel(positionIndices)
+        subplot(1, numel(positionIndices), positionIndex);
+        performances = squeeze(theErrors(:,:,positionIndex));
+        bar(sessionIndices, performances/referencePerformance);
+        xlabel('session index');
+        ylabel('relative rms error');
+        legend({...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{1},residualDefocusDiopters(1)), ...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{2},residualDefocusDiopters(2)), ...
+            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{3},residualDefocusDiopters(3)), ...
+            });
+        title(sprintf('%s RGC (position index %d)', targetRGCID, positionIndex));
+        set(gca, 'FontSize', 18, 'XTick', 1:10, 'XLim', [0 4], 'YLim', [0.3 3], 'YTick', [0.3 0.5 0.67 1 1.5 2 3]);
+        grid on
+    end
     
 end
 
-function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, theConeMosaic)
+function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, theConeMosaic,...
+    sessionIndex, centerConesSchema, residualDefocusDiopters)
         
      subplotPosVectors = NicePlot.getSubPlotPosVectors(...
        'colsNum', 4, ...
@@ -80,20 +124,13 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
        'topMargin',      0.005);
    
      % Plot RFs at all examined positions
-     
-     
      hFig = figure(figNo); clf;
-     set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1]);
+     set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1], ...
+         'Name', sprintf('%s center cone(s), with RESIDUAL DEFOCUS of: %2.3fD, trained on SESSION %d',  upper(centerConesSchema), residualDefocusDiopters, sessionIndex));
      
-     % Sort RMSE, largest to smallest
-     %[~,sortedPositionIndices] = sort(dModel.rmsErrors, 'descend');
-     
-     % No sorting
-     sortedPositionIndices = 1:numel(dModel.rmsErrors);
-     
-     for iSortedPosition = 1:numel(sortedPositionIndices)
+
+     for examinedCenterConePositionIndex = 1:numel(dModel.rmsErrors)
          
-        examinedCenterConePositionIndex = sortedPositionIndices(iSortedPosition);
         coneRcDegs = dModel.centerModelCenterConeCharacteristicRadiiDegs(examinedCenterConePositionIndex);
          
         centroidPosMicrons = dModel.centroidPosition{examinedCenterConePositionIndex} * WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
@@ -130,24 +167,21 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         
         xTicks = -40:4:40;
-        if (iSortedPosition < numel(dModel.indicesOfModelCenterConePositionsExamined))
+        if (examinedCenterConePositionIndex < numel(dModel.indicesOfModelCenterConePositionsExamined))
             noXLabel = true;
         else
             noXLabel = false;
         end
         
-        if (iSortedPosition == numel(dModel.indicesOfModelCenterConePositionsExamined))
+        if (examinedCenterConePositionIndex  == numel(dModel.indicesOfModelCenterConePositionsExamined))
             mosaicTitle = 'center';
         else
             mosaicTitle = ' ';
         end
         
 
-        
-        
         % The center weights
-        
-        ax = subplot('Position', subplotPosVectors(iSortedPosition,1).v);
+        ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex,1).v);
         theConeMosaic.visualize(...
             'figureHandle', hFig, 'axesHandle', ax, ...
             'domain', 'microns', ...
@@ -165,14 +199,14 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         
         
-        if (iSortedPosition == numel(dModel.indicesOfModelCenterConePositionsExamined))
+        if (examinedCenterConePositionIndex  == numel(dModel.indicesOfModelCenterConePositionsExamined))
             mosaicTitle = 'surround';
         else
             mosaicTitle = ' ';
         end
         
         % The surround weights
-        ax = subplot('Position', subplotPosVectors(iSortedPosition,2).v);
+        ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex ,2).v);
         theConeMosaic.visualize(...
             'figureHandle', hFig, 'axesHandle', ax, ...
             'domain', 'microns', ...
@@ -219,7 +253,7 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         centerProfile = centerProfile / maxProfile;
         surroundProfile = surroundProfile / maxProfile;
         
-        ax = subplot('Position', subplotPosVectors(iSortedPosition,3).v);
+        ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex ,3).v);
         faceColor = 1.7*[100 0 30]/255;
         edgeColor = [0.7 0.2 0.2];
         faceAlpha = 0.4;
@@ -245,7 +279,7 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         
         % The STFfit
-        ax = subplot('Position', subplotPosVectors(iSortedPosition,4).v);
+        ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex ,4).v);
         hold(ax, 'on');
         axis(ax, 'square');
         for iSF = 1:numel(examinedSpatialFrequencies)
