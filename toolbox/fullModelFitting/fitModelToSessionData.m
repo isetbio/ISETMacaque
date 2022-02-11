@@ -76,6 +76,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
     rmsErrors = nan(sessionsNum, rgcCellsNum, examinedCenterConesNum);
     rmsErrorsTrain = [];
     fittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
+    fittedParams = [];
 
     for iRGCindex = 1:rgcCellsNum
         
@@ -119,7 +120,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                      centerConeType, iCone, numel(indicesOfModelConesDrivingTheRGCcenters), etime(tEnd, tStart)/60);
                 
                 % Keep fit results for each RGC and each RF center driving con
-                if (iRGCindex==1)&&(iCone==1)
+                if (isempty(fittedParams))
                     fittedParams = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,numel(fitResults.fittedParams));
                 end
                 
