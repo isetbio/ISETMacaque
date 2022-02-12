@@ -36,7 +36,7 @@ function visStruct = initializeISETBioFitVisualization(...
     
 
     % Video showing all cones
-    visStruct.videoOBJ = VideoWriter(videoFileName, 'MPEG-4');
+    visStruct.videoOBJ = VideoWriter(videoFileName);
     visStruct.videoOBJ.FrameRate = 30;
     visStruct.videoOBJ.Quality = 100;
     visStruct.videoOBJ.open();
