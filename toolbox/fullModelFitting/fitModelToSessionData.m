@@ -262,6 +262,8 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     constants.allowableSurroundConeTypes = allowableSurroundConeTypes;
     constants.centerConeIndex = centerModelConeIndex;
     constants.centerConesSchema = modelVariant.centerConesSchema;
+    constants.transducerFunctionAccountsForResponseOffset = modelVariant.transducerFunctionAccountsForResponseOffset;
+    constants.transducerFunctionAccountsForResponseSign = modelVariant.transducerFunctionAccountsForResponseSign;
     constants.allConePositions = modelSTFrunData.theConeMosaic.coneRFpositionsDegs;
     constants.allConeTypes = modelSTFrunData.theConeMosaic.coneTypes;
     constants.coneMosaicSpatiotemporalActivation = modelSTFrunData.coneMosaicSpatiotemporalActivation;
@@ -313,7 +315,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     paramNames    = {'Kc', 'kS/kC',  'RsToCenterConeRc'};
     
     if (strcmp(constants.centerConesSchema, 'variable'))
-        % Add 4-th parameter, the number of center cones
+        % Add another parameter, the number of center cones
         RcToCenterConeRc = struct(...
             'low', 1.0, ...
             'high', 3.0, ...
@@ -324,7 +326,19 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
     end
 
- 
+    if (constants.transducerFunctionAccountsForResponseOffset)
+        % Last  parameter is the fluorescenceDC offset
+        fluorescenceDC = struct(...
+            'low', -0.3, ...
+            'high', 0.3, ...
+            'initial', 0.0);
+        paramNames{numel(paramNames)+1} = 'fluorescenceDC';
+        paramsInitial(numel(paramsInitial)+1) = fluorescenceDC.initial;
+        lowerBound(numel(lowerBound)+1) = fluorescenceDC.low;
+        upperBound(numel(upperBound)+1) = fluorescenceDC.high;
+    end
+
+
     if (isempty(trainedModelFitParams))
         % Fit model to data
         if (startingPointsNum <= 1)
@@ -374,7 +388,13 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % scale factor
     
         % Objective function with a single parameter: thescalingFactor
-        scalingObjective = @(scalingFactor) sum(weights' .* (theFittedSTF*scalingFactor - theSTF').^2);
+        if (constants.transducerFunctionAccountsForResponseOffset)
+            % dc offset is the last parameter
+            fluorescenceDC= trainedModelFitParams(end);
+        else
+            fluorescenceDC= 0;
+        end
+        scalingObjective = @(scalingFactor) sum(weights' .* (fluorescenceDC+(theFittedSTF-fluorescenceDC)*scalingFactor - theSTF').^2);
 
         % Initial params and bounds for the scalingFactor
         scalingFactorInitial = [1];
@@ -385,7 +405,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
 
         % Apply the optimal scaling factor to theFittedSTF
-        theFittedSTF = theFittedSTF * scalingFactor;
+        theFittedSTF = fluorescenceDC+(theFittedSTF-fluorescenceDC) * scalingFactor;
         theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
         theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
     end
@@ -394,12 +414,12 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     % RMSerror
     N = numel(theSTF);        
     residuals = theSTF(:)-theFittedSTF(:);
-    dataRange = prctile(theSTF(:),75) - prctile(theSTF(:),25);
+    %dataRange = prctile(theSTF(:),75) - prctile(theSTF(:),25);
 
     % Normalize residuals with respect to the measured data range to make the 
     % RMS error scale-independent
-    residuals = residuals / dataRange;
-    theRMSerror = 100*sqrt(1/N*sum(residuals.^2,1));
+    %residuals = residuals / dataRange;
+    theRMSerror = sqrt(1/N*sum(residuals.^2,1));
     fitResults.rmsErrors = theRMSerror;
 
     % Form return struct
@@ -527,7 +547,12 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     Ks = Kc * KsToKc;
     RsDegs = DoGparams(3)*constants.centerConeCharacteristicRadiusDegs;
 
-   
+    if (constants.transducerFunctionAccountsForResponseOffset)
+        fluorescenceDC = DoGparams(end);
+    else
+        fluorescenceDC = 0;
+    end
+
     % Determine center cone indices and weights
     [centerConeIndices, centerConeWeights, centerConesFractionalNum, centroidPosition] = ...
         centerConeIndicesAndWeights(RcDegs, constants);
@@ -606,23 +631,6 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     %timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
-        % Fit a sinusoid to the center modulation
-        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-            constants.temporalSupportSeconds, ...
-            centerMechanismModulations(iSF,:), ...
-            WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-            []);
-        % The centerSTF is the amplitude of the sinusoid
-        theModelCenterSTF(iSF) = fittedParams(1);
-
-        % Fit a sinusoid to the center modulation
-        [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-            constants.temporalSupportSeconds, ...
-            surroundMechanismModulations(iSF,:), ...
-            WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-            []);
-        % The centerSTF is the amplitude of the sinusoid
-        theModelSurroundSTF(iSF) = fittedParams(1);
 
         % Fit sinusoid to the compund center-surround responses.
         % This forces the STF amplitude to be non-negative, which can lead to
@@ -637,13 +645,43 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
             modelRGCmodulations(iSF,:), ...
             WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
             []);
+        STFamplitude = fittedParams(1);
 
-        if (theModelCenterSTF(iSF) > theModelSurroundSTF(iSF))
-            sign = 1;
+
+        if (constants.transducerFunctionAccountsForResponseSign)
+            % Fit a sinusoid to the center modulation
+            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                constants.temporalSupportSeconds, ...
+                centerMechanismModulations(iSF,:), ...
+                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                []);
+            
+            % The centerSTF is the amplitude of the sinusoid
+            theModelCenterSTF(iSF) = fittedParams(1);
+    
+            % Fit a sinusoid to the center modulation
+            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
+                constants.temporalSupportSeconds, ...
+                surroundMechanismModulations(iSF,:), ...
+                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
+                []);
+            % The centerSTF is the amplitude of the sinusoid
+            theModelSurroundSTF(iSF) = fittedParams(1);
+        
+
+            if (theModelCenterSTF(iSF) > theModelSurroundSTF(iSF))
+                % Center STF > Surround STF, sign = 1;
+                sign = 1;
+            else
+                % Center STF > Surround STF, sign = -1, to reverse the
+                % sign of the modulation (180 phase shift)
+                sign = -1;
+            end
         else
-            sign = -1;
+            % We are not accounting for response sign
+            sign = 1;
         end
 
-        theModelSTF(iSF) = sign*fittedParams(1);
+        theModelSTF(iSF) = fluorescenceDC + sign*STFamplitude;
     end
 end

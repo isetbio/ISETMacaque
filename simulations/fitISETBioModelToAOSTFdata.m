@@ -2,10 +2,15 @@ function fitISETBioModelToAOSTFdata
 % Use the ISETBio computed M838 cone mosaic responses with a single cone 
 % spatial pooling (DoG) model to fit the measured STF data
 
+    % Multi-start >1 or single attempt
+    startingPointsNum = 512;
+
     targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
     
-    centerConesSchema =   'single';
+    centerConesSchema =   'single';   % choose from single or variable
+
+    
 
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
@@ -27,7 +32,8 @@ function fitISETBioModelToAOSTFdata
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
     centerConesSchema, residualDefocusDiopters, ...
-    accountForResponseOffset, accountForResponseSignReversal);
+    accountForResponseOffset, accountForResponseSignReversal, ...
+    startingPointsNum);
 
 
     % Run 2
@@ -37,7 +43,8 @@ function fitISETBioModelToAOSTFdata
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
     centerConesSchema, residualDefocusDiopters, ...
-    accountForResponseOffset, accountForResponseSignReversal);
+    accountForResponseOffset, accountForResponseSignReversal, ...
+    startingPointsNum);
 
 
     % Run 3
@@ -47,7 +54,8 @@ function fitISETBioModelToAOSTFdata
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
     centerConesSchema, residualDefocusDiopters, ...
-    accountForResponseOffset, accountForResponseSignReversal);
+    accountForResponseOffset, accountForResponseSignReversal, ...
+    startingPointsNum);
 
 
     % Run 4
@@ -57,7 +65,8 @@ function fitISETBioModelToAOSTFdata
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
     centerConesSchema, residualDefocusDiopters, ...
-    accountForResponseOffset, accountForResponseSignReversal);
+    accountForResponseOffset, accountForResponseSignReversal, ...
+    startingPointsNum);
 
 
 
