@@ -1,11 +1,11 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 1;
+    targetLcenterRGCindices = 11;
     targetMcenterRGCindices = [];
    
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;
-    startingPointsNum = 256;
+    startingPointsNum = 512;
     
     % Load the trained models
     crossValidateModel = true;
@@ -17,9 +17,14 @@ function displayModelFits()
     exportsDir = fullfile(strrep(rootDirName, 'toolbox', ''), 'simulations/generatedData/exports');
    
     
-    centerConesSchemata = {'single', 'variable', 'variable'};
-    residualDefocusDiopters = [0.067 0.067 0];
-    
+%     centerConesSchemata     = {'single', 'single', 'variable', 'variable'};
+%     residualDefocusDiopters = [0,        0.067      0           0.067];
+
+    centerConesSchemata     = {'single', 'variable', 'variable'};
+    residualDefocusDiopters = [0,        0           0.067];
+
+    accountForResponseOffset = false;
+    accountForResponseSignReversal = true;
 
     for sessionIndex = 1:3
     
@@ -28,7 +33,10 @@ function displayModelFits()
             modelVariant = struct(...
                 'centerConesSchema', centerConesSchemata{iModel}, ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
                 'residualDefocusDiopters', residualDefocusDiopters(iModel), ...
-                'coneCouplingLambda', 0);
+                'coneCouplingLambda', 0, ...
+                'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
+                'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal);
+
 
             sParams = struct(...
                 'PolansSubject', [], ...                % [] = diffraction-limited optics
@@ -60,22 +68,36 @@ function displayModelFits()
             % Plot model fits and data
             hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
                 sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
-            pdfFileName = sprintf('%s_session_%d_centerConesSchema_%s_residualDefocus_%2.3fD_coneCouplingLambda_%2.3f.pdf', ...
-                targetRGCID, sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, modelVariant.coneCouplingLambda);
-            NicePlot.exportFigToPDF(fullfile(exportsDir, pdfFileName), hFig, 300);
+
+            [pdfFileName, videoFileName] = fitsPDFFilename(...
+                modelVariant, targetRGCID, startingPointsNum, ...
+                sessionIndex, 'Training');
+
+            NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
         end % iModel
     end
     
     % Plot model performance across examined positions
-    hFigSummary = figure(100); clf;
-  
+    hFigSummary = figure(1000); clf;
+    set(hFigSummary, 'Position', [10 10 1750 600], 'Color', [1 1 1]);
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+       'rowsNum', 1, ...
+       'colsNum', 3, ...
+       'heightMargin',  0.07, ...
+       'widthMargin',    0.06, ...
+       'leftMargin',     0.05, ...
+       'rightMargin',    0.00, ...
+       'bottomMargin',   0.05, ...
+       'topMargin',      0.05);
+
     referenceSession = 1;
     referenceModel = 1;
     referencePosition = 1;
     referencePerformance = theErrors(referenceSession,referenceModel,referencePosition);
+    
     positionIndices = 1:size(theErrors,3);
     for sessionIndex = 1:3      
-        subplot(1, 3, sessionIndex);
+        subplot('Position', subplotPosVectors(1, sessionIndex).v);
         performances = squeeze(theErrors(sessionIndex,:,:));
         bar(positionIndices, performances/referencePerformance);
         xlabel('examined RF center position index');
@@ -90,10 +112,21 @@ function displayModelFits()
         grid on
     end
     
-    hFigSummary2 = figure(101); clf;
+    hFigSummary2 = figure(1001); clf;
+    set(hFigSummary2, 'Position', [10 10 1750 1100], 'Color', [1 1 1]);
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+       'rowsNum', 3, ...
+       'colsNum', 3, ...
+       'heightMargin',  0.07, ...
+       'widthMargin',    0.06, ...
+       'leftMargin',     0.05, ...
+       'rightMargin',    0.00, ...
+       'bottomMargin',   0.05, ...
+       'topMargin',      0.01);
+    subplotPosVectors = subplotPosVectors(:);
     sessionIndices = 1:1:size(theErrors,1);
     for positionIndex = 1:numel(positionIndices)
-        subplot(1, numel(positionIndices), positionIndex);
+        subplot('Position', subplotPosVectors(positionIndex,1).v);
         performances = squeeze(theErrors(:,:,positionIndex));
         bar(sessionIndices, performances/referencePerformance);
         xlabel('session index');
@@ -307,7 +340,7 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         else
              titleColor = [0 0 0];
         end
-        text(ax, 10, -0.15, sprintf('RMSE:%2.2f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontSize', 10, 'Color', titleColor);
+        text(ax, 10, -0.15, sprintf('RMSE:%.1fE+3', 1000*dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontSize', 10, 'Color', titleColor);
     
      end
      

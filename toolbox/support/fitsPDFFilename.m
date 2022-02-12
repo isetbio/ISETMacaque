@@ -4,7 +4,7 @@ function [pdfFilename, videoFileName] = fitsPDFFilename(modelVariant, ...
     rootDirName = ISETmacaqueRootPath();
 
     if (crossValidationRun > 0)
-        modelValidationString = sprintf('CrossValidated%sRun%d', runType, crossValidationRun);
+        modelValidationString = sprintf('CrossValidated%sSession%d', runType, crossValidationRun);
     else
         modelValidationString = '';
     end
