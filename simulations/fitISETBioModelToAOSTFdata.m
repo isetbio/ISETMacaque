@@ -8,10 +8,9 @@ function fitISETBioModelToAOSTFdata
     targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
     
-    centerConesSchema =   'single';   % choose from single or variable
+    centerConesSchema =  'single';   % choose from single or variable
 
     
-
     %residualDefocusDiopters = 0.000;
     %residualDefocusDiopters = 0.020;
     %residualDefocusDiopters = 0.040;
@@ -24,6 +23,9 @@ function fitISETBioModelToAOSTFdata
     %residualDefocusDiopters = 0.100;
     %residualDefocusDiopters = 0.125;
     %residualDefocusDiopters = 0.150;
+
+
+    % Run 4 model variants, (DC x sign)
 
     % Run 1
     accountForResponseOffset = false;
