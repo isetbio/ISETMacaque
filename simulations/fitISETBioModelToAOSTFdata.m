@@ -5,42 +5,30 @@ function fitISETBioModelToAOSTFdata
     % Multi-start >1 or single attempt
     startingPointsNum = 512;
 
-    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    % Leviathan: do 10 and 8
+    targetLcenterRGCindices = [10]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
-    
-    centerConesSchema =  'single';   % choose from single or variable
-
-    
-    %residualDefocusDiopters = 0.000;
-    %residualDefocusDiopters = 0.020;
-    %residualDefocusDiopters = 0.040;
-    %residualDefocusDiopters = 0.055;
-    %residualDefocusDiopters = 0.063;
-    residualDefocusDiopters = 0.067;
-    %residualDefocusDiopters = 0.072;
-    %residualDefocusDiopters = 0.075;
-    %residualDefocusDiopters = 0.085;
-    %residualDefocusDiopters = 0.100;
-    %residualDefocusDiopters = 0.125;
-    %residualDefocusDiopters = 0.150;
 
 
-    % Run 4 model variants, (DC x sign)
-
-    % Run 1
-    accountForResponseOffset = false;
-    accountForResponseSignReversal = false;
-
-    batchFitISETBioModelToAOSTFdata(...
-        targetLcenterRGCindices, targetMcenterRGCindices, ...
-    centerConesSchema, residualDefocusDiopters, ...
-    accountForResponseOffset, accountForResponseSignReversal, ...
-    startingPointsNum);
-
-
-    % Run 2
+    % Run the signed response model variant
     accountForResponseOffset = true;
     accountForResponseSignReversal = false;
+
+
+    % Hypothesis 1
+    centerConesSchema =  'single';      % single-cone RF center
+    residualDefocusDiopters = 0.000;    % zero residual defocus
+
+    batchFitISETBioModelToAOSTFdata(...
+        targetLcenterRGCindices, targetMcenterRGCindices, ...
+    centerConesSchema, residualDefocusDiopters, ...
+    accountForResponseOffset, accountForResponseSignReversal, ...
+    startingPointsNum);
+
+
+    % Hypothesis 2
+    centerConesSchema =  'single';      % single-cone RF center
+    residualDefocusDiopters = 0.067;    % 0.067D residual defocus
     
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
@@ -49,9 +37,9 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum);
 
 
-    % Run 3
-    accountForResponseOffset = false;
-    accountForResponseSignReversal = true;
+    % Hypothesis 3
+    centerConesSchema =  'multiple';   % multiple-cones in RF center
+    residualDefocusDiopters = 0.000;   % zero residual defocus
     
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
@@ -60,9 +48,9 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum);
 
 
-    % Run 4
-    accountForResponseOffset = true;
-    accountForResponseSignReversal = true;
+    % Hypothesis 4
+    centerConesSchema =  'multiple';   % multiple-cones in RF center
+    residualDefocusDiopters = 0.067;   % 0.067D residual defocus
     
     batchFitISETBioModelToAOSTFdata(...
         targetLcenterRGCindices, targetMcenterRGCindices, ...
