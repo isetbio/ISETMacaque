@@ -17,22 +17,32 @@ function displayModelFits()
     exportsDir = fullfile(strrep(rootDirName, 'toolbox', ''), 'simulations/generatedData/exports');
    
     
-%     centerConesSchemata     = {'single', 'single', 'variable', 'variable'};
-%     residualDefocusDiopters = [0,        0.067      0           0.067];
+    receptiveFieldAndOpticalVariations{1} = struct(...
+        'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
+        'residualDefocusDiopters', 0);
 
-    centerConesSchemata     = {'single', 'variable', 'variable'};
-    residualDefocusDiopters = [0,        0           0.067];
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'single', ...
+%         'residualDefocusDiopters', 0.067);
 
-    accountForResponseOffset = false;
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'variable', ...
+        'residualDefocusDiopters', 0);
+
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'variable', ...
+        'residualDefocusDiopters', 0.067);
+
+
+    accountForResponseOffset = true;
     accountForResponseSignReversal = true;
 
     for sessionIndex = 1:3
-    
-        for iModel = 1:numel(centerConesSchemata)
+        for iModel = 1:numel(receptiveFieldAndOpticalVariations)
 
             modelVariant = struct(...
-                'centerConesSchema', centerConesSchemata{iModel}, ... % Cones feeding into the RF center. Select between {'variable', and 'single'}
-                'residualDefocusDiopters', residualDefocusDiopters(iModel), ...
+                'centerConesSchema', receptiveFieldAndOpticalVariations{iModel}.centerConesSchema,...
+                'residualDefocusDiopters', receptiveFieldAndOpticalVariations{iModel}.residualDefocusDiopters, ...
                 'coneCouplingLambda', 0, ...
                 'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
                 'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal);
@@ -64,16 +74,18 @@ function displayModelFits()
                 theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
             end
             
-
-            % Plot model fits and data
-            hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
-                sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
-
-            [pdfFileName, videoFileName] = fitsPDFFilename(...
-                modelVariant, targetRGCID, startingPointsNum, ...
-                sessionIndex, 'Training');
-
-            NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
+            plogTrainingModels = true;
+            if (plogTrainingModels)
+                % Plot model fits and data
+                hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
+                    sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
+    
+                % Export to PDF
+                pdfFileName = fitsPDFFilename(...
+                    modelVariant, targetRGCID, startingPointsNum, ...
+                    sessionIndex, 'Training');
+                NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
+            end
         end % iModel
     end
     
@@ -96,17 +108,23 @@ function displayModelFits()
     referencePerformance = theErrors(referenceSession,referenceModel,referencePosition);
     
     positionIndices = 1:size(theErrors,3);
+
+    legends = {};
+    for iModel = 1:numel(receptiveFieldAndOpticalVariations)
+        rfOpt = receptiveFieldAndOpticalVariations{iModel};
+        legends{numel(legends)+1} = sprintf('%s center cone(s), defocus: %2.3fD', ...
+            rfOpt.centerConesSchema, rfOpt.residualDefocusDiopters);
+    end
+
+
+
     for sessionIndex = 1:3      
         subplot('Position', subplotPosVectors(1, sessionIndex).v);
         performances = squeeze(theErrors(sessionIndex,:,:));
         bar(positionIndices, performances/referencePerformance);
         xlabel('examined RF center position index');
         ylabel('relative rms error');
-        legend({...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{1},residualDefocusDiopters(1)), ...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{2},residualDefocusDiopters(2)), ...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{3},residualDefocusDiopters(3)), ...
-            });
+        legend(legends);
         title(sprintf('%sRGC (session %d)',targetRGCID, sessionIndex));
         set(gca, 'FontSize', 18, 'XTick', 1:10, 'XLim', [0 numel(positionIndices)+1], 'YLim', [0.3 3], 'YTick', [0.3 0.5 0.67 1 1.5 2 3]);
         grid on
@@ -131,11 +149,7 @@ function displayModelFits()
         bar(sessionIndices, performances/referencePerformance);
         xlabel('session index');
         ylabel('relative rms error');
-        legend({...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{1},residualDefocusDiopters(1)), ...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{2},residualDefocusDiopters(2)), ...
-            sprintf('%s center cone(s), defocus: %2.3fD', centerConesSchemata{3},residualDefocusDiopters(3)), ...
-            });
+        legend(legends);
         title(sprintf('%s RGC (position index %d)', targetRGCID, positionIndex));
         set(gca, 'FontSize', 18, 'XTick', 1:10, 'XLim', [0 4], 'YLim', [0.3 3], 'YTick', [0.3 0.5 0.67 1 1.5 2 3]);
         grid on
