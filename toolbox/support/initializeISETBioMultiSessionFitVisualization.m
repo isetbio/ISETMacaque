@@ -15,7 +15,7 @@ function visStruct = initializeISETBioMultiSessionFitVisualization(...
 
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
        'rowsNum', 2, ...
-       'colsNum', 3, ...
+       'colsNum', 4, ...
        'heightMargin',  0.12, ...
        'widthMargin',    0.04, ...
        'leftMargin',     0.04, ...
@@ -23,32 +23,14 @@ function visStruct = initializeISETBioMultiSessionFitVisualization(...
        'bottomMargin',   0.065, ...
        'topMargin',      0.00);
 
-    % Set up figure and axes
-    visStruct.hFig = figure(iRGCindex + crossValidationRun*100); clf;
-    set(visStruct.hFig, 'Position', [10 10 1250 850], 'Color', [1 1 1]);
+    subplotPosVectors = subplotPosVectors(:);
 
-    % Left-most plot, 2D error map
-    visStruct.axMap  = subplot('Position', subplotPosVectors(1,3).v);
-
-    % Second plot. The relationhip between rms errors for the different
-    % test sessions
-    visStruct.axSessionsRMSE = subplot('Position', subplotPosVectors(1,2).v);
-
-   % The best STF fits
-    visStruct.axSTFfits = subplot('Position', subplotPosVectors(1,1).v);
-
-   
-    
-
-     % Third plot. The RF profile
-    visStruct.axRF = subplot('Position', subplotPosVectors(2,1).v);
-
-    % The cone weights
-    visStruct.axConeWeights = subplot('Position', subplotPosVectors(2,2).v);
-
-     % The cone mosaic
-    visStruct.axConeMosaic = subplot('Position', subplotPosVectors(2,3).v);
-
+    visStruct.hFig = figure(999); clf;
+    set(visStruct.hFig, 'Position', [100 100 1500 850]);
+    % The STF fits
+    for iPos = 1:8
+        visStruct.axSTFfits{iPos} = subplot('Position', subplotPosVectors(iPos).v);
+    end
 
     % Video showing all cones
     visStruct.videoOBJ = VideoWriter(videoFileName, 'MPEG-4');

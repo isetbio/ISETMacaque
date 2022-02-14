@@ -20,7 +20,7 @@ function filename = fitsFilename(modelVariant, startingPointsNum, ...
         if (trainModel)
             modelValidationString = 'CrossValidatedTraining';
         elseif (crossValidateModelAgainstAllSessions)
-            modelValidationString = CrossValidatedMultipleSessionsTesting;
+            modelValidationString = 'CrossValidatedMultipleSessionsTesting';
         else
             modelValidationString = 'CrossValidatedSingleSessionTesting';
         end

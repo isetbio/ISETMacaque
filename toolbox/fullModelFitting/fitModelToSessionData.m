@@ -6,6 +6,10 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                 d, crossValidationRun, startingPointsNum, ...
                 centerConeType, modelVariant, targetRGCindices)
 
+    assert( ismember(modelVariant.centerConesSchema, {'variable', 'single'}), ...
+        sprintf('modelVariant.centerConesSchema must be set to either ''single'', or ''variable'', not ''%s''.', ...
+        modelVariant.centerConesSchema) );
+    
     assert( ((isempty(d.test)) == isempty(theTrainedModel)), ...
         sprintf('Incosistent d.test and theTrainedModel params'));
 
@@ -76,6 +80,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
     rmsErrors = nan(sessionsNum, rgcCellsNum, examinedCenterConesNum);
     rmsErrorsTrain = [];
     fittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
+    theTrainingFittedSTFs = zeros(sessionsNum, rgcCellsNum, examinedCenterConesNum,sfsNum);
     fittedParams = [];
 
     for iRGCindex = 1:rgcCellsNum
@@ -132,7 +137,6 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
             else
                 % Cross-validate the fitted model to the test data
                 dTrainSession = str2num(strrep(d.dataSets{1}, 's', ''));
-
                 if (iscell(d.dataSets{2}))
                     % Cross-validate against multiple sessions
                     sessionStrings = d.dataSets{2};
@@ -151,6 +155,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                         dTrainSession , dTestSession);
                 end
 
+                
                 % Retrieve the trained model and the training RMSerrors
                 switch (centerConeType)
                     case 'L'
@@ -160,6 +165,7 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                         trainedModelFitParams = theTrainedModel.fittedParamsMcenterRGCs{dTrainSession}(1,iRGCindex, iCone,:);
                         rmsErrorsTrain(iRGCindex, iCone) = theTrainedModel.rmsErrorsMcenterRGCs{dTrainSession}(1,iRGCindex, iCone);
                 end
+
 
                 % Fit the test data using the trained model (just scaling)
                 for iSession = 1:sessionsNum
@@ -366,7 +372,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         end
 
         % Compute the fitted STF
-        visualizeCenterWeights = true;
+        visualizeCenterWeights = false;
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
          centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
          surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants, visualizeCenterWeights);
@@ -374,11 +380,11 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % Return dublicate of the fittedSTF
         trainedModelFittedSTF = theFittedSTF;
     else
-
+        visualizeCenterWeights = false;
         % Compute the fittedSTF using the trained model
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
          centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
-         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants);
+         surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants, visualizeCenterWeights);
 
         % Keep a copy so we can return it in the struct fitResults.fittedParamsSTF
         % separately from fitResults.theFittedSTFs
