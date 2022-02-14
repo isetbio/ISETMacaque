@@ -26,7 +26,7 @@ function visStruct = initializeISETBioMultiSessionFitVisualization(...
     subplotPosVectors = subplotPosVectors(:);
 
     visStruct.hFig = figure(999); clf;
-    set(visStruct.hFig, 'Position', [100 100 1500 850]);
+    set(visStruct.hFig, 'Position', [100 100 1500 850], 'Color', [1 1 1]);
     % The STF fits
     for iPos = 1:8
         visStruct.axSTFfits{iPos} = subplot('Position', subplotPosVectors(iPos).v);

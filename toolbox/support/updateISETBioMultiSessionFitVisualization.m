@@ -47,7 +47,7 @@ function updateISETBioMultiSessionFitVisualization(visStruct, iRGCindex, iCone, 
     
         % Finish fit plot     
         set(ax, 'XScale', 'log', 'FontSize', 18);
-        set(ax, 'XLim', [4 55], 'XTick', [5 10 20 40 60], 'YLim', [-0.1 0.75], 'YTick', [0:0.1:1]);
+        set(ax, 'XLim', [4 55], 'XTick', [5 10 20 40 60], 'YLim', [-0.2 0.75], 'YTick', [0:0.1:1]);
         grid(ax, 'on');
         axis(ax, 'square');
         xlabel(ax, 'spatial frequency (c/deg)');

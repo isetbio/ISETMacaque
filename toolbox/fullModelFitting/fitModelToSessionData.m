@@ -246,9 +246,10 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
                     squeeze(theTrainingSTFdata(iRGCindex,:)), ...
                     squeeze(theTrainingSTFerrorData(iRGCindex,:)), ...
                     fitTitle, dTrainSession, dTestSession);
+                
             end
         end % iCone
-
+        
         % End visualization for this RGC
         closeISETBioFitVisualization(visStruct);
     end % iRGCindex

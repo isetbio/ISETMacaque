@@ -3,6 +3,9 @@ function displayModelFits()
     targetLcenterRGCindices = 11;
     targetMcenterRGCindices = [];
    
+    accountForResponseOffset = ~true;
+    accountForResponseSignReversal = ~true;
+    
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;
     startingPointsNum = 512;
@@ -16,28 +19,29 @@ function displayModelFits()
     rootDirName = ISETmacaqueRootPath();
     exportsDir = fullfile(strrep(rootDirName, 'toolbox', ''), 'simulations/generatedData/exports');
    
+    receptiveFieldAndOpticalVariations = {};
     
-    receptiveFieldAndOpticalVariations{1} = struct(...
-        'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
-        'residualDefocusDiopters', 0);
-
-    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-        'centerConesSchema', 'single', ...
-        'residualDefocusDiopters', 0.067);
+    
+%     receptiveFieldAndOpticalVariations{1} = struct(...
+%         'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
+%         'residualDefocusDiopters', 0);
+% 
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'single', ...
+%         'residualDefocusDiopters', 0.067);
+% 
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'variable', ...
+%         'residualDefocusDiopters', 0);
 
     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
         'centerConesSchema', 'variable', ...
-        'residualDefocusDiopters', 0);
-
-    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-        'centerConesSchema', 'variable', ...
         'residualDefocusDiopters', 0.067);
 
 
-    accountForResponseOffset = true;
-    accountForResponseSignReversal = true;
+   
 
-    for sessionIndex = 1:3
+    for sessionIndex = 2:2
         for iModel = 1:numel(receptiveFieldAndOpticalVariations)
 
             modelVariant = struct(...
@@ -74,7 +78,7 @@ function displayModelFits()
                 theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
             end
             
-            plogTrainingModels = ~true;
+            plogTrainingModels = true;
             if (plogTrainingModels)
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...

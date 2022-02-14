@@ -10,19 +10,19 @@ function fitISETBioModelToAOSTFdata
 
 
     % Run the signed response model variant
-    accountForResponseOffset = ~true;
+    accountForResponseOffset = true;
     accountForResponseSignReversal = ~true;
 
 
     %operationMode = 'fitModelOnSessionAveragedData';
-    operationMode = 'fitModelOnSingleSessionData';
+    %operationMode = 'fitModelOnSingleSessionData';
     %operationMode = 'crossValidateFittedModelOnSingleSessionData';
-    %perationMode = 'crossValidateFittedModelOnAllSessionData';
+    operationMode = 'crossValidateFittedModelOnAllSessionData';
 
 
     if (strcmp(operationMode,  'crossValidateFittedModelOnAllSessionData'))
         hFig = figure(1000); clf;
-        set(hFig, 'Position', [100 800 1500 400], 'Color', [1 1 1]);
+        set(hFig, 'Position', [100 800 2100 540], 'Color', [1 1 1]);
     end
 
 
@@ -99,28 +99,32 @@ function fitISETBioModelToAOSTFdata
             plotCrossValidationErrors(hFig, 4, squeeze(inSampleErrors(4,:,:)), squeeze(outOfSampleErrors(4,:,:)), ...
             centerConesSchema, residualDefocusDiopters);
     
+        NicePlot.exportFigToPDF('CrossValidationAllPositions.pdf', hFig, 300);
         
-        figure(1001);
+        hFig = figure(1001); clf;
+        set(hFig, 'Position', [10 10 1500 750], 'Color', [1 1 1]);
         subplot(1,2,1);
-        bar(1:4, meanInSampleErrorAcrossAllPositions, 1); hold on
+        bar(1:4, meanInSampleErrorAcrossAllPositions, 1, 'EdgeColor', [1 0 0], 'FaceColor', [1 0.5 0.5]); hold on
         er = errorbar(1:4, meanInSampleErrorAcrossAllPositions, stdInSampleErrorAcrossAllPositions, stdInSampleErrorAcrossAllPositions);  
         er.Color = [0 0 0];                            
         er.LineStyle = 'none';  
-
-        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 14, 'YLim', [0.03 0.07]);
-        xlabel('model');
-        ylabel('rmsE (average across positions)')
-        title('in sample');
+        er.LineWidth = 1.5;
+        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0.03 0.1]);
+       
+        xtickangle(45);
+        title(sprintf('training rmsE\n(average across positions)'))
 
         subplot(1,2,2);
-        bar(1:4, meanOutOfSampleErrorAcrossAllPositions, 1); hold on
+        bar(1:4, meanOutOfSampleErrorAcrossAllPositions, 1, 'EdgeColor', [0 0 1], 'FaceColor', [0.5 0.5 1]); hold on
         er = errorbar(1:4, meanOutOfSampleErrorAcrossAllPositions,stdOutOfSampleErrorAcrossAllPositions, stdOutOfSampleErrorAcrossAllPositions);
         er.Color = [0 0 0];                            
-        er.LineStyle = 'none';  
-        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 14, 'YLim', [0.06 0.10]);
-        xlabel('model');
-        ylabel('rmsE (average across positions)')
-        title('out of sample');
+        er.LineStyle = 'none'; 
+        er.LineWidth = 1.5;
+        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0.03 0.10]);
+        
+        xtickangle(45);
+        title(sprintf('cross-validated rmsE\n(average across positions)'))
+        NicePlot.exportFigToPDF('CrossValidationErrorSummary.pdf', hFig, 300);
     end
 
 end
@@ -158,7 +162,7 @@ function [meanInSampleErrorAcrossAllPositions, meanOutOfSampleErrorAcrossAllPosi
          'MarkerSize', 12, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.5);
      xlabel('position index');
      ylabel('rms error');
-     legend({'in-sample', 'out-of-sample'})
+     legend({'training', 'cross-validated'})
      hypothesisLabel = sprintf('%s center cone, defocus: %2.3fD', centerConesSchema, residualDefocusDiopters);
      title(hypothesisLabel)
      axis 'square'
