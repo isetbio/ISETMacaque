@@ -1,10 +1,10 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 11;
+    targetLcenterRGCindices = 8;
     targetMcenterRGCindices = [];
    
-    accountForResponseOffset = ~true;
-    accountForResponseSignReversal = ~true;
+    accountForResponseOffset = true;
+    accountForResponseSignReversal = false;
     
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;

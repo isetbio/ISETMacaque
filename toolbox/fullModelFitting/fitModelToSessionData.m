@@ -281,13 +281,8 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
 
     weights = 1./theSTFstdErr;
-    fitAbsoluteValueOfResponses = true;
     visualizeCenterWeights = false;
-    if (fitAbsoluteValueOfResponses)
-        objective = @(p) sum(weights' .* (abs(ISETBioComputedSTF(p, constants, visualizeCenterWeights)) - abs(theSTF')).^2);
-    else
-        objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - theSTF').^2);
-    end
+    objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - theSTF').^2);
 
     options = optimset(...
         'Display', 'off', ...
@@ -336,8 +331,8 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     if (constants.transducerFunctionAccountsForResponseOffset)
         % Last  parameter is the fluorescenceDC offset
         fluorescenceDC = struct(...
-            'low', -0.3, ...
-            'high', 0.3, ...
+            'low', -0.4, ...
+            'high', 0.4, ...
             'initial', 0.0);
         paramNames{numel(paramNames)+1} = 'fluorescenceDC';
         paramsInitial(numel(paramsInitial)+1) = fluorescenceDC.initial;
@@ -396,25 +391,53 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     
         % Objective function with a single parameter: thescalingFactor
         if (constants.transducerFunctionAccountsForResponseOffset)
-            % dc offset is the last parameter
-            fluorescenceDC= trainedModelFitParams(end);
+            
+            % dc offset from the training fit (last parameter)
+            theFittedSTFoffset = trainedModelFitParams(end);
+            
+            scalingObjective = @(p) sum(weights' .* (p(1)+p(2)*(theFittedSTF-theFittedSTFoffset) - theSTF').^2);
+            
+            % Initial params and bounds for the scalingFactor
+            offsetFactorInitial = 0;
+            offsetFactorLowerBound = -0.4; 
+            offsetFactorUpperBound = 0.4;
+            
+            scalingFactorInitial = 1;
+            scalingFactorLowerBound = 0.5; 
+            scalingFactorUpperBound = 2.0;
+            
+            paramsInitial = [offsetFactorInitial scalingFactorInitial];
+            paramsLowerBound = [offsetFactorLowerBound scalingFactorLowerBound];
+            paramsUpperBound = [offsetFactorUpperBound scalingFactorUpperBound];
+            
+            % Find the optimal params
+            optimalParams = fmincon(scalingObjective, paramsInitial,[],[],[],[],paramsLowerBound,paramsUpperBound,[],options);
+            offsetFactor = optimalParams(1);
+            scalingFactor = optimalParams(2);
+            
+             % Apply the optimal scaling factor to theFittedSTF
+            theFittedSTF = offsetFactor + scalingFactor * (theFittedSTF-theFittedSTFoffset);
+            theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
+            theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
         else
-            fluorescenceDC= 0;
+            
+            scalingObjective = @(scalingFactor) sum(weights' .* (theFittedSTF*scalingFactor - theSTF').^2);
+        
+            % Initial params and bounds for the scalingFactor
+            scalingFactorInitial = [1];
+            scalingFactorLowerBound = [0.1]; 
+            scalingFactorUpperBound = [10];
+            
+            % Find the optimal scaling factor
+            scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
+
+            % Apply the optimal scaling factor to theFittedSTF
+            theFittedSTF = theFittedSTF * scalingFactor;
+            theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
+            theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
         end
-        scalingObjective = @(scalingFactor) sum(weights' .* (fluorescenceDC+(theFittedSTF-fluorescenceDC)*scalingFactor - theSTF').^2);
-
-        % Initial params and bounds for the scalingFactor
-        scalingFactorInitial = [1];
-        scalingFactorLowerBound = [0.1]; 
-        scalingFactorUpperBound = [10];
-
-         % Find the optimal scaling factor
-        scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
-
-        % Apply the optimal scaling factor to theFittedSTF
-        theFittedSTF = fluorescenceDC+(theFittedSTF-fluorescenceDC) * scalingFactor;
-        theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
-        theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
+        
+        
     end
 
 
@@ -623,8 +646,6 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
 
     % Apply surround gain 
     surroundMechanismModulations = Ks * totalSurroundResponse;
-    
-
 
     % Composite center-surround responses
     modelRGCmodulations = centerMechanismModulations - surroundMechanismModulations;
