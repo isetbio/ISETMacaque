@@ -280,15 +280,13 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     constants.centerConeCharacteristicRadiusDegs = centerConeCharacteristicRadiusDegs;
 
 
-    % Fitting weights 
-    minSpatialFrequencyToIncludeForFitting = 7;
+    % Fitting weights. Increase weight as SF increases to better account
+    % for high SF data
     weights = 1./theSTFstdErr;
-    spatialFrequencyIndicesForRMSError = find(modelSTFrunData.examinedSpatialFrequencies >= minSpatialFrequencyToIncludeForFitting);
-    fprintf('2, Fitting SFs >= %f\n', modelSTFrunData.examinedSpatialFrequencies(spatialFrequencyIndicesForRMSError(1)));
+    sfWeightFactor = linspace(0,1,numel(weights));
+    weights = weights .* sfWeightFactor';
 
-    % Set the weights for the non-included SFs to zero
-    weights(1:spatialFrequencyIndicesForRMSError-1) = 0;
-
+    % Visualize the RF center weights
     visualizeCenterWeights = false;
 
     if (isempty(trainedModelFitParams))
