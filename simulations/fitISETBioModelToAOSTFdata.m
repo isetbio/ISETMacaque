@@ -3,7 +3,7 @@ function fitISETBioModelToAOSTFdata
 % spatial pooling (DoG) model to fit the measured STF data
 
     % Multi-start >1 or single attempt
-    startingPointsNum = 32;
+    startingPointsNum = 512;
 
     % Select cell to examine
     targetLcenterRGCindices = [8]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
