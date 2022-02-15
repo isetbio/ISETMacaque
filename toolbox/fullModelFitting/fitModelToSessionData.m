@@ -397,11 +397,12 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             
             scalingObjective = @(p) sum(weights' .* (p(1)+p(2)*(theFittedSTF-theFittedSTFoffset) - theSTF').^2);
             
-            % Initial params and bounds for the scalingFactor
+            % Initial params and bounds for the offsetFactor
             offsetFactorInitial = 0;
             offsetFactorLowerBound = -0.3; 
-            offsetFactorUpperBound = 0.3;
+            offsetFactorUpperBound = 0.0;
             
+            % Initial params and bounds for the scalingFactor
             scalingFactorInitial = 1;
             scalingFactorLowerBound = 0.3; 
             scalingFactorUpperBound = 3.0;
