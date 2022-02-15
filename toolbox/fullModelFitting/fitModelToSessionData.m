@@ -280,69 +280,79 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     constants.centerConeCharacteristicRadiusDegs = centerConeCharacteristicRadiusDegs;
 
 
+    % Fitting weights 
+    minSpatialFrequencyToIncludeForFitting = 7;
     weights = 1./theSTFstdErr;
+    spatialFrequencyIndicesForRMSError = find(modelSTFrunData.examinedSpatialFrequencies >= minSpatialFrequencyToIncludeForFitting);
+    fprintf('2, Fitting SFs >= %f\n', modelSTFrunData.examinedSpatialFrequencies(spatialFrequencyIndicesForRMSError(1)));
+
+    % Set the weights for the non-included SFs to zero
+    weights(1:spatialFrequencyIndicesForRMSError-1) = 0;
+
     visualizeCenterWeights = false;
-    objective = @(p) sum(weights' .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - theSTF').^2);
-
-    options = optimset(...
-        'Display', 'off', ...
-        'Algorithm', 'interior-point',... % 'sqp', ... % 'interior-point',...
-        'GradObj', 'off', ...
-        'DerivativeCheck', 'off', ...
-        'MaxFunEvals', 10^5, ...
-        'MaxIter', 10^3);
-%     , ...
-%         'TolX', 10^(-32), ...
-%         'TolFun', 10^(-32));
-
-    kc = struct(...
-        'low', 1e-4, ...
-        'high', 1e5, ...
-        'initial', 1);
-
-    KsToKc = struct(...
-        'low', 1e-3, ...
-        'high', 1, ...
-        'initial', 0.1);
-
-    RsToCenterConeRc = struct(...
-        'low', 1.2, ...
-        'high', 40, ...
-        'initial', 5);
-
-    %                Kc            kS/kC              RsToCenterConeRc          
-    paramsInitial = [kc.initial    KsToKc.initial     RsToCenterConeRc.initial  ];
-    lowerBound    = [kc.low        KsToKc.low         RsToCenterConeRc.low      ];
-    upperBound    = [kc.high       KsToKc.high        RsToCenterConeRc.high     ];
-    paramNames    = {'Kc', 'kS/kC',  'RsToCenterConeRc'};
-    
-    if (strcmp(constants.centerConesSchema, 'variable'))
-        % Add another parameter, the number of center cones
-        RcToCenterConeRc = struct(...
-            'low', 1.0, ...
-            'high', 7.0, ...
-            'initial', 1.1);
-        paramNames{numel(paramNames)+1} = 'RcToCenterConeRc';
-        paramsInitial(numel(paramsInitial)+1) = RcToCenterConeRc.initial;
-        lowerBound(numel(lowerBound)+1) = RcToCenterConeRc.low;
-        upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
-    end
-
-    if (constants.transducerFunctionAccountsForResponseOffset)
-        % Last  parameter is the fluorescenceDC offset
-        fluorescenceDC = struct(...
-            'low', -0.3, ...
-            'high', 0.0, ...
-            'initial', 0.0);
-        paramNames{numel(paramNames)+1} = 'fluorescenceDC';
-        paramsInitial(numel(paramsInitial)+1) = fluorescenceDC.initial;
-        lowerBound(numel(lowerBound)+1) = fluorescenceDC.low;
-        upperBound(numel(upperBound)+1) = fluorescenceDC.high;
-    end
-
 
     if (isempty(trainedModelFitParams))
-        % Fit model to data
+        % Fit model to training session data
+
+        % The objective
+        w = weights';
+        testData = theSTF';
+        objective = @(p) sum(w .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - testData).^2);
+
+        options = optimset(...
+            'Display', 'off', ...
+            'Algorithm', 'interior-point',... % 'sqp', ... % 'interior-point',...
+            'GradObj', 'off', ...
+            'DerivativeCheck', 'off', ...
+            'MaxFunEvals', 10^5, ...
+            'MaxIter', 10^3);
+    
+        kc = struct(...
+            'low', 1e-4, ...
+            'high', 1e5, ...
+            'initial', 1);
+    
+        KsToKc = struct(...
+            'low', 1e-3, ...
+            'high', 1, ...
+            'initial', 0.1);
+    
+        RsToCenterConeRc = struct(...
+            'low', 1.2, ...
+            'high', 40, ...
+            'initial', 5);
+    
+        %                Kc            kS/kC              RsToCenterConeRc          
+        paramsInitial = [kc.initial    KsToKc.initial     RsToCenterConeRc.initial  ];
+        lowerBound    = [kc.low        KsToKc.low         RsToCenterConeRc.low      ];
+        upperBound    = [kc.high       KsToKc.high        RsToCenterConeRc.high     ];
+        paramNames    = {'Kc', 'kS/kC',  'RsToCenterConeRc'};
+    
+        if (strcmp(constants.centerConesSchema, 'variable'))
+            % Add another parameter, the number of center cones
+            RcToCenterConeRc = struct(...
+                'low', 1.0, ...
+                'high', 7.0, ...
+                'initial', 1.1);
+            paramNames{numel(paramNames)+1} = 'RcToCenterConeRc';
+            paramsInitial(numel(paramsInitial)+1) = RcToCenterConeRc.initial;
+            lowerBound(numel(lowerBound)+1) = RcToCenterConeRc.low;
+            upperBound(numel(upperBound)+1) = RcToCenterConeRc.high;
+        end
+    
+        if (constants.transducerFunctionAccountsForResponseOffset)
+            % Last  parameter is the fluorescenceDC offset
+            fluorescenceDC = struct(...
+                'low', -0.3, ...
+                'high', 0.0, ...
+                'initial', 0.0);
+            paramNames{numel(paramNames)+1} = 'fluorescenceDC';
+            paramsInitial(numel(paramsInitial)+1) = fluorescenceDC.initial;
+            lowerBound(numel(lowerBound)+1) = fluorescenceDC.low;
+            upperBound(numel(upperBound)+1) = fluorescenceDC.high;
+        end
+
+    
         if (startingPointsNum <= 1)
             % Just one attempt
             trainedModelFitParams = fmincon(objective,paramsInitial,[],[],[],[],lowerBound,upperBound,[],options);
@@ -376,8 +386,9 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % Return dublicate of the fittedSTF
         trainedModelFittedSTF = theFittedSTF;
     else
-        visualizeCenterWeights = false;
+        
         % Compute the fittedSTF using the trained model
+        visualizeCenterWeights = false;
         [theFittedSTF, theFittedCenterSTF, theFittedSurroundSTF, ...
          centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
          surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(trainedModelFitParams, constants, visualizeCenterWeights);
@@ -395,7 +406,11 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             % dc offset from the training fit (last parameter)
             theFittedSTFoffset = trainedModelFitParams(end);
             
-            scalingObjective = @(p) sum(weights' .* (p(1)+p(2)*(theFittedSTF-theFittedSTFoffset) - theSTF').^2);
+            % Objective
+            w = weights';
+            testData = theSTF';
+            trainingData = theFittedSTF-theFittedSTFoffset;
+            scalingObjective = @(p) sum(w .* (p(1)+p(2)*trainingData - testData).^2);
             
             % Initial params and bounds for the offsetFactor
             offsetFactorInitial = 0;
@@ -422,7 +437,12 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
         else
             
-            scalingObjective = @(scalingFactor) sum(weights' .* (theFittedSTF*scalingFactor - theSTF').^2);
+            w = weights';
+            testData = theSTF';
+            trainingData = theFittedSTF;
+
+            % Objective based on the highest SFs
+            scalingObjective = @(p) sum(w .* (p(1) * trainingData - testData).^2);
         
             % Initial params and bounds for the scalingFactor
             scalingFactorInitial = [1];
