@@ -1,6 +1,6 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 8;
+    targetLcenterRGCindices = 10;
     targetMcenterRGCindices = [];
    
     accountForResponseOffset = true;
@@ -21,18 +21,17 @@ function displayModelFits()
    
     receptiveFieldAndOpticalVariations = {};
     
-    
-%     receptiveFieldAndOpticalVariations{1} = struct(...
-%         'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
-%         'residualDefocusDiopters', 0);
-% 
-%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-%         'centerConesSchema', 'single', ...
-%         'residualDefocusDiopters', 0.067);
-% 
-%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-%         'centerConesSchema', 'variable', ...
-%         'residualDefocusDiopters', 0);
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
+        'residualDefocusDiopters', 0);
+
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'single', ...
+        'residualDefocusDiopters', 0.067);
+
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'variable', ...
+        'residualDefocusDiopters', 0);
 
     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
         'centerConesSchema', 'variable', ...
@@ -41,7 +40,7 @@ function displayModelFits()
 
    
 
-    for sessionIndex = 2:2
+    for sessionIndex = 1:3
         for iModel = 1:numel(receptiveFieldAndOpticalVariations)
 
             modelVariant = struct(...
