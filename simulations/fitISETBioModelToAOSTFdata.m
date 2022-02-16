@@ -18,15 +18,19 @@ function fitISETBioModelToAOSTFdata
     % center.
     accountForResponseSignReversal = false;
 
-    % Train or cross-validate
-    % Train
-    operationMode = 'fitModelOnSingleSessionData';       
-    %%%%%%%%operationMode = 'fitModelOnSessionAveragedData';
-    
-    % Cross-validate
-    %operationMode = 'crossValidateFittedModelOnAllSessionData';
-    %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
+    % Train  models
+    operationMode = 'fitModelOnSingleSessionData'; 
 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%operationMode = 'fitModelOnSessionAveragedData';
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % Cross-validate models
+    %operationMode = 'crossValidateFittedModelOnAllSessionData';
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     if (strcmp(operationMode,  'crossValidateFittedModelOnAllSessionData'))
         hFigCrossValidation = figure(1000); clf;
