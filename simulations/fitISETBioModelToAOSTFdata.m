@@ -11,12 +11,21 @@ function fitISETBioModelToAOSTFdata
 
     % Select the Ca fluorescence response model to employ
     % Only play with the response offset
-    accountForResponseOffset = true;
+    accountForResponseOffset = ~true;
     
     % Always set to false. For drifting gratings, there is no reason why
     % the Ca response should go negative when the surround dominates the
     % center.
     accountForResponseSignReversal = false;
+
+
+    % Choose whether to bias toward the high SF points in the computation of the RMSError
+    % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
+    fitBias = 'none';                           % 1/stdErr
+    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    %fitBias = 'flat';                          % all ones
+
+
 
     % Train  models
     operationMode = 'fitModelOnSingleSessionData'; 
@@ -26,7 +35,7 @@ function fitISETBioModelToAOSTFdata
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Cross-validate models
-    %operationMode = 'crossValidateFittedModelOnAllSessionData';
+    operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
@@ -65,16 +74,11 @@ function fitISETBioModelToAOSTFdata
                 targetLcenterRGCindices, targetMcenterRGCindices, ...
                 centerConesSchema, residualDefocusDiopters, ...
                 accountForResponseOffset, accountForResponseSignReversal, ...
-                startingPointsNum, operationMode);
+                startingPointsNum, operationMode, fitBias);
 
             if (strcmp(operationMode,  'crossValidateFittedModelOnAllSessionData'))
-                [inSampleErrorAcrossAllPositionsMedian(idx), outOfSampleErrorAcrossAllPositionsMedian(idx), ...
-                 inSampleErrorAcrossAllPositionsMin(idx), outOfSampleErrorAcrossAllPositionsMin(idx), ...
-                 inSampleErrorAcrossAllPositionsMax(idx), outOfSampleErrorAcrossAllPositionsMax(idx), ...
-                 bestPositionInSampleErrorMean(idx), bestPositionOutOfSampleErrorMean(idx), ...
-                 bestPositionInSampleErrorMin(idx),  bestPositionOutOfSampleErrorMin(idx), ...
-                 bestPositionInSampleErrorMax(idx),  bestPositionOutOfSampleErrorMax(idx), ...
-                 hypothesisLabels{idx}] = plotCrossValidationErrorsAtAllPositions(hFigCrossValidation, idx, ...
+                [bestPositionInSampleErrors(idx,:), bestPositionOutOfSampleErrors(idx,:), hypothesisLabels{idx}] = ...
+                    plotCrossValidationErrorsAtAllPositions(hFigCrossValidation, idx, ...
                         squeeze(inSampleErrors(idx,:,:)), squeeze(outOfSampleErrors(idx,:,:,:)), ...
                         centerConesSchema, residualDefocusDiopters);
             end
@@ -89,121 +93,73 @@ function fitISETBioModelToAOSTFdata
     
     if (strcmp(operationMode,  'crossValidateFittedModelOnAllSessionData'))
         hFigSummary = plotCrossValidationErrors(1001, ...
-            bestPositionInSampleErrorMean, bestPositionOutOfSampleErrorMean, ...
-            bestPositionInSampleErrorMin,  bestPositionOutOfSampleErrorMin, ...
-            bestPositionInSampleErrorMax,  bestPositionOutOfSampleErrorMax, ...
-            hypothesisLabels, 'best position');
+            bestPositionInSampleErrors, bestPositionOutOfSampleErrors, ...
+            hypothesisLabels);
         NicePlot.exportFigToPDF('CrossValidationBestPositionErrorSummary.pdf', hFigSummary, 300);
-        
-        hFigSummary = plotCrossValidationErrors(1002, ...
-            inSampleErrorAcrossAllPositionsMedian, outOfSampleErrorAcrossAllPositionsMedian, ...
-            inSampleErrorAcrossAllPositionsMin,  outOfSampleErrorAcrossAllPositionsMin, ...
-            inSampleErrorAcrossAllPositionsMax,  outOfSampleErrorAcrossAllPositionsMax, ...
-            hypothesisLabels, 'median over positions');
-        NicePlot.exportFigToPDF('CrossValidationMedianOverPositionsErrorSummary.pdf', hFigSummary, 300);
         
     end
 end
 
 function hFig = plotCrossValidationErrors(figNo, ...
-                inSampleErrorMean, outOfSampleErrorMean, ...
-                inSampleErrorMin,  outOfSampleErrorMin, ...
-                inSampleErrorMax,  outOfSampleErrorMax, ...
-                hypothesisLabels, rmseLabel)
+                bestPositionInSampleErrors, bestPositionOutOfSampleErrors, ...
+                hypothesisLabels)
             
         % Plot mean RMS erros across all positions examined
         hFig = figure(figNo); clf;
         set(hFig, 'Position', [10 10 1500 750], 'Color', [1 1 1]);
+
         subplot(1,2,1);
-        bar(1:numel(hypothesisLabels), inSampleErrorMean, 1, 'EdgeColor', [1 0 0], 'FaceColor', [1 0.5 0.5]); hold on
-        er = errorbar(1:numel(hypothesisLabels), inSampleErrorMean, ...
-            abs(inSampleErrorMean-inSampleErrorMin), abs(inSampleErrorMean-inSampleErrorMax));  
-        er.Color = [0 0 0];                            
-        er.LineStyle = 'none';  
-        er.LineWidth = 1.5;
-        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0.03 0.12], 'YTick', 0.02:0.02:0.2);
+        bar(1:numel(hypothesisLabels), median(bestPositionInSampleErrors, 2), 1, 'EdgeColor', [1 0 0], 'FaceColor', [1 0.5 0.5]); hold on
+        for modelScenario = 1:size(bestPositionInSampleErrors,1)
+            scatter(modelScenario + zeros(1,size(bestPositionInSampleErrors,2)), bestPositionInSampleErrors(modelScenario,:), 300, ...
+                'ko', 'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [1 0.8 0.2], 'MarkerEdgeColor', [1 0.5 0], 'LineWidth', 1.0);
+        end
+
+        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0 2], 'YTick', 0:0.5:2);
        
         xtickangle(45);
-        title(sprintf('training RMSE (%s)', rmseLabel));
+        title(sprintf('training RMSE'));
 
         subplot(1,2,2);
-        bar(1:numel(hypothesisLabels), outOfSampleErrorMean, 1, 'EdgeColor', [0 0 1], 'FaceColor', [0.5 0.5 1]); hold on
-        er = errorbar(1:numel(hypothesisLabels), outOfSampleErrorMean, ...
-            abs(outOfSampleErrorMean-outOfSampleErrorMin), abs(outOfSampleErrorMean-outOfSampleErrorMax));  
-        er.Color = [0 0 0];                            
-        er.LineStyle = 'none'; 
-        er.LineWidth = 1.5;
-        set(gca, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0.03 0.12], 'YTick', 0.02:0.02:0.2);
+        bar(1:numel(hypothesisLabels), median(bestPositionOutOfSampleErrors, 2), 1,  'EdgeColor', [0 0 1], 'FaceColor', [0.5 0.5 1]); hold on
+        for modelScenario = 1:size(bestPositionOutOfSampleErrors,1)
+            scatter(modelScenario + zeros(1,size(bestPositionOutOfSampleErrors,2)), bestPositionOutOfSampleErrors(modelScenario,:), 300, ...
+                'ko', 'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [0.2 0.8 1.0], 'MarkerEdgeColor', [0 0.5 1], 'LineWidth', 1.0);
+        end
+
+        set(gca, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 24,  'YLim', [0 2], 'YTick', 0:0.5:2);
         
         xtickangle(45);
-        title(sprintf('cross-validated RMSE (%s)', rmseLabel));
+        title(sprintf('cross-validated RMSE'));
         
 end
 
 
-function [medianInSampleErrorAcrossAllPositions, medianOutOfSampleErrorAcrossAllPositions, ...
-    minInSampleErrorAcrossAllPositions, minOutOfSampleErrorAcrossAllPositions, ...
-    maxInSampleErrorAcrossAllPositions, maxOutOfSampleErrorAcrossAllPositions, ...
-    bestPositionInSampleErrorMean, bestPositionOutOfSampleErrorMean, ...
-    bestPositionInSampleErrorMin,  bestPositionOutOfSampleErrorMin, ...
-    bestPositionInSampleErrorMax,  bestPositionOutOfSampleErrorMax, ...
-    hypothesisLabel] = ...
+function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesisLabel] = ...
     plotCrossValidationErrorsAtAllPositions(hFig, subplotNo, inSampleErrors,outOfSampleErrors, centerConesSchema, residualDefocusDiopters)
 
      positionsNum = size(inSampleErrors,2);
      medianInSampleErrorForEachPosition = zeros(1, positionsNum);
      medianOutOfSampleErrorForEachPosition = zeros(1, positionsNum);
-     minInSampleErrorForEachPosition = zeros(1, positionsNum);
-     minOutOfSampleErrorForEachPosition = zeros(1, positionsNum);
-     maxInSampleErrorForEachPosition = zeros(1, positionsNum);
-     maxOutOfSampleErrorForEachPosition = zeros(1, positionsNum);
+     
 
-     for examinedRFpositionIndex = 1:positionsNum
-         % Retrieve the in-sample errors for this position for the 3 training sessions
-         inSampleErrorsForThisPosition = squeeze(inSampleErrors(:, examinedRFpositionIndex));
-         
-         % Retrieve the out-of-sample error for this position, for the 3 training sessions
-         outOfSampleErrorsForThisPosition = squeeze(outOfSampleErrors(:, examinedRFpositionIndex,:));
-         
-         % Median of in-sample and out-of-sample errors over all sessions separately for each examined position
-         %fprintf('Computing median of in-sample errors (%d evaluations)', numel(inSampleErrorsForThisPosition));
-         %fprintf('Computing median out-of-sample errors (%d evaluations)', numel(outOfSampleErrorsForThisPosition));
-         medianInSampleErrorForEachPosition(examinedRFpositionIndex) = median(inSampleErrorsForThisPosition(:));
-         medianOutOfSampleErrorForEachPosition(examinedRFpositionIndex) = median(outOfSampleErrorsForThisPosition(:));
-
-         % Min and max in-sample errors over all  sessions
-         minInSampleErrorForEachPosition(examinedRFpositionIndex) = min(inSampleErrorsForThisPosition(:));
-         maxInSampleErrorForEachPosition(examinedRFpositionIndex) = max(inSampleErrorsForThisPosition(:));
-         
-         % Min and max out-of-sample errors over all sessions
-         minOutOfSampleErrorForEachPosition(examinedRFpositionIndex) = min(outOfSampleErrorsForThisPosition(:));
-         maxOutOfSampleErrorForEachPosition(examinedRFpositionIndex) = max(outOfSampleErrorsForThisPosition(:));
+    % Compute median out of sample errors for each position examined
+     for iPos = 1:positionsNum
+         inSampleErrorsForThisPosition = squeeze(inSampleErrors(:, iPos));
+         medianInSampleErrorForEachPosition(iPos) = median(inSampleErrorsForThisPosition(:));
+         outOfSampleErrorsForThisPosition = squeeze(outOfSampleErrors(:, iPos,:));
+         medianOutOfSampleErrorForEachPosition(iPos) = median(outOfSampleErrorsForThisPosition(:));
      end
 
 
-     % Find position with lowest cross-validation error
-     [~,bestPositionIndex] = min(medianOutOfSampleErrorForEachPosition);
-     
-     % Report errors for this position
-     bestPositionInSampleErrorMean = medianInSampleErrorForEachPosition(bestPositionIndex);
-     bestPositionOutOfSampleErrorMean = medianOutOfSampleErrorForEachPosition(bestPositionIndex);
-     
-     bestPositionInSampleErrorMin = minInSampleErrorForEachPosition(bestPositionIndex);
-     bestPositionInSampleErrorMax = maxInSampleErrorForEachPosition(bestPositionIndex);
-     bestPositionOutOfSampleErrorMin = minOutOfSampleErrorForEachPosition(bestPositionIndex);
-     bestPositionOutOfSampleErrorMax = maxOutOfSampleErrorForEachPosition(bestPositionIndex);
-     
-     
-     % Median error over all positions examined
-     medianInSampleErrorAcrossAllPositions = median(medianInSampleErrorForEachPosition(:));
-     medianOutOfSampleErrorAcrossAllPositions = median(medianOutOfSampleErrorForEachPosition(:));
-     
-     % Min and Max errors over all positions examined
-     minInSampleErrorAcrossAllPositions = min(medianInSampleErrorForEachPosition(:));
-     minOutOfSampleErrorAcrossAllPositions = min(medianOutOfSampleErrorForEachPosition(:));
-     maxInSampleErrorAcrossAllPositions = max(medianInSampleErrorForEachPosition(:));
-     maxOutOfSampleErrorAcrossAllPositions = max(medianOutOfSampleErrorForEachPosition(:));
-     
+     % Find the position with the min median error
+     [~, bestPosition] = min(medianOutOfSampleErrorForEachPosition);
+
+
+     bestPositionInSampleErrors = squeeze(inSampleErrors(:, bestPosition));
+     bestPositionOutOfSampleErrors = squeeze(outOfSampleErrors(:, bestPosition,:));
+     bestPositionOutOfSampleErrors = bestPositionOutOfSampleErrors(:);
+
      % Plot rms errors
      figure(hFig);
      ax = subplot(1,4,subplotNo);
@@ -220,9 +176,9 @@ function [medianInSampleErrorAcrossAllPositions, medianOutOfSampleErrorAcrossAll
      p2 = plot(ax,positionIndices, medianOutOfSampleErrorForEachPosition,  'bo-', ...
          'MarkerSize', 12, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.5);
      
-     plot(ax,bestPositionIndex, bestPositionInSampleErrorMean,  'rs', ...
+     plot(ax,bestPosition, medianInSampleErrorForEachPosition(bestPosition),  'rs', ...
          'MarkerSize', 20, 'MarkerFaceColor', 'none', 'LineWidth', 1.5); hold on;
-     plot(ax,bestPositionIndex, bestPositionOutOfSampleErrorMean,  'bs', ...
+     plot(ax,bestPosition, medianOutOfSampleErrorForEachPosition(bestPosition),  'bs', ...
          'MarkerSize', 20, 'MarkerFaceColor', 'none', 'LineWidth', 1.5);
      hold(ax, 'off')
      
@@ -232,7 +188,7 @@ function [medianInSampleErrorAcrossAllPositions, medianOutOfSampleErrorAcrossAll
      hypothesisLabel = sprintf('%s center cone, defocus: %2.3fD', centerConesSchema, residualDefocusDiopters);
      title(ax,hypothesisLabel)
      axis(ax,'square')
-     set(ax, 'XLim', [0.5 numel(positionIndices)+0.5], 'XTick', 0:1:200, 'YLim', [0.03 0.12], 'YTick', 0.00:0.01:0.2);
+     set(ax, 'XLim', [0.5 numel(positionIndices)+0.5], 'YLim', [0 2], 'XTick', 0:1:200);
      set(ax, 'FontSize', 18);
      grid(ax, 'on')
 

@@ -1,9 +1,9 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 10;
+    targetLcenterRGCindices = 11;
     targetMcenterRGCindices = [];
    
-    accountForResponseOffset = true;
+    accountForResponseOffset = ~true;
     accountForResponseSignReversal = false;
     
     monkeyID = 'M838';
@@ -124,7 +124,7 @@ function displayModelFits()
     for sessionIndex = 1:3      
         subplot('Position', subplotPosVectors(1, sessionIndex).v);
         performances = squeeze(theErrors(sessionIndex,:,:));
-        bar(positionIndices, performances/referencePerformance);
+        bar(positionIndices, performances);
         xlabel('examined RF center position index');
         ylabel('relative rms error');
         legend(legends);

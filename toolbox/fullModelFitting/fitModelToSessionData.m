@@ -282,9 +282,18 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     % Fitting weights. Increase weight as SF increases to better account
     % for high SF data
-    weights = 1./theSTFstdErr;
-    sfWeightFactor = linspace(0,1,numel(weights));
-    weights = weights .* sfWeightFactor';
+    switch(modelVariant.fitBias)
+        case 'none'
+            fitSpatialFrequencyWeights = 1./theSTFstdErr;
+        case 'boostHighSpatialFrequencies'
+            sfWeightFactor = linspace(0,1,numel(theSTFstdErr));
+            fitSpatialFrequencyWeights = 1./theSTFstdErr .* sfWeightFactor';
+        case 'flat'
+            fitSpatialFrequencyWeights = ones(numel(theSTFstdErr),1);
+        otherwise
+            error('Unknown ''fitBias'' value: ''%s''.', modelVariant.fitBias);
+    end
+
 
     % Visualize the RF center weights
     visualizeCenterWeights = false;
@@ -301,7 +310,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
     % Fit model to training session data
 
     % The objective
-    w = weights';
+    w = fitSpatialFrequencyWeights';
     testData = theSTF';
     objective = @(p) sum(w .* (ISETBioComputedSTF(p, constants, visualizeCenterWeights) - testData).^2);
 
@@ -405,7 +414,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             theFittedSTFoffset = trainedModelFitParams(end);
             
             % Objective
-            w = weights';
+            w = fitSpatialFrequencyWeights';
             testData = theSTF';
             trainingData = theFittedSTF-theFittedSTFoffset;
             scalingObjective = @(p) sum(w .* (p(1)+p(2)*trainingData - testData).^2);
@@ -437,7 +446,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
         else
             
-            w = weights';
+            w = fitSpatialFrequencyWeights';
             testData = theSTF';
             trainingData = theFittedSTF;
 
@@ -536,7 +545,7 @@ function  [centerConeIndices, centerConeWeights, ...
         end
         centroidPosition = centroidPosition / sum(centroidWeights);
 
-        % Gaussian weights with cone distance from centroid
+        % Gaussian cone weights with cone distance from centroid
         d = sqrt(sum((bsxfun(@minus, constants.allConePositions(sortedConeIndices,:), centroidPosition)).^2,2));
         centerConeWeights = exp(-(d/RcDegs).^2);
 
