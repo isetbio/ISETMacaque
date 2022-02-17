@@ -120,19 +120,9 @@ Model ganglion cell responses, $\mbox{RGC}(\omega,t)$, are computed from the con
 \noindent where $W_{c}^j$ and $W_{s}^j$, are the factors with which the center and surround mechanisms, respectively, weigh responses $R^j(\omega, t)$. We are not modeling the temporal filtering and the delay between the center, $\mbox{RGC}_c(\omega,t)$, and surround $\mbox{RGC}_s(\omega,t)$ responses. Although real RGC responses may be affected both by temporal filtering and a center-surround delay, we have only response amplitude (not phase) measurements at only one temporal frequency and thus cannot meaningfully estimate these RGC parameters.
 
 
-\subsection{Computing model ganglion cell spatial transfer functions}
-The spatial transfer function (STF) of a model RGC, $\mbox{STF}^{m}(\omega)$, is computed as: 
-\begin{equation}
-\mbox{STF}^{m}(\omega) = \mbox{STF}_{c}^{m}(\omega) - \mbox{STF}_{s}^{m}(\omega)
-\end{equation}
-%
-\noindent with
-%
-$\mbox{STF}_{c}^{m}(\omega)$ and $\mbox{STF}_{s}^{m}(\omega)$ denoting the STFs of the center and surround mechanisms. These STFs are derived by fitting sinusoidal functions to the model center and surround mechanism responses, $\mbox{RGC}_c(\omega,t)$, and $\mbox{RGC}_s(\omega,t)$, respectively, where the sinusoid frequency is set to the temporal frequency of the drifting gratings, and its phase and amplitude are allowed to vary. At each spatial frequency, the amplitude of the best-fit sinusoid to $\mbox{RGC}(\omega,t)$ is taken as the value of $\mbox{STF}^{m}(\omega)$. Formulating $\mbox{STF}^{m}(\omega)$ as the difference of the center and the surround STFs, enables the model STF to achieve negative values, which are sometimes encountered in the measured fluorescence-based STF responses, $\mbox{STF}^{\Delta F / F}(\omega)$, at the lowest spatial frequencies (see Figure \ref{fig:CrossValidationApproach_TrainingModels}B, middle panel). An alternative would be to fit sinusoidal functions to the composite response, $\mbox{RGC}(\omega,t)$, but in that case the derived STFs cannot have negative values, and the fits to certain $\mbox{STF}^{\Delta F / F}(\omega)$ measurements become sub-optimal.
-
 \subsection{Estimating model RGC cone pooling weights from fluorescence-based STF measurements}
 %
-To make the model computationally more tractable, we assume that the weights with which cones are pooled by the center and surround mechanisms have concentric, Gaussian-shaped profiles:
+To make computation of cone weights more tractable, we assume that the spatial distribution of cone weights to the center and surround mechanisms have concentric, Gaussian-shaped profiles:
 \begin{eqnarray}
 W_c^j  & = & \begin{cases}
    k_c \times  \exp \left [ -\left( d_{j}/r_c \right) ^2 \right ], & \text{for the multi-cone RF center model}.\\
@@ -140,24 +130,64 @@ W_c^j  & = & \begin{cases}
    \end{cases} \\
 W_s^j &= &k_s \times \exp \left [ -\left( d_{j}/r_s \right) ^2 \right ]
 \end{eqnarray}
-\noindent where $d_j$ is the distance between cone-$j$ and the spatial position of the center mechanism of the model RGC (which is the spatial position of the cone driving the center mechanism). The parameters $k_c$, $k_s$, $r_c$, and $r_s$, which represent the center and surround peak sensitivities and characteristic radii, respectively, of the Difference of Gaussians (DoG) RF model, are determined by minimizing the square root of the weighted error between the model STF, $\mbox{STF}^{m}(\omega)$, and the measured STF, $\mbox{STF}^{\Delta F / F}(\omega)$, accumulated over all spatial frequencies, $\omega$:
+\noindent where $d_j$ is the distance between cone-$j$ and the spatial position of the center mechanism of the model RGC (which is the spatial position of the cone driving the center mechanism). The parameters $k_c$, $k_s$, $r_c$, and $r_s$, which represent the center and surround peak sensitivities and characteristic radii, respectively, of the Difference of Gaussians (DoG) RF model, are determined by minimizing the square root of the weighted error between the model-predicted STF, $\mbox{STF}^{m}(\omega)$, and the measured STF, $\mbox{STF}^{\Delta F / F}(\omega)$, accumulated over all spatial frequencies, $\omega$:
 
 \begin{equation}
 \mbox{RMSE} = \displaystyle \sqrt{\sum_{\omega} \frac{1}{\epsilon({\omega})} \times {\left [  \mbox{STF}^{m}(\omega)  - \mbox{STF}^{\Delta F / F}(\omega) \right ] }^2}
 \end{equation}
-where $\epsilon({\omega})$ is the standard error of the mean of the $\mbox{STF}^{\Delta F / F}(\omega)$ measurement. To minimize the chance of getting stuck to local minima of the error function, we employ a multi-start minimizer which is ran 256 times, keeping the results from the run which results in the minimum RMSE.
+where $\epsilon({\omega})$ is the standard error of the mean of the $\mbox{STF}^{\Delta F / F}(\omega)$ measurement. To minimize the chance of getting stuck to local minima of the error function, we employ a multi-start minimizer which is ran 512 times, keeping the results from the run which results in the minimum RMSE.
+
+The model-predicted STF, $\mbox{STF}^{m}(\omega)$, is computed by fitting a sinusoidal function, 
+\begin{equation}
+RGC^m(\omega,t) = A(\omega) \times \sin \left [ 2 \pi f t - \theta \right]
+\end{equation}
+to the model response, $\mbox{RGC}(\omega,t)$, where the $f$ is set to the temporal frequency of the drifting gratings, and $\theta, A(\omega)$ are free parameters. At each spatial frequency, the $A(\omega)$ value is taken as $\mbox{STF}^{m}(\omega)$. 
+
+\textcolor{red}{In some cells, the measured $\mbox{STF}^{\Delta F / F}(\omega)$ can reach negative values for certain spatial frequencies $\omega$. Since the fluorescence-based response to all grating stimuli is computed by subtracting the fluorescence-based response to a null (spatially uniform) stimulus, we interpret such negative values as a failure of the null stimulus to fully account for the baseline fluorescene response. In terms of modeling, there are 2 ways of handling this: (a) zeroing all negative values of the $\mbox{STF}^{\Delta F / F}(\omega)$ to be fitted, or (b) adding a nuisance parameter to the model, $\beta \le 0$, such that $\mbox{STF}^{m}(\omega) = \beta + A(\omega)$. Here, we chose the latter option.}
 
 
-\subsection{Model validation \& model selection}
-To extract robust estimates of the $k_s$, $r_c$ and $r_s$ receptive field  parameters, we employ a cross-validation approach, in which we train RF models based on STF data recorded at one session and evaluate their performance on STF data recorded at another session.
+\subsection{Model selection}
 
-\subsubsection{Training models}
-For each training session, $s_{train}$, we determine the $k_s$, $r_c$ and $r_s$ receptive field model parameters by minimizing the error between the predicted $\mbox{STF}^{m}_{s_{train}}$ and the measured fluorescence-based STF, $\mbox{STF}^{\Delta F / F}_{s_{train}}$. Since the $k_s$, $r_c$ and $r_s$ parameters are converted to weights applied to cones within the cone mosaic, whose relative positioning changes from one mosaic location to another due to local inhomogeneities of the mosaic and local variations in cone density, and since we do not know the exact position of the recorded RGCs, we determine the $k_s$, $r_c$ and $r_s$ receptive field for a number of different mosaic locations, corresponding to cone positions within the central 40 $\mu m$. Therefore, for each training session, we obtain a number of possible RF models which vary slightly as the relative position and spacing of cones varies from one mosaic location to another.
 
-Figure \ref{fig:CrossValidationApproach_TrainingModels} depicts the models extracted for the 3 recording sessions based on the STF responses for one L-cone center RGC. The top row depicts models trained in the first recording session, the middle row depicts models trained in the second recording session, and the bottom row depicts models trained in the third recording session. For each session we train 161 models, all of which have their RF center driven by a single L-cone of the within the 40 $\mu m$m of the cone mosaic. The RMSE errors of these 161 models are depicted as a function of the center-driving cone in the left panels of Figure \ref{fig:CrossValidationApproach_TrainingModels}, whereas the middle panels depict the fits of the these model STFs (black lines) to the measured STFs (red disks), and the right panels depict the corresponding RF profiles for these 161 models (black traces) along with the RF profile of the best-fit model (red line). 
+To interpret the measured responses in terms of the underlying retinal wiring, we evaluated four different model scenarios, which differed in (a) the RGC receptive field center organization (having either a single or a variable number of input cones), and (b) the residual optical blur in the AO apparatus (being either zero or a variable amount), as seen in Table \ref{table:ModelAssessment}.
 
-Note that there is some variation in the model STFs due to local inhomogeneities of the cone mosaic.
-Some of this variation may be due to the model extracted being stuck to a local minimum of the RMSE function, but we are minimizing this chance by running each fit a total of 256 times (multi-start optimizer), and selecting the model with the best performance. Also notable is that the STF data measured in session 2, is significantly different, (having a much stronger low frequency attenuation) that the STF data measured in sessions 1 and 3. 
+\begin{table}[h]
+\centering
+\begin{tabular}{|l | l  l |}
+\hline
+\rowcolor{LightSlateGray!35!Lavender}  \multicolumn{1}{|l|}{\textbf{model scenario}} & \textbf{variable params} & \textbf{fixed params} \\
+\hline
+\hline
+single cone center, zero residual defocus        & $k_c, k_s, r_s$                 &  $r_c = c_{r_c}, z_{d} = 0.000D$  \\
+single cone center, variable residual defocus      & $k_c, k_s, r_s, z_{d}$ & $r_c = c_{r_c}$ \\
+multiple cone center, zero residual defocus        & $k_c, k_s, r_c, r_s$                 &  $r_c = c_{r_c}, z_{d} = 0.000D$ \\
+multiple cone center, variable residual defocus    & $k_c, k_s, r_c, r_s, z_{d}$ & -- \\
+\hline
+\end{tabular}
+\caption{Examined model scenarios}
+\label{table:ModelAssessment}
+\end{table}
+
+To select the most likely model, we employ a cross-validation approach, in which we train RF models based on STF data recorded at one session and evaluate their performance on STF data recorded at another session. This cross-validation procedure ensures that the most likely model has the best ability to generalize, and is therefore not picked because of overfitting the data.
+
+
+\subsubsection{Training the models}
+For each training session, $s_{train}$, we determine the cone weights to the center and surround receptive field subregions, $W_c^j$, and $W_s^j$, respectively, by minimizing the error between the predicted $\mbox{STF}^{m}_{s_{train}}$ and the measured fluorescence-based STF, measured at that session, $\mbox{STF}^{\Delta F / F}_{s_{train}}$. Since the receptive field position of the recorded RGCs is known to lie within the central 40 $\mu m$, but not known exactly, we derive $W_c^j$, and $W_s^j$ estimates for a number of different mosaic positions, corresponding to different possible locations of the analyzed RGC. Therefore, for each training session, we obtain a number of possible RF models which may vary from one mosaic position to another due to local inhomogeneities of the local structure and local variations in cone density. This analysis is repeated for the 4 examined model scenarios (Table \ref{table:ModelAssessment}).
+
+Figure \ref{fig:Variabilities} depicts the variability in the derived cone weights to the RF center and surround by fitting the measured data to the model. There are 3 main sources of variability.
+
+\textbf{C}. Variability due to different model scenarios. Cone weights derived by the four examined model scenarios all fitted at the same position of the cone mosaic, using the same fluorescence data (session 3). In the single-cone center scenario, when we assume zero residual defocus, the model predicts pooling of cone signals from a wide area by the surround mechanism. When a residual defocus of 0.067D is assumed, the model predicts a much more focal pooling of cone signals by the surround In the multiple cone center scenarios, when the residual defocus is zero, the model assigns several cones to the RF center and a somewhat similar distribution of cones to the RF surround. When the residual defocus is set to 0.067D, the model assigns only 2 cones to the RF center (with an orientation that is parallel to the vertically-oriented grating), so in effect a single cone along the x-axis, and a surround that is similar in size to when that derived for the the single cone center scenario. 
+
+
+
+
+aspects of the analysis for one RGC. 
+Figure \ref{fig:Variabilities}A depicts models trained at different mosaic positions. Shown in separate panels (left to right) are: the derived cone weights for the model RGC RF center (Fig. \ref{fig:Variabilities}Aa), the derived cone weights for the model RGC RF surround (Fig. \ref{fig:Variabilities}Ab), the horizontal profiles of the RF center and surround (Fig. \ref{fig:CrossValidationApproach_TrainingModels}Ac, red and blue shaded areas), computed by integrating cone weights across the y-dimension, and the corresponding model $\mbox{STF}^{m}(\omega)$ and measured STF data, $\mbox{STF}^{\Delta F / F}(\omega)$ (Fig. \ref{fig:CrossValidationApproach_TrainingModels}Ad, black line and red disks, respectively). The tree rows of Figure \ref{fig:CrossValidationApproach_TrainingModels}A depict data for 3 examined positions within the model cone mosaic, all derived from the same session and the same model scenario.
+Note that the derived weights for the surround differ somewhat from one position to another. This may be due to local inhomogeneities in the cone mosaic possibly combined with local minima in the error function being minimized. The model trained in the first position, has a slightly more focal surround than the models trained in the other two positions, which results in a little worse fit at the lowest spatial frequencies.
+
+Figure \ref{fig:Variabilities}B depicts the same analysis for models trained at identical mosaic positions and for the same model scenario, but using fluorescence data from different recording sessions. Note that the measured STFs differ somewhat from session to session, most notable here, the STF from session 2 appears to be a vertically shifted compared to the STFs measured in sessions 1 and 3, whereas the STFs measured in sessions 2 and 3 appear to be somewhat more narrow than the STF measured in session 1. As a result, the derived surround cone weights are more focal in sessions 2 and 3, than in session 1.
+
+Figures \ref{fig:Variabilities}C, D, E, and F depict results for the four examined model scenarios. These analyses are all derived from the STF measured at session 1, and for the same mosaic position.
 
 
 
@@ -214,6 +244,15 @@ multiple cone center, variable residual defocus    & $k_c, k_s, r_c, r_s, z_{d}$
    \includegraphics[width=7in]{Figures/ModelOverview.pdf} 
    \caption{Schematic overview of the ISETBio computational model.}
    \label{fig:ModelOverview}
+\end{figure}
+
+
+\begin{figure}[htbp] %  figure placement: here, top, bottom, or page
+   \centering
+   \includegraphics[width=7.5in]{Figures/Figure_Variabilities.pdf} 
+   \caption{\textbf{Variability in estimating spatial distribution of cone weights from fitting models to the measured STF}. \textbf{A}. Variability due to assumed position of the recorded RGC receptive field (RF). \textbf{B.} Variability due to different recording sessions. \textbf{C}. Variability due to the different examined model scenarios. Figure format for all panels is as follows. The weights of cones feeding into the RF center are color coded in red in \textbf{Aa}. The weights of cones feeding into the RF surround are color-coded in blue in \textbf{Ab}. Horizontal slices through the RF center (red) and the RF surround (blue), computed by integrating over the y-dimension, the spatial profile on the input cones (cone aperture profile multiplied by the corresponding cone weight to the RF) are depicted in \textbf{Ac}. The measured fluorescence-based spatial transfer functions, which the computational model is fit to, $\mbox{STF}^{\Delta F / F}_{s_{test}}(\omega)$ (green disks), and the STF of the best-fit model, $\mbox{STF}^{m}_{s_{train}}(\omega)$ (orange line) are depicted in \textbf{Ad}.
+}
+   \label{fig:Variabilities}
 \end{figure}
 
 
