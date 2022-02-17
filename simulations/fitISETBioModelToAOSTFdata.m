@@ -106,31 +106,77 @@ function hFig = plotCrossValidationErrors(figNo, ...
             
         % Plot mean RMS erros across all positions examined
         hFig = figure(figNo); clf;
-        set(hFig, 'Position', [10 10 1500 750], 'Color', [1 1 1]);
+        set(hFig, 'Position', [10 10 1000 1250], 'Color', [1 1 1]);
 
-        subplot(1,2,1);
-        bar(1:numel(hypothesisLabels), median(bestPositionInSampleErrors, 2), 1, 'EdgeColor', [1 0 0], 'FaceColor', [1 0.5 0.5]); hold on
-        for modelScenario = 1:size(bestPositionInSampleErrors,1)
-            scatter(modelScenario + zeros(1,size(bestPositionInSampleErrors,2)), bestPositionInSampleErrors(modelScenario,:), 300, ...
-                'ko', 'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [1 0.8 0.2], 'MarkerEdgeColor', [1 0.5 0], 'LineWidth', 1.0);
-        end
+        maxRMSE = max([max(bestPositionInSampleErrors(:)) max(bestPositionOutOfSampleErrors(:))]);
+        minRMSE = min([min(bestPositionInSampleErrors(:)) min(bestPositionOutOfSampleErrors(:))]);
 
-        set(gca, 'XTick', 1:4, 'XTickLabel', hypothesisLabels, 'FontSize', 24, 'YLim', [0 2], 'YTick', 0:0.5:2);
-       
-        xtickangle(45);
-        title(sprintf('training RMSE'));
+        modelScenarios = 1:numel(hypothesisLabels);
 
-        subplot(1,2,2);
-        bar(1:numel(hypothesisLabels), median(bestPositionOutOfSampleErrors, 2), 1,  'EdgeColor', [0 0 1], 'FaceColor', [0.5 0.5 1]); hold on
-        for modelScenario = 1:size(bestPositionOutOfSampleErrors,1)
-            scatter(modelScenario + zeros(1,size(bestPositionOutOfSampleErrors,2)), bestPositionOutOfSampleErrors(modelScenario,:), 300, ...
-                'ko', 'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [0.2 0.8 1.0], 'MarkerEdgeColor', [0 0.5 1], 'LineWidth', 1.0);
-        end
+        c1 = [1 0.7 0.1];
+        c2 = [0.1 0.7 1.0];
 
-        set(gca, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 24,  'YLim', [0 2], 'YTick', 0:0.5:2);
+        x1 = modelScenarios-0.2;
+        x2 = modelScenarios+0.2;
+        y1 = (median(bestPositionInSampleErrors, 2))';
+        y2 = (median(bestPositionOutOfSampleErrors, 2))';
+
+        hold on
+        showBars = true;
+        if (showBars)
         
-        xtickangle(45);
-        title(sprintf('cross-validated RMSE'));
+            
+            barHandle1 = bar(x1,y1, 0.4);
+            barHandle2 = bar(x2,y2, 0.4);
+            
+            
+            barHandle1.FaceColor = c1;
+            barHandle1.EdgeColor = barHandle1.FaceColor*0.5;
+            barHandle1.FaceAlpha = 0.2;
+            barHandle1.EdgeAlpha = 0.2;
+            barHandle2.FaceColor = c2;
+            barHandle2.EdgeColor = barHandle2.FaceColor*0.5;
+            barHandle2.FaceAlpha = 0.2;
+            barHandle2.EdgeAlpha = 0.2;
+
+            for iModel = 1:size(bestPositionInSampleErrors,1)
+                xx = [x1(iModel) x1(iModel)];
+                yy = [min(squeeze(bestPositionInSampleErrors(iModel,:))) max(squeeze(bestPositionInSampleErrors(iModel,:)))];
+                plot(xx, ...
+                     yy, ...
+                     'Color', c1, 'LineWidth', 1.5);
+    
+                xx = [x2(iModel) x2(iModel)];
+                yy = [min(squeeze(bestPositionOutOfSampleErrors(iModel,:))) max(squeeze(bestPositionOutOfSampleErrors(iModel,:)))];
+                plot(xx, ...
+                    yy, ...
+                    'Color', c2, 'LineWidth', 1.5);
+            end
+
+
+        else
+            plot(x1, y1, '-', 'Color', [0 0 0], 'LineWidth', 4.0);
+            plot(x2, y2, '-', 'Color', [0 0 0], 'LineWidth', 4.0);
+            plot(x1, y1, '-', 'Color', c1, 'LineWidth', 2.0);
+            plot(x2, y2, '-', 'Color', c2, 'LineWidth', 2.0);
+        end
+
+
+        for iModel = 1:size(bestPositionInSampleErrors,1)
+            scatter(x1(iModel), bestPositionInSampleErrors(iModel,:), 400, ...
+                'ko', 'MarkerFaceAlpha', 1, 'MarkerFaceColor', c1, ...
+                'MarkerEdgeColor', c1*0.6, 'MarkerEdgeAlpha', 0.9, 'LineWidth', 1.5);
+            scatter(x2(iModel), bestPositionOutOfSampleErrors(iModel,:), 400, ...
+                'ko', 'MarkerFaceAlpha', 1, 'MarkerFaceColor', c2, ...
+                'MarkerEdgeColor', c2*0.6, 'MarkerEdgeAlpha', 0.9, 'LineWidth', 1.5);
+        end
+
+        set(gca, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 24, ...
+            'YLim', [minRMSE-0.1 maxRMSE+0.1], 'YTick', 0:0.1:4);
+        grid on
+        xtickangle(0);
+        legend({'train', 'cross-validation'});
+        ylabel('RMSE');
         
 end
 
@@ -185,13 +231,18 @@ function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesis
      xlabel(ax,'mosaic position index');
      ylabel(ax,'rms error');
      legend(ax,[p1 p2], {'training', 'cross-validated'})
-     hypothesisLabel = sprintf('%s center cone, defocus: %2.3fD', centerConesSchema, residualDefocusDiopters);
+     if (strcmp(centerConesSchema, 'variable'))
+         hypothesisLabel = sprintf(' multiple cones\\newlinedefocus: %2.3fD', residualDefocusDiopters);
+     else
+        hypothesisLabel = sprintf('    single cone\\newlinedefocus: %2.3fD', residualDefocusDiopters);
+     end
+
      title(ax,hypothesisLabel)
      axis(ax,'square')
      set(ax, 'XLim', [0.5 numel(positionIndices)+0.5], 'YLim', [0 2], 'XTick', 0:1:200);
      set(ax, 'FontSize', 18);
      grid(ax, 'on')
-
+     box(ax, 'off')
 end
 
 function fillBetweenLines(ax, x,y1,y2,fillColor)
