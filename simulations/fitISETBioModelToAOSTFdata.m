@@ -6,7 +6,7 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum = 512;
 
     % Select cell to examine
-    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [3]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
 
     % Select the Ca fluorescence response model to employ
@@ -30,7 +30,8 @@ function fitISETBioModelToAOSTFdata
     % Train  models
     operationMode = 'fitModelOnSingleSessionData'; 
 
-    % Extract weights by fitting the average data
+    % Extract weights by fitting the average data - after we have picked
+    % the best cross-validated model
     operationMode = 'fitModelOnSessionAveragedData';
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -39,13 +40,13 @@ function fitISETBioModelToAOSTFdata
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Cross-validate models
-    %operationMode = 'crossValidateFittedModelOnAllSessionData';
+    operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    testHypothesis = [0 1 0 0];  % [1 1 1 1];
+    testHypothesis =  [1 1 1 1];
     
     iModelScenario = 0;
     for iTestedHypothesis = 1:4
@@ -93,7 +94,7 @@ function fitISETBioModelToAOSTFdata
         end
         axSummary = subplot('Position', [0.1+2*(width+widthMargin) 0.095 0.45 0.82]);
 
-        rmsErrorRange = [0.5 1.8];
+        rmsErrorRange = [0.5 2.5];
 
         for iModelScenario = 1:size(inSampleErrors,1)
             
@@ -194,52 +195,50 @@ function plotCrossValidationErrors(ax, ...
 
 
         for iModel = 1:size(bestPositionInSampleErrors,1)
-            scatter(ax,x1(iModel), bestPositionInSampleErrors(iModel,:), 200, ...
+            scatter(ax,x1(iModel)+zeros(1,size(bestPositionInSampleErrors,2)), bestPositionInSampleErrors(iModel,:), 200, ...
                 'ko', 'MarkerFaceAlpha', 0.8, 'MarkerFaceColor', c1, ...
                 'MarkerEdgeColor', [0 0 0], 'MarkerEdgeAlpha', 1, 'LineWidth', 1.);
-            scatter(ax, x2(iModel), bestPositionOutOfSampleErrors(iModel,:), 200, ...
+            scatter(ax, x2(iModel)+zeros(1,size(bestPositionOutOfSampleErrors,2)), bestPositionOutOfSampleErrors(iModel,:), 200, ...
                 'ko', 'MarkerFaceAlpha', 0.8, 'MarkerFaceColor', c2, ...
                 'MarkerEdgeColor', [0 0 0], 'MarkerEdgeAlpha', 1, 'LineWidth', 1.);
         end
 
-        
-        xNull = bestPositionOutOfSampleErrors(1,:);
-        y = bestPositionOutOfSampleErrors(2,:);
-        %Test against the alternative null hypothesis that the population mean of xNull is less than the population mean of y.
-        [hOutOfSample1,pOutOfSample1] = ttest2(xNull,y, 'Tail','right','Alpha',0.10,'Vartype','unequal')
-
-
-        y = bestPositionOutOfSampleErrors(3,:);
-        [hOutOfSample3,pOutOfSample3] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-
-
-        y = bestPositionOutOfSampleErrors(4,:);
-        [hOutOfSample4,pOutOfSample4] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-
-
-        xNull = bestPositionInSampleErrors(2,:);
-        y = bestPositionInSampleErrors(1,:);
-        %Test against the alternative null hypothesis that the population mean of xNull is less than the population mean of y.
-        [hInSample1,pInSample1] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-
-        y = bestPositionInSampleErrors(3,:);
-        [hInSample3,pInSample3] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-
-
-        y = bestPositionInSampleErrors(4,:);
-        [hInSample4,pInSample4] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-
-
-        pause
-
         set(ax, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 18, ...
-            'YLim', rmsErrorRange, 'YTick', 0:0.1:4);
+            'YLim', rmsErrorRange, 'YTick', 0:0.2:4);
         grid(ax, 'on');
         xtickangle(0);
         legend(ax,{'train', 'cross-validated'});
         ylabel(ax, 'rms error');
         
         title(ax,summaryTitle)
+        
+        
+        % Significance testing
+        fprintf(2,'Checking significance levels\n');
+        
+        xNull = bestPositionOutOfSampleErrors(1,:);
+        y = bestPositionOutOfSampleErrors(2,:);
+        %Test against the alternative null hypothesis that the population mean of xNull is less than the population mean of y.
+        [hOutOfSample1,pOutOfSample1] = ttest2(xNull,y, 'Tail','right','Alpha',0.10,'Vartype','unequal')
+        if (hOutOfSample1==1)
+            fprintf(2,'Model 1 and model 2 are significantly different with a p-level of %f\n', pOutOfSample1);
+        end
+        
+
+        y = bestPositionOutOfSampleErrors(3,:);
+        [hOutOfSample3,pOutOfSample3] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
+        if (hOutOfSample3==1)
+            fprintf(2,'Model 1 and model 3 are significantly different with a p-level of %f\n', pOutOfSample3);
+        end
+        
+
+        y = bestPositionOutOfSampleErrors(4,:);
+        [hOutOfSample4,pOutOfSample4] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
+        if (hOutOfSample4==1)
+            fprintf(2,'Model 1 and model 4 are significantly different with a p-level of %f\n', pOutOfSample4);
+        end
+        
+        
 end
 
 
@@ -307,7 +306,7 @@ function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesis
 
      title(ax,hypothesisLabel)
      axis(ax,'square')
-     set(ax, 'XLim', [0.5 numel(positionIndices)+0.5], 'YLim', rmsErrorRange, 'YTick', 0:0.2:2, 'XTick', 0:1:200);
+     set(ax, 'XLim', [0.5 numel(positionIndices)+0.5], 'YLim', rmsErrorRange, 'YTick', 0:0.2:4, 'XTick', 0:1:200);
      set(ax, 'FontSize', 18);
      grid(ax, 'on')
      box(ax, 'off')
