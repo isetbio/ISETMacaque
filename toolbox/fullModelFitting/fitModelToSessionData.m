@@ -407,7 +407,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % Determine the optical scaling factor for the fittedSTF to match the test data which may have a different overal
         % scale factor
     
-        % Objective function with a single parameter: thescalingFactor
+        % Objective function with 2 parameters: offset (1) + thescalingFactor (2)
         if (constants.transducerFunctionAccountsForResponseOffset)
             
             % dc offset from the training fit (last parameter)
@@ -424,7 +424,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             % Initial params and bounds for the offsetFactor
             offsetFactorInitial = 0;
             offsetFactorLowerBound = -0.3; 
-            offsetFactorUpperBound = 0.0;
+            offsetFactorUpperBound = 0.3;
             
             % Initial params and bounds for the scalingFactor
             scalingFactorInitial = 1;
@@ -450,7 +450,7 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             testData = theSTF';
             trainingData = theFittedSTF;
 
-            % Objective based on the highest SFs
+            % Objective
             scalingObjective = @(p) sum(w .* (p(1) * trainingData - testData).^2);
         
             % Initial params and bounds for the scalingFactor

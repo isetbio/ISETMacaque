@@ -6,6 +6,13 @@ function displayModelFits()
     accountForResponseOffset = ~true;
     accountForResponseSignReversal = false;
     
+    % Choose whether to bias toward the high SF points in the computation of the RMSError
+    % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
+    fitBias = 'none';                           % 1/stdErr
+    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    %fitBias = 'flat';                          % all ones
+
+
     monkeyID = 'M838';
     maxRecordedRGCeccArcMin = 6;
     startingPointsNum = 512;
@@ -48,7 +55,8 @@ function displayModelFits()
                 'residualDefocusDiopters', receptiveFieldAndOpticalVariations{iModel}.residualDefocusDiopters, ...
                 'coneCouplingLambda', 0, ...
                 'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
-                'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal);
+                'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal, ...
+                'fitBias', fitBias);
 
 
             sParams = struct(...
@@ -170,8 +178,8 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
        'widthMargin',    0.02, ...
        'leftMargin',     0.02, ...
        'rightMargin',    0.00, ...
-       'bottomMargin',   0.035, ...
-       'topMargin',      0.005);
+       'bottomMargin',   0.04, ...
+       'topMargin',      0.00);
    
      % Plot RFs at all examined positions
      hFig = figure(figNo); clf;
@@ -212,8 +220,6 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         theSurroundConeWeights = zeros(1, conesNum);
         theSurroundConeWeights(surroundConeIndices) = -Ks * surroundConeWeights;
-        maxWeights = max([max(abs(theCenterConeWeights(:))) max(abs(theSurroundConeWeights(:)))]);
-        maxWeights = max([max(abs(theSurroundConeWeights(:)))]);
         
         
         xTicks = -40:4:40;
@@ -232,6 +238,9 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
 
         % The center weights
         ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex,1).v);
+        centerLUT = brewermap(1024, '*RdBu');
+        idx = 512+(-400:400);
+        centerLUT = centerLUT(idx,:);
         theConeMosaic.visualize(...
             'figureHandle', hFig, 'axesHandle', ax, ...
             'domain', 'microns', ...
@@ -242,9 +251,9 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
             'activation', theCenterConeWeights, ...
             'noXLabel', noXLabel, ...
             'noYLabel', true, ...
-            'activationRange', maxWeights*[-1 1], ...
-            'activationColorMap', brewermap(1024, '*RdBu'), ...
-            'fontSize', 12, ...
+            'activationRange', max(theCenterConeWeights(:))*[-1 1], ...
+            'activationColorMap', centerLUT , ...
+            'fontSize', 14, ...
             'plotTitle', mosaicTitle);
         
         
@@ -267,9 +276,9 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
             'activation', theSurroundConeWeights, ...
             'noXLabel', noXLabel, ...
             'noYLabel', true, ...
-            'activationRange', maxWeights*[-1 1], ...
-            'activationColorMap', brewermap(1024, '*RdBu'), ...
-            'fontSize', 12, ...
+            'activationRange', max(abs(theSurroundConeWeights(:)))*[-1 1], ...
+            'activationColorMap', centerLUT , ...
+            'fontSize', 14, ...
             'plotTitle', mosaicTitle);
         if (noXLabel)
             set(ax, 'XTickLabel', {});
@@ -320,11 +329,11 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         axis(ax, 'square');
         grid(ax, 'on');
         set(ax, 'XLim', [xRangeMicrons(1) xRangeMicrons(2)], 'XTick', xTicks, 'YLim', [-1.05 1.05], 'YTick', -1:0.5:1);
-        set(ax, 'FontSize', 12);
+        set(ax, 'FontSize', 14);
         if (noXLabel)
             set(ax, 'XTickLabel', {});
         else
-            xlabel(ax, 'retinal space (microns)');
+            xlabel(ax, 'space (microns)');
         end
         
         
@@ -336,28 +345,30 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
             plot(ax,examinedSpatialFrequencies(iSF)*[1 1],  dData.dFresponses(iSF) + dData.dFresponsesStd(iSF)*[-1 1], ...
                 'r-', 'LineWidth', 1.0);
         end
-        plot(ax,examinedSpatialFrequencies, dData.dFresponses, 'ro-', ...
-            'MarkerFaceColor', [1 0.5 0.50], 'MarkerSize', 8, 'LineWidth', 1.0);
+        plot(ax,examinedSpatialFrequencies, dData.dFresponses, 'ko', ...
+            'MarkerFaceColor', [0.4 0.9 0.6], 'MarkerSize', 10, 'LineWidth', 1.0);
         plot(ax,examinedSpatialFrequencies, dModel.fittedSTFs(examinedCenterConePositionIndex,:), ...
-            'k-', 'LineWidth', 1.5);
+            'k-', 'Color', [1 0.7 0.2], 'LineWidth', 4);
+        plot(ax,examinedSpatialFrequencies, dModel.fittedSTFs(examinedCenterConePositionIndex,:), ...
+            '-', 'Color', [1 0.4 0.0], 'LineWidth', 2);
         
         set(ax, 'XScale', 'log', 'XLim', [4 60], ...
-            'XTick', [1 3 5 10 20 30 50 100], 'YLim', [-0.2 1.1*max(dData.dFresponses(:))], ...
-            'FontSize', 12);
+            'XTick', [1 3 5 10 20 40 60 100], 'YLim', [-0.2 1.1*max(dData.dFresponses(:))], ...
+            'FontSize', 14);
         grid(ax, 'on');
         
         if (noXLabel)
             set(ax, 'XTickLabel', {});
         else
-            xlabel(ax, 'spatial frequency (c/deg)');
+            xlabel(ax, 'spatial freq. (c/deg)');
         end
         
         if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
-             titleColor = [1 0 0];
+             titleColor = [0 0.7 0];
         else
-             titleColor = [0 0 0];
+             titleColor = [0.3 0.3 0.3];
         end
-        text(ax, 10, -0.15, sprintf('RMSE:%.1fE+3', 1000*dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontSize', 10, 'Color', titleColor);
+        text(ax, 7, -0.15, sprintf('RMSE:%.3f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
     
      end
      
@@ -383,7 +394,7 @@ function hFig = plotSTFFits(figNo, dModel, dData, examinedSpatialFrequencies)
         plot(examinedSpatialFrequencies, dModel.fittedSTFs(examinedCenterConePositionIndex,:), ...
             'k-', 'LineWidth', 1.5);
         
-        set(gca, 'XScale', 'log', 'XLim', [4 60], 'XTick', [1 3 5 10 20 30 50 100], 'YLim', [-0.2 1.1*max(dData.dFresponses(:))], 'FontSize', 14);
+        set(gca, 'XScale', 'log', 'XLim', [4 60], 'XTick', [1 3 5 10 20 40 60 100], 'YLim', [-0.2 1.1*max(dData.dFresponses(:))], 'FontSize', 14);
         grid on
         
         if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
