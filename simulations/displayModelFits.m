@@ -1,7 +1,7 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = 11;
-    targetMcenterRGCindices = [];
+    targetLcenterRGCindices = [];
+    targetMcenterRGCindices = [1];
    
     accountForResponseOffset = ~true;
     accountForResponseSignReversal = false;
@@ -54,21 +54,21 @@ function displayModelFits()
    
     receptiveFieldAndOpticalVariations = {};
     
-%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-%         'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
-%         'residualDefocusDiopters', 0);
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
+        'residualDefocusDiopters', 0);
 
     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
         'centerConesSchema', 'single', ...
         'residualDefocusDiopters', 0.067);
 
-%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-%         'centerConesSchema', 'variable', ...
-%         'residualDefocusDiopters', 0);
-% 
-%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-%         'centerConesSchema', 'variable', ...
-%         'residualDefocusDiopters', 0.067);
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'variable', ...
+        'residualDefocusDiopters', 0);
+
+    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+        'centerConesSchema', 'variable', ...
+        'residualDefocusDiopters', 0.067);
 
 
    
@@ -556,10 +556,11 @@ end
 function [dSession, measuredData, cellType] = loadModelAndSingleSessionMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex)
     d = load(theTrainedModelFitsfilename);
 
-    dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
+    
     if (isfield(d, 'fittedParamsLcenterRGCs'))
         cellType = 'L';
         targetRGCindex = d.targetLcenterRGCindices(1);
+        dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
         dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerLConeCharacteristicRadiiDegs{sessionIndex};
         tmp.fittedParams = d.fittedParamsLcenterRGCs{sessionIndex};
         tmp.fittedSTFs = d.fittedSTFsLcenterRGCs{sessionIndex};
@@ -574,6 +575,7 @@ function [dSession, measuredData, cellType] = loadModelAndSingleSessionMeasuredD
     else
         cellType = 'M';
         targetRGCindex = d.targetMcenterRGCindices(1);
+        dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingMcenterRGCs;
         dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerMConeCharacteristicRadiiDegs{sessionIndex};
         tmp.fittedParams = d.fittedParamsMcenterRGCs{sessionIndex};
         tmp.fittedSTFs = d.fittedSTFsMcenterRGCs{sessionIndex};
