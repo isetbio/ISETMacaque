@@ -349,10 +349,13 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     if (constants.transducerFunctionAccountsForResponseOffset)
         % Last  parameter is the fluorescenceDC offset
+        % Fix the fluoresceneDC to min(testData) if that is < 0
+        minData = min([0 min(testData)]);
+            
         fluorescenceDC = struct(...
-            'low', -0.3, ...
-            'high', 0.0, ...
-            'initial', 0.0);
+            'low', minData, ...
+            'high', minData, ...
+            'initial', minData);
         paramNames{numel(paramNames)+1} = 'fluorescenceDC';
         paramsInitial(numel(paramsInitial)+1) = fluorescenceDC.initial;
         lowerBound(numel(lowerBound)+1) = fluorescenceDC.low;
@@ -407,6 +410,10 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
         % Determine the optical scaling factor for the fittedSTF to match the test data which may have a different overal
         % scale factor
     
+        scalingFactorInitial = [1];
+        scalingFactorLowerBound = [0.1]; 
+        scalingFactorUpperBound = [10];
+            
         % Objective function with 2 parameters: offset (1) + thescalingFactor (2)
         if (constants.transducerFunctionAccountsForResponseOffset)
             
@@ -416,36 +423,25 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             % Objective
             w = fitSpatialFrequencyWeights';
             testData = theSTF';
+            
+            % Remove DC offset (if negative) from the training data
             trainingData = theFittedSTF-theFittedSTFoffset;
-            scalingObjective = @(p) sum(w .* (p(1)+p(2)*trainingData - testData).^2);
             
+            % Remove DC offset (if negative) from the test data
+            theTestDataOffset = min([0 min(testData)]);
+            testData = testData - theTestDataOffset;
             
-
-            % Initial params and bounds for the offsetFactor
-            offsetFactorInitial = 0;
-            offsetFactorLowerBound = -0.3; 
-            offsetFactorUpperBound = 0.3;
+            % Objective
+            scalingObjective = @(p) sum(w .* (p(1) * trainingData - testData).^2);
             
-            % Initial params and bounds for the scalingFactor
-            scalingFactorInitial = 1;
-            scalingFactorLowerBound = 0.3; 
-            scalingFactorUpperBound = 3.0;
-            
-            paramsInitial = [offsetFactorInitial scalingFactorInitial];
-            paramsLowerBound = [offsetFactorLowerBound scalingFactorLowerBound];
-            paramsUpperBound = [offsetFactorUpperBound scalingFactorUpperBound];
-
-            % Find the optimal params
-            optimalParams = fmincon(scalingObjective, paramsInitial,[],[],[],[],paramsLowerBound,paramsUpperBound,[],options);
-            offsetFactor = optimalParams(1);
-            scalingFactor = optimalParams(2);
+            % Find the optimal scaling factor
+            scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
             
              % Apply the optimal scaling factor to theFittedSTF
-            theFittedSTF = offsetFactor + scalingFactor * (theFittedSTF-theFittedSTFoffset);
+            theFittedSTF = theTestDataOffset + trainingData * scalingFactor;
             theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
             theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
-        else
-            
+        else  
             w = fitSpatialFrequencyWeights';
             testData = theSTF';
             trainingData = theFittedSTF;
@@ -453,18 +449,11 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
             % Objective
             scalingObjective = @(p) sum(w .* (p(1) * trainingData - testData).^2);
         
-            % Initial params and bounds for the scalingFactor
-            scalingFactorInitial = [1];
-            scalingFactorLowerBound = [0.1]; 
-            scalingFactorUpperBound = [10];
-            
-            
-
             % Find the optimal scaling factor
             scalingFactor = fmincon(scalingObjective, scalingFactorInitial,[],[],[],[],scalingFactorLowerBound,scalingFactorUpperBound,[],options);
 
             % Apply the optimal scaling factor to theFittedSTF
-            theFittedSTF = theFittedSTF * scalingFactor;
+            theFittedSTF =  trainingData * scalingFactor;
             theFittedCenterSTF = theFittedCenterSTF * scalingFactor;
             theFittedSurroundSTF = theFittedSurroundSTF * scalingFactor;
         end

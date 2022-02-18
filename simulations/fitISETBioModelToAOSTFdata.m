@@ -6,12 +6,12 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum = 512;
 
     % Select cell to examine
-    targetLcenterRGCindices = [3]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
-    targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
+    targetLcenterRGCindices = []; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetMcenterRGCindices = [1]; % [1 2 4];   % the non-low pass cells
 
     % Select the Ca fluorescence response model to employ
     % Only play with the response offset
-    accountForResponseOffset = ~true;
+    accountForResponseOffset = true;
     
     % Always set to false. For drifting gratings, there is no reason why
     % the Ca response should go negative when the surround dominates the
@@ -23,7 +23,7 @@ function fitISETBioModelToAOSTFdata
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
     fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
-    %fitBias = 'flat';                          % all ones
+    fitBias = 'flat';                          % all ones
 
 
 
@@ -32,7 +32,7 @@ function fitISETBioModelToAOSTFdata
 
     % Extract weights by fitting the average data - after we have picked
     % the best cross-validated model
-    operationMode = 'fitModelOnSessionAveragedData';
+    %operationMode = 'fitModelOnSessionAveragedData';
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,7 +40,7 @@ function fitISETBioModelToAOSTFdata
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Cross-validate models
-    operationMode = 'crossValidateFittedModelOnAllSessionData';
+    %operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
