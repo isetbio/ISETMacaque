@@ -6,7 +6,7 @@ function [pdfFilename, videoFileName] = fitsPDFFilename(modelVariant, ...
     if (crossValidationRun > 0)
         modelValidationString = sprintf('CrossValidated%sSession%d', runType, crossValidationRun);
     else
-        modelValidationString = '';
+        modelValidationString = 'AverageSession';
     end
 
     transducerOptionsString = sprintf('transducerDC_%d_transducerSign_%d', ...

@@ -17,10 +17,36 @@ function displayModelFits()
     maxRecordedRGCeccArcMin = 6;
     startingPointsNum = 512;
     
-    % Load the trained models
-    crossValidateModel = true;
-    crossValidateModelAgainstAllSessions = false;
-    trainModel = true;
+
+    operationMode = 'fitModelOnSessionAveragedData';
+    operationMode = 'fitModelOnSingleSessionData';
+%
+    switch (operationMode)
+        case 'fitModelOnSessionAveragedData'
+            % Fit the model on the average (over all sessions) data
+            crossValidateModel = false;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = [];
+
+        case 'fitModelOnSingleSessionData'
+            % Fit the model on single sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = true;
+          
+        case 'crossValidateFittedModelOnSingleSessionData'
+            % Cross-validate the fitted model on other sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = false;
+            trainModel = false;
+
+        case 'crossValidateFittedModelOnAllSessionData'
+            % Cross-validate the fitted model on other sessions
+            crossValidateModel = true;
+            crossValidateModelAgainstAllSessions = true;
+            trainModel = false;
+    end
+
     
     % Form exportsDir
     rootDirName = ISETmacaqueRootPath();
@@ -28,78 +54,138 @@ function displayModelFits()
    
     receptiveFieldAndOpticalVariations = {};
     
-    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-        'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
-        'residualDefocusDiopters', 0);
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'single', ... % choose between {'variable', and 'single'}
+%         'residualDefocusDiopters', 0);
 
     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
         'centerConesSchema', 'single', ...
         'residualDefocusDiopters', 0.067);
 
-    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-        'centerConesSchema', 'variable', ...
-        'residualDefocusDiopters', 0);
-
-    receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
-        'centerConesSchema', 'variable', ...
-        'residualDefocusDiopters', 0.067);
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'variable', ...
+%         'residualDefocusDiopters', 0);
+% 
+%     receptiveFieldAndOpticalVariations{numel(receptiveFieldAndOpticalVariations)+1} = struct(...
+%         'centerConesSchema', 'variable', ...
+%         'residualDefocusDiopters', 0.067);
 
 
    
+    if (crossValidateModel == false)
+        % Deal with average (over sessions) data
 
-    for sessionIndex = 1:3
         for iModel = 1:numel(receptiveFieldAndOpticalVariations)
 
-            modelVariant = struct(...
-                'centerConesSchema', receptiveFieldAndOpticalVariations{iModel}.centerConesSchema,...
-                'residualDefocusDiopters', receptiveFieldAndOpticalVariations{iModel}.residualDefocusDiopters, ...
-                'coneCouplingLambda', 0, ...
-                'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
-                'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal, ...
-                'fitBias', fitBias);
+                modelVariant = struct(...
+                    'centerConesSchema', receptiveFieldAndOpticalVariations{iModel}.centerConesSchema,...
+                    'residualDefocusDiopters', receptiveFieldAndOpticalVariations{iModel}.residualDefocusDiopters, ...
+                    'coneCouplingLambda', 0, ...
+                    'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
+                    'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal, ...
+                    'fitBias', fitBias);
+
+                sParams = struct(...
+                    'PolansSubject', [], ...                % [] = diffraction-limited optics
+                    'modelVariant', modelVariant, ... 
+                    'visualStimulus', struct(...
+                             'type', 'WilliamsLabStimulus', ...
+                             'stimulationDurationCycles', 6));
+    
+                if (iModel == 1)
+                    % Load the ISETBio computed time-series responses for the simulated STF run
+                    modelSTFrunData = loadPrecomputedISETBioConeMosaicSTFrunData(monkeyID, sParams);
+                end
+
+                theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
+                        crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
+                        targetLcenterRGCindices, targetMcenterRGCindices);
+
+                % Load fitted model to the average data 
+                [dModel, dData, targetRGCID] = loadModelAndAverageSessionMeasuredData(theTrainedModelFitsfilename, monkeyID);
+                
+
+                % Recompute the errors
+                nSFs = numel(dData.dFresponses);
+                for iPos = 1:size(dModel.fittedSTFs,1)
+                    residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
+                    theErrors(1, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
+                end
 
 
-            sParams = struct(...
-                'PolansSubject', [], ...                % [] = diffraction-limited optics
-                'modelVariant', modelVariant, ... 
-                'visualStimulus', struct(...
-                         'type', 'WilliamsLabStimulus', ...
-                         'stimulationDurationCycles', 6));
+                % Plot model fits and data
+                hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
+                    0, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
 
-            if (iModel == 1)
-                % Load the ISETBio computed time-series responses for the simulated STF run
-                modelSTFrunData = loadPrecomputedISETBioConeMosaicSTFrunData(monkeyID, sParams);
-            end
+                % Export to PDF
+                pdfFileName = fitsPDFFilename(...
+                    modelVariant, targetRGCID, startingPointsNum, ...
+                    0, 'Training');
+                NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
+                
 
-            theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
-                    crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
-                    targetLcenterRGCindices, targetMcenterRGCindices);
+        end % iModel
 
-            % Load fitted model data 
-            [dModel, dData, targetRGCID] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex);
-            
-            % Recompute the errors
-            nSFs = numel(dData.dFresponses);
-            for iPos = 1:size(dModel.fittedSTFs,1)
-                residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
-                theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
-            end
-            
-            plogTrainingModels = true;
-            if (plogTrainingModels)
+    else
+
+        % Deal with individual session data
+        for sessionIndex = 1:3
+            for iModel = 1:numel(receptiveFieldAndOpticalVariations)
+
+                modelVariant = struct(...
+                    'centerConesSchema', receptiveFieldAndOpticalVariations{iModel}.centerConesSchema,...
+                    'residualDefocusDiopters', receptiveFieldAndOpticalVariations{iModel}.residualDefocusDiopters, ...
+                    'coneCouplingLambda', 0, ...
+                    'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
+                    'transducerFunctionAccountsForResponseSign', accountForResponseSignReversal, ...
+                    'fitBias', fitBias);
+    
+    
+                sParams = struct(...
+                    'PolansSubject', [], ...                % [] = diffraction-limited optics
+                    'modelVariant', modelVariant, ... 
+                    'visualStimulus', struct(...
+                             'type', 'WilliamsLabStimulus', ...
+                             'stimulationDurationCycles', 6));
+    
+                if (iModel == 1)
+                    % Load the ISETBio computed time-series responses for the simulated STF run
+                    modelSTFrunData = loadPrecomputedISETBioConeMosaicSTFrunData(monkeyID, sParams);
+                end
+    
+                theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
+                        crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
+                        targetLcenterRGCindices, targetMcenterRGCindices)
+                
+    
+                % Load fitted model to the single session data 
+                [dModel, dData, targetRGCID] = loadModelAndSingleSessionMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex);
+                
+                % Recompute the errors
+                nSFs = numel(dData.dFresponses);
+                for iPos = 1:size(dModel.fittedSTFs,1)
+                    residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
+                    theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
+                end
+
+
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
                     sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
-    
+
                 % Export to PDF
                 pdfFileName = fitsPDFFilename(...
                     modelVariant, targetRGCID, startingPointsNum, ...
                     sessionIndex, 'Training');
                 NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
-            end
-        end % iModel
+
+
+            end % iModel
+        end
     end
+
     
+    if (1==2)
     % Plot model performance across examined positions
     hFigSummary = figure(1000); clf;
     set(hFigSummary, 'Position', [10 10 1750 600], 'Color', [1 1 1]);
@@ -166,6 +252,9 @@ function displayModelFits()
         grid on
     end
     
+    end
+
+
 end
 
 function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, theConeMosaic,...
@@ -183,9 +272,13 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
    
      % Plot RFs at all examined positions
      hFig = figure(figNo); clf;
-     set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1], ...
-         'Name', sprintf('%s center cone(s), with RESIDUAL DEFOCUS of: %2.3fD, trained on SESSION %d',  upper(centerConesSchema), residualDefocusDiopters, sessionIndex));
-     
+     if (sessionIndex == 0)
+         set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1], ...
+             'Name', sprintf('%s center cone(s), with RESIDUAL DEFOCUS of: %2.3fD, trained on AVERAGE SESSION DATA',  upper(centerConesSchema), residualDefocusDiopters));
+     else
+         set(hFig, 'Position', [1+(figNo-1)*700 63 690 1130], 'Color', [1 1 1], ...
+             'Name', sprintf('%s center cone(s), with RESIDUAL DEFOCUS of: %2.3fD, trained on SESSION %d DATA',  upper(centerConesSchema), residualDefocusDiopters, sessionIndex));
+     end 
 
      for examinedCenterConePositionIndex = 1:numel(dModel.rmsErrors)
          
@@ -410,8 +503,59 @@ function hFig = plotSTFFits(figNo, dModel, dData, examinedSpatialFrequencies)
     
 end
 
-function [dSession, measuredData, cellType] = loadModelAndMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex)
+
+
+function [dSession, measuredData, cellType] = loadModelAndAverageSessionMeasuredData(theTrainedModelFitsfilename, monkeyID)
     d = load(theTrainedModelFitsfilename);
+
+    dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
+    if (isfield(d, 'fittedParamsLcenterRGCs'))
+        cellType = 'L';
+        targetRGCindex = d.targetLcenterRGCindices(1);
+        dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerLConeCharacteristicRadiiDegs;
+        tmp.fittedParams = d.fittedParamsLcenterRGCs;
+        tmp.fittedSTFs = d.fittedSTFsLcenterRGCs;
+        tmp.rmsErrors = d.rmsErrorsLcenterRGCs;
+        dSession.centerConesFractionalNumLcenterRGCs = d.centerConesFractionalNumLcenterRGCs;
+        dSession.centroidPosition = d.centroidPositionLcenterRGCs;
+        dSession.centerConeIndices = d.centerConeIndicesLcenterRGCs;
+        dSession.centerConeWeights = d.centerConeWeightsLcenterRGCs;
+        dSession.surroundConeIndices = d.surroundConeIndicesLcenterRGCs;
+        dSession.surroundConeWeights = d.surroundConeWeightsLcenterRGCs;
+        
+    else
+        cellType = 'M';
+        targetRGCindex = d.targetMcenterRGCindices(1);
+        dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerMConeCharacteristicRadiiDegs{sessionIndex};
+        tmp.fittedParams = d.fittedParamsMcenterRGCs{sessionIndex};
+        tmp.fittedSTFs = d.fittedSTFsMcenterRGCs{sessionIndex};
+        tmp.rmsErrors = d.rmsErrorsMcenterRGCs{sessionIndex};
+        dSession.centerConesFractionalNumLcenterRGCs = d.centerConesFractionalNumMcenterRGCs{sessionIndex};
+        dSession.centroidPosition = d.centroidPositionMcenterRGCs{sessionIndex};
+        dSession.centerConeIndices = d.centerConeIndicesMcenterRGCs{sessionIndex};
+        dSession.centerConeWeights = d.centerConeWeightsMcenterRGCs{sessionIndex};
+        dSession.surroundConeIndices = d.surroundConeIndicesMcenterRGCs{sessionIndex};
+        dSession.surroundConeWeights = d.surroundConeWeightsMcenterRGCs{sessionIndex};
+    end
+    
+    for sessionIndex = 1:3
+        sessionData = loadRawFluorescenceData(monkeyID, sessionIndex, cellType, targetRGCindex);
+        singleSessionDFresponses(sessionIndex,:) = sessionData.dFresponses;
+        singleSessionDFresponsesStd(sessionIndex,:) = sessionData.dFresponsesStd;
+    end
+
+    measuredData.dFresponses = mean(singleSessionDFresponses,1);
+    measuredData.dFresponsesStd = mean(singleSessionDFresponsesStd,1);
+    
+    dSession.fittedParamsPositionExamined = squeeze(tmp.fittedParams(1, targetRGCindex,:,:));
+    dSession.fittedSTFs = squeeze(tmp.fittedSTFs(1,targetRGCindex,:,:));
+    dSession.rmsErrors = squeeze(tmp.rmsErrors(1,targetRGCindex,:));
+    cellType = sprintf('%s%d', cellType, targetRGCindex);
+end
+
+function [dSession, measuredData, cellType] = loadModelAndSingleSessionMeasuredData(theTrainedModelFitsfilename, monkeyID, sessionIndex)
+    d = load(theTrainedModelFitsfilename);
+
     dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
     if (isfield(d, 'fittedParamsLcenterRGCs'))
         cellType = 'L';
@@ -426,7 +570,7 @@ function [dSession, measuredData, cellType] = loadModelAndMeasuredData(theTraine
         dSession.centerConeWeights = d.centerConeWeightsLcenterRGCs{sessionIndex};
         dSession.surroundConeIndices = d.surroundConeIndicesLcenterRGCs{sessionIndex};
         dSession.surroundConeWeights = d.surroundConeWeightsLcenterRGCs{sessionIndex};
-        measuredData = loadRawData(monkeyID, sessionIndex, cellType, targetRGCindex);
+        measuredData = loadRawFluorescenceData(monkeyID, sessionIndex, cellType, targetRGCindex);
     else
         cellType = 'M';
         targetRGCindex = d.targetMcenterRGCindices(1);
@@ -440,7 +584,7 @@ function [dSession, measuredData, cellType] = loadModelAndMeasuredData(theTraine
         dSession.centerConeWeights = d.centerConeWeightsMcenterRGCs{sessionIndex};
         dSession.surroundConeIndices = d.surroundConeIndicesMcenterRGCs{sessionIndex};
         dSession.surroundConeWeights = d.surroundConeWeightsMcenterRGCs{sessionIndex};
-        measuredData = loadRawData(monkeyID, sessionIndex, 'M', targetRGCindex);
+        measuredData = loadRawFluorescenceData(monkeyID, sessionIndex, cellType, targetRGCindex);
     end
     
     dSession.fittedParamsPositionExamined = squeeze(tmp.fittedParams(1, targetRGCindex,:,:));
@@ -449,7 +593,7 @@ function [dSession, measuredData, cellType] = loadModelAndMeasuredData(theTraine
     cellType = sprintf('%s%d', cellType, targetRGCindex);
 end
 
-function  measuredData = loadRawData(monkeyID, sessionIndex, coneType, targetRGCindex)
+function  measuredData = loadRawFluorescenceData(monkeyID, sessionIndex, coneType, targetRGCindex)
     switch (sessionIndex)
         case 1
             d = loadUncorrectedDeltaFluoresenceResponses(monkeyID, 'session1only'); 
