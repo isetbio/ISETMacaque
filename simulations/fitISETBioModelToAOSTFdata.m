@@ -6,8 +6,8 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum = 512;
 
     % Select cell to examine
-    targetLcenterRGCindices = []; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
-    targetMcenterRGCindices = [1]; % [1 2 4];   % the non-low pass cells
+    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
 
     % Select the Ca fluorescence response model to employ
     % Only play with the response offset
@@ -23,7 +23,7 @@ function fitISETBioModelToAOSTFdata
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
     fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
-    fitBias = 'flat';                          % all ones
+    %fitBias = 'flat';                          % all ones
 
 
 
@@ -40,7 +40,7 @@ function fitISETBioModelToAOSTFdata
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Cross-validate models
-    %operationMode = 'crossValidateFittedModelOnAllSessionData';
+    operationMode = 'crossValidateFittedModelOnAllSessionData';
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%operationMode = 'crossValidateFittedModelOnSingleSessionData';
@@ -69,7 +69,7 @@ function fitISETBioModelToAOSTFdata
             end
             
             iModelScenario = iModelScenario + 1;
-            [inSampleErrors(iModelScenario,:,:),outOfSampleErrors(iModelScenario,:,:,:)] = batchFitISETBioModelToAOSTFdata(...
+            [inSampleErrors(iModelScenario,:,:),outOfSampleErrors(iModelScenario,:,:,:), modelVariant] = batchFitISETBioModelToAOSTFdata(...
                 targetLcenterRGCindices, targetMcenterRGCindices, ...
                 centerConesSchema, residualDefocusDiopters, ...
                 accountForResponseOffset, accountForResponseSignReversal, ...
@@ -92,9 +92,7 @@ function fitISETBioModelToAOSTFdata
             col = mod((iModelScenario-1),2);
             ax{iModelScenario} = subplot('Position', [0.04 + col*(width+widthMargin), 0.07 + row*(height+heightMargin) width height]);
         end
-        axSummary = subplot('Position', [0.1+2*(width+widthMargin) 0.095 0.45 0.82]);
-
-        rmsErrorRange = [0.5 2.5];
+        axSummary = subplot('Position', [0.08+2*(width+widthMargin) 0.095 0.47 0.9]);
 
         for iModelScenario = 1:size(inSampleErrors,1)
             
@@ -107,11 +105,13 @@ function fitISETBioModelToAOSTFdata
                 noXLabel = false;
             end
 
-            if (isempty(targetMcenterRGCindices))
-                summaryTitle = sprintf('cross-validation error analysis (L%d)', targetLcenterRGCindices(1));
-            else
-                summaryTitle = sprintf('cross-validation error analysis (M%d)', targetMcenterRGCindices(1));
+            
+            if (~isempty(targetLcenterRGCindices))
+                cellString = sprintf('L%d', targetLcenterRGCindices(1));
+            else 
+                cellString = sprintf('M%d', targetMcenterRGCindices(1));
             end
+
 
             switch (iModelScenario)
                 case 1
@@ -137,22 +137,38 @@ function fitISETBioModelToAOSTFdata
                         squeeze(inSampleErrors(iModelScenario,:,:)), ...
                         squeeze(outOfSampleErrors(iModelScenario,:,:,:)), ...
                         centerConesSchema, residualDefocusDiopters, ...
-                        noXLabel, noYLabel, rmsErrorRange);
+                        noXLabel, noYLabel, [0 2]);
             
         end
 
 
+        rmsErrorRange(1) = max([ 0 min([ ...
+            min(bestPositionInSampleErrors(:)) ...
+            min(bestPositionOutOfSampleErrors(:)) ...
+            ])-0.1]);
+
+        rmsErrorRange(2) = max([ ...
+            max(bestPositionInSampleErrors(:)) ...
+            max(bestPositionOutOfSampleErrors(:)) ...
+            ])+0.3;
+
+
         plotCrossValidationErrors(axSummary, ...
             bestPositionInSampleErrors, bestPositionOutOfSampleErrors, ...
-            modelScenarioLabels, summaryTitle, rmsErrorRange);
-        NicePlot.exportFigToPDF('CrossValidationSummary.pdf', hFig, 300);
+            modelScenarioLabels, cellString, rmsErrorRange);
+
+
+       
+
+        pdfFilename = crossValidationSummaryFilename(modelVariant, cellString, startingPointsNum);
+        NicePlot.exportFigToPDF(pdfFilename, hFig, 300);
         
     end
 end
 
 function plotCrossValidationErrors(ax, ...
                 bestPositionInSampleErrors, bestPositionOutOfSampleErrors, ...
-                hypothesisLabels, summaryTitle, rmsErrorRange)
+                hypothesisLabels, cellString, rmsErrorRange)
             
         % Plot mean RMS erros across all positions examined
         maxRMSE = max([max(bestPositionInSampleErrors(:)) max(bestPositionOutOfSampleErrors(:))]);
@@ -165,8 +181,8 @@ function plotCrossValidationErrors(ax, ...
 
         x1 = modelScenarios-0.2;
         x2 = modelScenarios+0.2;
-        y1 = (median(bestPositionInSampleErrors, 2))';
-        y2 = (median(bestPositionOutOfSampleErrors, 2))';
+        y1 = (mean(bestPositionInSampleErrors, 2))';
+        y2 = (mean(bestPositionOutOfSampleErrors, 2))';
 
         barHandle1 = bar(ax,x1,y1, 0.4);
         hold(ax, 'on')
@@ -203,41 +219,53 @@ function plotCrossValidationErrors(ax, ...
                 'MarkerEdgeColor', [0 0 0], 'MarkerEdgeAlpha', 1, 'LineWidth', 1.);
         end
 
-        set(ax, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 18, ...
+        set(ax, 'XTick', 1:4, 'XLim', [0.5 4.5], 'XTickLabel', hypothesisLabels, 'FontSize', 20, ...
             'YLim', rmsErrorRange, 'YTick', 0:0.2:4);
-        grid(ax, 'on');
-        xtickangle(0);
-        legend(ax,{'train', 'cross-validated'});
-        ylabel(ax, 'rms error');
         
-        title(ax,summaryTitle)
         
         
         % Significance testing
         fprintf(2,'Checking significance levels\n');
         
-        xNull = bestPositionOutOfSampleErrors(1,:);
-        y = bestPositionOutOfSampleErrors(2,:);
-        %Test against the alternative null hypothesis that the population mean of xNull is less than the population mean of y.
-        [hOutOfSample1,pOutOfSample1] = ttest2(xNull,y, 'Tail','right','Alpha',0.10,'Vartype','unequal')
-        if (hOutOfSample1==1)
-            fprintf(2,'Model 1 and model 2 are significantly different with a p-level of %f\n', pOutOfSample1);
-        end
-        
+        nullHypothesisData = bestPositionOutOfSampleErrors(1,:);
 
-        y = bestPositionOutOfSampleErrors(3,:);
-        [hOutOfSample3,pOutOfSample3] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-        if (hOutOfSample3==1)
-            fprintf(2,'Model 1 and model 3 are significantly different with a p-level of %f\n', pOutOfSample3);
-        end
-        
+        for iAlternativeModel = 2:4
+            testHypothesisData = bestPositionOutOfSampleErrors(iAlternativeModel,:);
 
-        y = bestPositionOutOfSampleErrors(4,:);
-        [hOutOfSample4,pOutOfSample4] = ttest2(xNull,y, 'Tail','left','Alpha',0.10,'Vartype','unequal')
-        if (hOutOfSample4==1)
-            fprintf(2,'Model 1 and model 4 are significantly different with a p-level of %f\n', pOutOfSample4);
+            % Test against the null hypothesis that the
+            % population mean of error fits of the null model (single cone/ 0.000D residual defocus)
+            % is GREATER then the 
+            % population mean of error fits of the alternative model
+
+            [testPassed, pVal] = ttest2(nullHypothesisData, testHypothesisData, ...
+                'Tail', 'right', ...
+                'Alpha', 0.10, ...
+                'Vartype', 'unequal');
+    
+            if (testPassed == 1)
+                fprintf(2,'the MEANS of Model 1 and model %d are significantly different with a p-level of %f\n', ...
+                    iAlternativeModel, pVal);
+            end
+
+            maxAcross = 0.07*iAlternativeModel + max(bestPositionOutOfSampleErrors(:)) - 0.02;
+            maxDrop = maxAcross - 0.02;
+
+            if (testPassed == 1)
+                plot([x2(1) x2(iAlternativeModel)], maxAcross*[1 1], 'k-', 'LineWidth', 1.5);
+                plot(x2(1)*[1 1], [maxAcross maxDrop], 'k-', 'LineWidth', 1.5);
+                plot(x2((iAlternativeModel))*[1 1], [maxAcross maxDrop], 'k-', 'LineWidth', 1.5);
+                text(x2(1)+0.3, maxAcross-0.03, sprintf('p = %2.3f', pVal), 'FontSize', 14);
+            end
+
         end
+
+        grid(ax, 'on');
+        xtickangle(0);
+        legend(ax,[barHandle1 barHandle2], {'training', 'cross-validated'}, 'Location', 'NorthOutside', 'Orientation', 'Horizontal');
+        legend(ax, 'boxoff');
+        ylabel(ax, 'rms error');
         
+        text(ax, 0.65, rmsErrorRange(2)-0.06, cellString, 'FontSize', 24, 'FontWeight', 'Bold')
         
 end
 
@@ -254,9 +282,9 @@ function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesis
     % Compute median out of sample errors for each position examined
      for iPos = 1:positionsNum
          inSampleErrorsForThisPosition = squeeze(inSampleErrors(:, iPos));
-         medianInSampleErrorForEachPosition(iPos) = median(inSampleErrorsForThisPosition(:));
+         medianInSampleErrorForEachPosition(iPos) = mean(inSampleErrorsForThisPosition(:));
          outOfSampleErrorsForThisPosition = squeeze(outOfSampleErrors(:, iPos,:));
-         medianOutOfSampleErrorForEachPosition(iPos) = median(outOfSampleErrorsForThisPosition(:));
+         medianOutOfSampleErrorForEachPosition(iPos) = mean(outOfSampleErrorsForThisPosition(:));
      end
 
 
@@ -299,9 +327,9 @@ function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesis
      
      legend(ax,[p1 p2], {'training', 'cross-validated'})
      if (strcmp(centerConesSchema, 'variable'))
-         hypothesisLabel = sprintf(' multiple cones\\newlinedefocus: %2.3fD', residualDefocusDiopters);
+         hypothesisLabel = sprintf(' multiple cones\\newlinedefocus:%2.3fD', residualDefocusDiopters);
      else
-        hypothesisLabel = sprintf('    single cone\\newlinedefocus: %2.3fD', residualDefocusDiopters);
+        hypothesisLabel = sprintf('    single cone\\newlinedefocus:%2.3fD', residualDefocusDiopters);
      end
 
      title(ax,hypothesisLabel)
