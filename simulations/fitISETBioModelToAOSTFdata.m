@@ -6,12 +6,12 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum = 512;
 
     % Select cell to examine
-    targetLcenterRGCindices = [11]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [1]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
 
     % Select the Ca fluorescence response model to employ
     % Only play with the response offset
-    accountForResponseOffset = true;
+    accountForResponseOffset = ~true;
     
     % Always set to false. For drifting gratings, there is no reason why
     % the Ca response should go negative when the surround dominates the
@@ -22,7 +22,7 @@ function fitISETBioModelToAOSTFdata
     % Choose whether to bias toward the high SF points in the computation of the RMSError
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
-    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    %fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
     %fitBias = 'flat';                          % all ones
 
 
@@ -83,16 +83,16 @@ function fitISETBioModelToAOSTFdata
 
         hFig = figure(1000); clf
         set(hFig, 'Position', [10 10 1300 750], 'Color', [1 1 1]);
-        width = 0.4/2;
-        height = 0.8/2;
+        width = 0.4/2*0.9;
+        height = 0.8/2*0.9;
         widthMargin = 0.02;
-        heightMargin = 0.08;
+        heightMargin = 0.14;
         for iModelScenario = 1:4
             row = 1-floor((iModelScenario-1)/2);
             col = mod((iModelScenario-1),2);
-            ax{iModelScenario} = subplot('Position', [0.04 + col*(width+widthMargin), 0.07 + row*(height+heightMargin) width height]);
+            ax{iModelScenario} = subplot('Position', [0.05 + col*(width+widthMargin), 0.07 + row*(height+heightMargin) width height]);
         end
-        axSummary = subplot('Position', [0.08+2*(width+widthMargin) 0.095 0.47 0.9]);
+        axSummary = subplot('Position', [0.11+2*(width+widthMargin) 0.095 0.48 0.9]);
 
         for iModelScenario = 1:size(inSampleErrors,1)
             
@@ -142,22 +142,46 @@ function fitISETBioModelToAOSTFdata
         end
 
 
-        rmsErrorRange(1) = max([ 0 min([ ...
+        rmsErrorRange(1) = min([ ...
             min(bestPositionInSampleErrors(:)) ...
             min(bestPositionOutOfSampleErrors(:)) ...
-            ])-0.1]);
+            ]);
 
         rmsErrorRange(2) = max([ ...
             max(bestPositionInSampleErrors(:)) ...
             max(bestPositionOutOfSampleErrors(:)) ...
-            ])+0.3;
+            ]);
 
+        dRange = rmsErrorRange(2)-rmsErrorRange(1);
+        
+        rmsErrorRange(1) = max([0 rmsErrorRange(1)-dRange*0.1]);
+        rmsErrorRange(2) = rmsErrorRange(2) + dRange*0.3;
+
+        if (dRange < 0.1)
+            yTicks = 0:0.01:rmsErrorRange(2);
+        elseif (dRange < 0.2)
+            yTicks = 0:0.02:rmsErrorRange(2);
+        elseif (dRange < 0.5)
+            yTicks = 0:0.05:rmsErrorRange(2);
+        elseif (dRange < 1.2)
+            yTicks = 0:0.2:rmsErrorRange(2);
+        elseif (dRange < 1.5)
+            yTicks = 0:0.25:rmsErrorRange(2);
+        elseif (dRange < 5)
+            yTicks = 0:0.5:rmsErrorRange(2);
+        else
+            yTicks = 0:1:rmsErrorRange(2);
+        end
+
+        for iModelScenario = 1:size(inSampleErrors,1)
+            set(ax{iModelScenario}, 'YLim', rmsErrorRange, 'YTick', yTicks);
+        end
 
         plotCrossValidationErrors(axSummary, ...
             bestPositionInSampleErrors, bestPositionOutOfSampleErrors, ...
             modelScenarioLabels, cellString, rmsErrorRange);
 
-
+        set(axSummary, 'YLim', rmsErrorRange, 'YTick', yTicks);
        
 
         pdfFilename = crossValidationSummaryFilename(modelVariant, cellString, startingPointsNum);
@@ -247,14 +271,19 @@ function plotCrossValidationErrors(ax, ...
                     iAlternativeModel, pVal);
             end
 
-            maxAcross = 0.07*iAlternativeModel + max(bestPositionOutOfSampleErrors(:)) - 0.02;
-            maxDrop = maxAcross - 0.02;
+            separation = diff(rmsErrorRange)/1.394*0.07;
+            separationOffset = diff(rmsErrorRange)/1.394*0.02;
+            textDrop = diff(rmsErrorRange)/1.394*0.03;
+            cellStringDrop = diff(rmsErrorRange)/1.394*0.06;
+
+            maxAcross = separation*iAlternativeModel + max(bestPositionOutOfSampleErrors(:)) - separationOffset ;
+            maxDrop = maxAcross - separationOffset ;
 
             if (testPassed == 1)
                 plot([x2(1) x2(iAlternativeModel)], maxAcross*[1 1], 'k-', 'LineWidth', 1.5);
                 plot(x2(1)*[1 1], [maxAcross maxDrop], 'k-', 'LineWidth', 1.5);
                 plot(x2((iAlternativeModel))*[1 1], [maxAcross maxDrop], 'k-', 'LineWidth', 1.5);
-                text(x2(1)+0.3, maxAcross-0.03, sprintf('p = %2.3f', pVal), 'FontSize', 14);
+                text(x2(1)+0.3, maxAcross-textDrop, sprintf('p = %2.3f', pVal), 'FontSize', 14);
             end
 
         end
@@ -265,7 +294,7 @@ function plotCrossValidationErrors(ax, ...
         legend(ax, 'boxoff');
         ylabel(ax, 'rms error');
         
-        text(ax, 0.65, rmsErrorRange(2)-0.06, cellString, 'FontSize', 24, 'FontWeight', 'Bold')
+        text(ax, 0.65, rmsErrorRange(2)-cellStringDrop, cellString, 'FontSize', 24, 'FontWeight', 'Bold')
         
 end
 
@@ -327,9 +356,9 @@ function [bestPositionInSampleErrors,  bestPositionOutOfSampleErrors, hypothesis
      
      legend(ax,[p1 p2], {'training', 'cross-validated'})
      if (strcmp(centerConesSchema, 'variable'))
-         hypothesisLabel = sprintf(' multiple cones\\newlinedefocus:%2.3fD', residualDefocusDiopters);
+         hypothesisLabel = sprintf('1+ cone center\\newlinedefocus:%0.3fD', residualDefocusDiopters);
      else
-        hypothesisLabel = sprintf('    single cone\\newlinedefocus:%2.3fD', residualDefocusDiopters);
+        hypothesisLabel = sprintf('1 cone center\\newlinedefocus:%0.3fD', residualDefocusDiopters);
      end
 
      title(ax,hypothesisLabel)
