@@ -1,15 +1,15 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = [];
-    targetMcenterRGCindices = [1];
+    targetLcenterRGCindices = [1];
+    targetMcenterRGCindices = [];
    
-    accountForResponseOffset = ~true;
+    accountForResponseOffset = true;
     accountForResponseSignReversal = false;
     
     % Choose whether to bias toward the high SF points in the computation of the RMSError
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
-    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    %fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
     %fitBias = 'flat';                          % all ones
 
 
@@ -19,7 +19,8 @@ function displayModelFits()
     
 
     operationMode = 'fitModelOnSessionAveragedData';
-    operationMode = 'fitModelOnSingleSessionData';
+
+%    operationMode = 'fitModelOnSingleSessionData';
 %
     switch (operationMode)
         case 'fitModelOnSessionAveragedData'
@@ -108,14 +109,16 @@ function displayModelFits()
                 % Recompute the errors
                 nSFs = numel(dData.dFresponses);
                 for iPos = 1:size(dModel.fittedSTFs,1)
+                    weights = 1./(dData.dFresponsesStd)*0+1;
                     residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
-                    theErrors(1, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
+                    weightedResidualsSquared = weights .* (residuals.^2);
+                    theErrors(iPos) = sqrt(1/nSFs * sum(weightedResidualsSquared));
                 end
 
 
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
-                    0, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
+                    0, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, theErrors);
 
                 % Export to PDF
                 pdfFileName = fitsPDFFilename(...
@@ -155,7 +158,7 @@ function displayModelFits()
     
                 theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
                         crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
-                        targetLcenterRGCindices, targetMcenterRGCindices)
+                        targetLcenterRGCindices, targetMcenterRGCindices);
                 
     
                 % Load fitted model to the single session data 
@@ -164,14 +167,16 @@ function displayModelFits()
                 % Recompute the errors
                 nSFs = numel(dData.dFresponses);
                 for iPos = 1:size(dModel.fittedSTFs,1)
+                    weights = 1./(dData.dFresponsesStd)*0+1;
                     residuals = dData.dFresponses - squeeze(dModel.fittedSTFs(iPos,:));
-                    theErrors(sessionIndex, iModel, iPos) = sqrt(1/nSFs * sum(residuals.^2));
+                    weightedResidualsSquared = weights .* (residuals.^2);
+                    theErrors(iPos) = sqrt(1/nSFs * sum(weightedResidualsSquared));
                 end
 
 
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
-                    sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters);
+                    sessionIndex, modelVariant.centerConesSchema, modelVariant.residualDefocusDiopters, theErrors);
 
                 % Export to PDF
                 pdfFileName = fitsPDFFilename(...
@@ -258,7 +263,7 @@ function displayModelFits()
 end
 
 function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, theConeMosaic,...
-    sessionIndex, centerConesSchema, residualDefocusDiopters)
+    sessionIndex, centerConesSchema, residualDefocusDiopters, theErrors)
         
      subplotPosVectors = NicePlot.getSubPlotPosVectors(...
        'colsNum', 4, ...
@@ -309,11 +314,13 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         conesNum = size(theConeMosaic.coneRFpositionsDegs,1);
         theCenterConeWeights = zeros(1, conesNum);
-        theCenterConeWeights(centerConeIndices) = Kc * centerConeWeights;
+       % theCenterConeWeights(centerConeIndices) = Kc * centerConeWeights;
         
         theSurroundConeWeights = zeros(1, conesNum);
-        theSurroundConeWeights(surroundConeIndices) = -Ks * surroundConeWeights;
+      %  theSurroundConeWeights(surroundConeIndices) = -Ks * surroundConeWeights;
         
+        theCenterConeWeights(centerConeIndices) = centerConeWeights;
+        theSurroundConeWeights(surroundConeIndices) = -surroundConeWeights;
         
         xTicks = -40:4:40;
         if (examinedCenterConePositionIndex < numel(dModel.indicesOfModelCenterConePositionsExamined))
@@ -407,17 +414,18 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         
         ax = subplot('Position', subplotPosVectors(examinedCenterConePositionIndex ,3).v);
         faceColor = 1.7*[100 0 30]/255;
-        edgeColor = [0.7 0.2 0.2];
+        edgeColor = faceColor; [0.7 0.2 0.2];
         faceAlpha = 0.4;
-        lineWidth = 1.0;
+        lineWidth = 0.1;
         baseline = 0;
         shadedAreaPlot(ax, xMicrons, centerProfile, ...
              baseline, faceColor, edgeColor, faceAlpha, lineWidth);
         hold(ax, 'on');
         faceColor = [75 150 200]/255;
-        edgeColor = [0.3 0.3 0.7];
+        edgeColor = faceColor; %[0.3 0.3 0.7];
         shadedAreaPlot(ax, xMicrons, -surroundProfile, ...
             baseline, faceColor, edgeColor, faceAlpha, lineWidth);
+        plot(ax, xMicrons, centerProfile-surroundProfile, 'k-', 'LineWidth', 1.5);
 
         axis(ax, 'square');
         grid(ax, 'on');
@@ -456,13 +464,22 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
             xlabel(ax, 'spatial freq. (c/deg)');
         end
         
-        if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
+
+%         if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
+%              titleColor = [0 0.7 0];
+%         else
+%              titleColor = [0.3 0.3 0.3];
+%         end
+%         text(ax, 7, -0.15, sprintf('RMSE:%.3f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
+%     
+        if ( theErrors(examinedCenterConePositionIndex) == min(theErrors))
              titleColor = [0 0.7 0];
         else
              titleColor = [0.3 0.3 0.3];
         end
-        text(ax, 7, -0.15, sprintf('RMSE:%.3f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
+       text(ax, 7, -0.15, sprintf('RMSE:%.3f', theErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
     
+
      end
      
     
@@ -508,9 +525,10 @@ end
 function [dSession, measuredData, cellType] = loadModelAndAverageSessionMeasuredData(theTrainedModelFitsfilename, monkeyID)
     d = load(theTrainedModelFitsfilename);
 
-    dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
+    
     if (isfield(d, 'fittedParamsLcenterRGCs'))
         cellType = 'L';
+        dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingLcenterRGCs;
         targetRGCindex = d.targetLcenterRGCindices(1);
         dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerLConeCharacteristicRadiiDegs;
         tmp.fittedParams = d.fittedParamsLcenterRGCs;
@@ -525,17 +543,18 @@ function [dSession, measuredData, cellType] = loadModelAndAverageSessionMeasured
         
     else
         cellType = 'M';
+        dSession.indicesOfModelCenterConePositionsExamined = d.indicesOfModelConesDrivingMcenterRGCs;
         targetRGCindex = d.targetMcenterRGCindices(1);
-        dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerMConeCharacteristicRadiiDegs{sessionIndex};
-        tmp.fittedParams = d.fittedParamsMcenterRGCs{sessionIndex};
-        tmp.fittedSTFs = d.fittedSTFsMcenterRGCs{sessionIndex};
-        tmp.rmsErrors = d.rmsErrorsMcenterRGCs{sessionIndex};
-        dSession.centerConesFractionalNumLcenterRGCs = d.centerConesFractionalNumMcenterRGCs{sessionIndex};
-        dSession.centroidPosition = d.centroidPositionMcenterRGCs{sessionIndex};
-        dSession.centerConeIndices = d.centerConeIndicesMcenterRGCs{sessionIndex};
-        dSession.centerConeWeights = d.centerConeWeightsMcenterRGCs{sessionIndex};
-        dSession.surroundConeIndices = d.surroundConeIndicesMcenterRGCs{sessionIndex};
-        dSession.surroundConeWeights = d.surroundConeWeightsMcenterRGCs{sessionIndex};
+        dSession.centerModelCenterConeCharacteristicRadiiDegs = d.centerMConeCharacteristicRadiiDegs;
+        tmp.fittedParams = d.fittedParamsMcenterRGCs;
+        tmp.fittedSTFs = d.fittedSTFsMcenterRGCs;
+        tmp.rmsErrors = d.rmsErrorsMcenterRGCs;
+        dSession.centerConesFractionalNumLcenterRGCs = d.centerConesFractionalNumMcenterRGCs;
+        dSession.centroidPosition = d.centroidPositionMcenterRGCs;
+        dSession.centerConeIndices = d.centerConeIndicesMcenterRGCs;
+        dSession.centerConeWeights = d.centerConeWeightsMcenterRGCs;
+        dSession.surroundConeIndices = d.surroundConeIndicesMcenterRGCs;
+        dSession.surroundConeWeights = d.surroundConeWeightsMcenterRGCs;
     end
     
     for sessionIndex = 1:3
