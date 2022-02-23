@@ -1,15 +1,15 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = [1];
+    targetLcenterRGCindices = [3];
     targetMcenterRGCindices = [];
    
-    accountForResponseOffset = true;
+    accountForResponseOffset = ~true;
     accountForResponseSignReversal = false;
     
     % Choose whether to bias toward the high SF points in the computation of the RMSError
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
-    %fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
     %fitBias = 'flat';                          % all ones
 
 
@@ -115,6 +115,7 @@ function displayModelFits()
                     theErrors(iPos) = sqrt(1/nSFs * sum(weightedResidualsSquared));
                 end
 
+                theErrors = [];
 
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
@@ -173,6 +174,7 @@ function displayModelFits()
                     theErrors(iPos) = sqrt(1/nSFs * sum(weightedResidualsSquared));
                 end
 
+                theErrors = [];
 
                 % Plot model fits and data
                 hFig = plotRFdata(iModel, dModel, dData, modelSTFrunData.examinedSpatialFrequencies, modelSTFrunData.theConeMosaic, ...
@@ -465,20 +467,24 @@ function hFig = plotRFdata(figNo, dModel, dData, examinedSpatialFrequencies, the
         end
         
 
-%         if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
-%              titleColor = [0 0.7 0];
-%         else
-%              titleColor = [0.3 0.3 0.3];
-%         end
-%         text(ax, 7, -0.15, sprintf('RMSE:%.3f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
-%     
-        if ( theErrors(examinedCenterConePositionIndex) == min(theErrors))
-             titleColor = [0 0.7 0];
+        if (isempty(theErrors))
+            if ( dModel.rmsErrors(examinedCenterConePositionIndex) == min(dModel.rmsErrors))
+                 titleColor = [0 0.7 0];
+            else
+                 titleColor = [0.3 0.3 0.3];
+            end
+            text(ax, 7, -0.15, sprintf('RMSE:%.3f', dModel.rmsErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
+        
         else
-             titleColor = [0.3 0.3 0.3];
+
+            if ( theErrors(examinedCenterConePositionIndex) == min(theErrors))
+                 titleColor = [0 0.7 0];
+            else
+                 titleColor = [0.3 0.3 0.3];
+            end
+           text(ax, 7, -0.15, sprintf('RMSE:%.3f', theErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
         end
-       text(ax, 7, -0.15, sprintf('RMSE:%.3f', theErrors(examinedCenterConePositionIndex)), 'FontWeight', 'Bold', 'FontSize', 14, 'Color', titleColor);
-    
+
 
      end
      

@@ -6,7 +6,7 @@ function fitISETBioModelToAOSTFdata
     startingPointsNum = 512;
 
     % Select cell to examine
-    targetLcenterRGCindices = [1]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
+    targetLcenterRGCindices = [3]; %[1 3 4 5 6 7 8 10 11]; % the non-low pass cells
     targetMcenterRGCindices = []; % [1 2 4];   % the non-low pass cells
 
     % Select the Ca fluorescence response model to employ
@@ -22,22 +22,19 @@ function fitISETBioModelToAOSTFdata
     % Choose whether to bias toward the high SF points in the computation of the RMSError
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
-    %fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
+    fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
     %fitBias = 'flat';                          % all ones
 
 
 
     % Train  models
-    operationMode = 'fitModelOnSingleSessionData'; 
+    %operationMode = 'fitModelOnSingleSessionData'; 
 
     % Extract weights by fitting the average data - after we have picked
     % the best cross-validated model
-    %operationMode = 'fitModelOnSessionAveragedData';
+    operationMode = 'fitModelOnSessionAveragedData';
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%%%operationMode = 'fitModelOnSessionAveragedData';
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Cross-validate models
     operationMode = 'crossValidateFittedModelOnAllSessionData';
@@ -261,7 +258,7 @@ function plotCrossValidationErrors(ax, ...
             % is GREATER then the 
             % population mean of error fits of the alternative model
 
-            [testPassed, pVal] = ttest2(nullHypothesisData, testHypothesisData, ...
+            [testPassed, pVal] = ttest2(nullHypothesisData, testHypothesisData, ... 
                 'Tail', 'right', ...
                 'Alpha', 0.10, ...
                 'Vartype', 'unequal');

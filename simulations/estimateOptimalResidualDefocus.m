@@ -28,12 +28,8 @@ function estimateOptimalResidualDefocus
     hold(ax1, 'on');
     p2 = plot(ax1,defocusD, L7rmsErr, 'bo-', ...
         'MarkerSize', 12, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.5);
-    p3 = plot(ax1,defocusD, L8rmsErr, 'go-', ...
-        'MarkerEdgeColor', [0 0 0.9], ...
-        'MarkerSize', 12, 'MarkerFaceColor', [0.3 1 0.3], 'LineWidth', 1.5);
-
-    plot(ax1, 0.067*[1 1], [-100 500], 'k--', 'LineWidth', 2.0);
-    legend(ax1, [p1 p2 p3], {'L1', 'L7', 'L8'}, 'Location', 'NorthWest');
+     plot(ax1, 0.067*[1 1], [-100 500], 'k--', 'LineWidth', 2.0);
+    legend(ax1, [p1 p2], {'L1', 'L7'}, 'Location', 'NorthWest');
     set(ax1, 'FontSize', 20, 'XLim', [-0.01 0.11], 'XTick', 0:0.02:0.1);
     set(ax1, 'YLim', [-75 200], 'YTick', -100:25:500);
     grid(ax1, 'on');
@@ -56,9 +52,13 @@ function estimateOptimalResidualDefocus
     p5 = plot(ax2,defocusD, L9rmsErr, 'yo-', ...
         'MarkerEdgeColor', 0.7*[1.0 0.7 0.3], 'Color', 0.7*[1.0 0.7 0.3], ...
         'MarkerSize', 12, 'MarkerFaceColor', [1.0 0.7 0.5], 'LineWidth', 1.5);
-    
+    p6 = plot(ax2,defocusD, L8rmsErr, 'mo-', ...
+        'MarkerEdgeColor', [0 0 0.9], ...
+        'MarkerSize', 12, 'MarkerFaceColor', [0.9 0.1 0.9], 'LineWidth', 1.5);
+
+   
     plot(ax2, 0.067*[1 1], [-100 500], 'k--', 'LineWidth', 2.0);
-    legend(ax2, [p1 p4 p2 p3 p5], {'L3', 'L4', 'L6', 'L11', 'L9'},  'Location', 'NorthWest');
+    legend(ax2, [p1 p4 p2 p3 p5 p6], {'L3', 'L4', 'L6', 'L11', 'L9', 'L8'},  'Location', 'NorthWest');
     set(ax2, 'FontSize', 20, 'XLim', [-0.01 0.11], 'XTick', 0:0.02:0.1);
     set(ax2, 'YLim', [-75 200], 'YTick', -100:25:500);
     grid(ax2, 'on');
