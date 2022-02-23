@@ -80,7 +80,7 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
         end
     
     else
-        pupilDiameterMM = 3.0;
+        pupilDiameterMM = 2.0;
         if (PolansSubject == 838)
 
             load('M838_Polychromatic_PSF.mat', 'Z_coeff_M838', 'd_pupil');
