@@ -80,13 +80,30 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
         end
     
     else
-        pupilDiameterMM = 2.0;
+        pupilDiameterMM = 2.5;
+        
+        if (opticalDefocusDiopters == -0.001)
+            correctForAllZ = true
+            correctForDefocus = false;
+        end
+
         if (PolansSubject == 838)
 
             load('M838_Polychromatic_PSF.mat', 'Z_coeff_M838', 'd_pupil');
 
+            if (correctForDefocus)
+                Z_coeff_M838(5) = 0.00;
+            end
+
+
+            if (correctForAllZ)
+                Z_coeff_M838(9:end) = 0;
+            end
+
+
+
             measPupilDiamMM = d_pupil*1000;
-            measWavelength = 550; %847; 
+            measWavelength = 550; 
             [~,idx] = min(abs(wavelengthSupport-measWavelength));
             measWavelength = wavelengthSupport(idx);
             psfSupportWavelength = wavelengthSupport;
@@ -97,7 +114,8 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
                                 'doNotZeroCenterPSF', false, ...
                                 'micronsPerDegree', WilliamsLabData.constants.micronsPerDegreeRetinalConversion, ...
                                 'upsampleFactor', 1, ...
-                                'flipPSFUpsideDown', true, ...
+                                'flipPSFUpsideDown', ~true, ...
+                                'noLCA', false, ...
                                 'name', 'M838 optics');
          
              % Generate the OI from the wavefront map
