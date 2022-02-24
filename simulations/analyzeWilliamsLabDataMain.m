@@ -61,7 +61,7 @@ function analyzeWilliamsLabDataMain()
      % NOTE: 0.066 defocus was conducted with pixelSize = 0.5 x pixelSize
      % using in the experiment to reduce issues related to quantization
      
-     examinedOpticalDefocusDiopters = [-0.001]; %[0.067];
+     examinedOpticalDefocusDiopters = [-0.002]; %[0.067];
      examinedConeCouplingLambdas    = [0.0];   
      
      % subjects to examine

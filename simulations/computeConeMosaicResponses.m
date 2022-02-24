@@ -82,24 +82,92 @@ function computeConeMosaicResponses(monkeyID, apertureParams, coneCouplingLambda
     else
         pupilDiameterMM = 2.5;
         
+         correctForZgreaterThan9 = false;
+        correctForZgreaterThan15 = false;
         if (opticalDefocusDiopters == -0.001)
-            correctForAllZ = true
-            correctForDefocus = false;
-        end
+            correctForZgreaterThan9 = true;
+        end 
+        
+        if (opticalDefocusDiopters == -0.002)
+            correctForZgreaterThan15 = true;
+        end 
+        
 
         if (PolansSubject == 838)
 
-            load('M838_Polychromatic_PSF.mat', 'Z_coeff_M838', 'd_pupil');
-
-            if (correctForDefocus)
-                Z_coeff_M838(5) = 0.00;
+            load('M838_Polychromatic_PSF.mat', 'Z_coeff_M838', 'd_pupil')
+           
+            
+            if (plotZcoeffs)
+            xTickLabel = {};
+            xTickLabel{numel(xTickLabel)+1} = 'piston';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical tilt';
+            xTickLabel{numel(xTickLabel)+1} = 'horizontal tilt';
+            xTickLabel{numel(xTickLabel)+1} = 'oblique astigmatism';
+            xTickLabel{numel(xTickLabel)+1} = 'defocus';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical astigmatism';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical trefoil';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical coma';
+            xTickLabel{numel(xTickLabel)+1} = 'horizontal coma';
+            xTickLabel{numel(xTickLabel)+1} = 'oblique trefoil';
+            xTickLabel{numel(xTickLabel)+1} = 'oblique quadrafoil';
+            xTickLabel{numel(xTickLabel)+1} = 'oblique 2nd astigm.';
+            xTickLabel{numel(xTickLabel)+1} = 'spherical';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical 2nd astigm.';
+            xTickLabel{numel(xTickLabel)+1} = 'vertical quadrafoil';
+            for k = numel(xTickLabel):(numel(Z_coeff_M838))
+                xTickLabel{numel(xTickLabel)+1} = ' ';
             end
+            
+            d_pupil*1000
+            [sampleMean, ~, subject_coeffs] = wvfLoadThibosVirtualEyes(6);
+            ZcoeffsThibos = subject_coeffs.bothEyes;
+            ZcoeffsThibosMean = mean(ZcoeffsThibos,2);
+            ZcoeffsThibosMin = min(ZcoeffsThibos,[],2);
+            ZcoeffsThibosMax = max(ZcoeffsThibos,[],2);
+            
+            ZcoeffsThibosStd = std(ZcoeffsThibos,0,2);
+            Z_coeff_M838 = Z_coeff_M838(1:numel(ZcoeffsThibosMean));
+            
 
+            hFig = figure(123); clf;
+            set(hFig, 'Position', [10 10 1900 1000], 'Color', [1 1 1]);
+            x = 1:numel(Z_coeff_M838);
+           % [xb,ZcoeffsThibosMin] = stairs(x-0.5, ZcoeffsThibosMin);
+            %[xb,ZcoeffsThibosMax] = stairs(x-0.5, ZcoeffsThibosMax);
+            makeShadedPlot([], x, ZcoeffsThibosMin, [0.5 0.5 1], [0 0 1]); hold on
+            makeShadedPlot([], x, ZcoeffsThibosMax, [1 0.5 0.5], [1 0 0 ]); 
+            stem(x, Z_coeff_M838, 'k', 'filled', 'LineWidth', 1.5, 'MarkerSize', 14, 'MarkerFaceColor', [0.7 0.7 0.7]);
+            
+            [xb,ZcoeffsThibosMean0] = stairs(x-0.5, ZcoeffsThibosMean);
+            [xb,ZcoeffsThibosStdP] = stairs(x-0.5, ZcoeffsThibosMean+ZcoeffsThibosStd);
+            [xb,ZcoeffsThibosStdN] = stairs(x-0.5, ZcoeffsThibosMean-ZcoeffsThibosStd);
+           % stairs(xb, ZcoeffsThibosMean0, 'k-', 'LineWidth', 1.5);
+%             stairs(xb, ZcoeffsThibosStdP, 'k--', 'LineWidth', 1.5);
+%             stairs(xb, ZcoeffsThibosStdN, 'k--', 'LineWidth', 1.5);
+legend({'Thibos (min)', 'Thibos (max)', 'M838'})
+            
+            
+            set(gca, 'XTick', 1:numel(Z_coeff_M838), 'XTickLabel', xTickLabel, 'FontSize', 20, 'YLim', 1.5*[-1 1], 'XLim', [0.5 36.5]);
+            set(gca, 'XColor', [0.5 0.5 0.5], 'YColor', [0.5 0.5 0.5], 'LineWidth', 1.0);
+            ylabel('microns');
+            xtickangle(30);
+            grid on
+            box on
+            NicePlot.exportFigToPDF('ZCoeffs.pdf', hFig, 300);
+            end
+            
+           
 
-            if (correctForAllZ)
+            if (correctForZgreaterThan9)
                 Z_coeff_M838(9:end) = 0;
             end
-
+            
+             if (correctForZgreaterThan15)
+                 Z_coeff_M838(15:end) = 0;
+             end
+             
+             
 
 
             measPupilDiamMM = d_pupil*1000;
@@ -366,3 +434,11 @@ function visualizeMosaicAndPSF(theConeMosaic, visualizedDomainRangeMicrons, theP
     NicePlot.exportFigToPDF(sprintf('PolansSubject%dPSFonMosaic.pdf', PolansSubject), hFig, 300);
 end
 
+function makeShadedPlot(obj, x,y, faceColor, edgeColor)
+    px = reshape(x, [1 numel(x)]);
+    py = reshape(y, [1 numel(y)]);
+    px = [px(1) px px(end)];
+    py = [1*eps py 2*eps];
+    pz = -10*eps*ones(size(py)); 
+    patch(px,py,pz,'FaceColor',faceColor,'EdgeColor',edgeColor, 'FaceAlpha', 0.5, 'LineWidth', 1.0);
+end
