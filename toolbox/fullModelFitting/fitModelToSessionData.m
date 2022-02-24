@@ -599,6 +599,10 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         fluorescenceDC = 0;
     end
 
+    if (constants.transducerFunctionAccountsForResponseSign)
+        error('This option for response sign should never be on.')
+    end
+
     % Determine center cone indices and weights
     [centerConeIndices, centerConeWeights, centerConesFractionalNum, centroidPosition] = ...
         centerConeIndicesAndWeights(RcDegs, constants);
@@ -641,37 +645,21 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
     % Center model cone responses
     centerMechanismInputModulations = constants.coneMosaicSpatiotemporalActivation(:,:,centerConeIndices);
     
-    % Weighted pooling of center model cone responses
-    weightedCenterModulations = bsxfun(@times, centerMechanismInputModulations, reshape(centerConeWeights, [1 1 numel(centerConeWeights)]));
-
-    % Sum weighted center cone responses
-    totalCenterResponse = sum(weightedCenterModulations,3);
-
-    % Apply center gain
-    centerMechanismModulations = Kc * totalCenterResponse;
-
-
     % Surround model cone responses
     surroundMechanismInputModulations = constants.coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices);
 
-    % Weighted pooling of surround model cone responses
-    weightedSurroundModulations = bsxfun(@times, surroundMechanismInputModulations, reshape(surroundConeWeights, [1 1 numel(surroundConeWeights)]));
-    
-    % Sum weighted surround cone responses
-    totalSurroundResponse = sum(weightedSurroundModulations,3);
-
-    % Apply surround gain 
-    surroundMechanismModulations = Ks * totalSurroundResponse;
-
-    % Composite center-surround responses
-    modelRGCmodulations = centerMechanismModulations - surroundMechanismModulations;
+    % Compute RGC responses
+    modelRGCmodulations = computeRGCresponseByPoolingConeMosaicResponses( ...
+            centerMechanismInputModulations, ...
+            surroundMechanismInputModulations, ...
+            centerConeWeights, ...
+            surroundConeWeights, ...
+            Kc, Ks);
     
     % Fit a sinusoid to the time series responses for each spatial frequency
     % The amplitude of the sinusoid is the STFmagnitude at that spatial frequency
     sfsNum = size(modelRGCmodulations,1);
     theModelSTF = zeros(1, sfsNum);
-    theModelCenterSTF = zeros(1, sfsNum);
-    theModelSurroundSTF = zeros(1, sfsNum);
     %timeHR = linspace(constants.temporalSupportSeconds(1), constants.temporalSupportSeconds(end), 100);
     
     for iSF = 1:sfsNum
@@ -692,40 +680,6 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
         STFamplitude = fittedParams(1);
 
 
-        if (constants.transducerFunctionAccountsForResponseSign)
-            % Fit a sinusoid to the center modulation
-            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-                constants.temporalSupportSeconds, ...
-                centerMechanismModulations(iSF,:), ...
-                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                []);
-            
-            % The centerSTF is the amplitude of the sinusoid
-            theModelCenterSTF(iSF) = fittedParams(1);
-    
-            % Fit a sinusoid to the center modulation
-            [~, fittedParams] = fitSinusoidToResponseTimeSeries(...
-                constants.temporalSupportSeconds, ...
-                surroundMechanismModulations(iSF,:), ...
-                WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                []);
-            % The centerSTF is the amplitude of the sinusoid
-            theModelSurroundSTF(iSF) = fittedParams(1);
-        
-
-            if (theModelCenterSTF(iSF) > theModelSurroundSTF(iSF))
-                % Center STF > Surround STF, sign = 1;
-                sign = 1;
-            else
-                % Center STF > Surround STF, sign = -1, to reverse the
-                % sign of the modulation (180 phase shift)
-                sign = -1;
-            end
-        else
-            % We are not accounting for response sign
-            sign = 1;
-        end
-
-        theModelSTF(iSF) = fluorescenceDC + sign*STFamplitude;
+        theModelSTF(iSF) = fluorescenceDC + STFamplitude;
     end
 end
