@@ -1,5 +1,93 @@
 function computeISETBioModelSTFdata
-    % Select stimulus
+    
+
+    pupilDiamForPhysiologicalOptics = 2.5;
+    
+    
+doLcells = false;
+doMcells = true;
+
+if (doLcells)
+    targetMcenterRGCindices = [];
+    
+    % Load a fitted model
+
+     targetLcenterRGCindices = [3];
+    accountForResponseOffset = ~true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    
+    targetLcenterRGCindices = [4];
+    accountForResponseOffset = true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    
+    targetLcenterRGCindices = [6];
+    accountForResponseOffset = ~true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.00;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    
+     targetLcenterRGCindices = [7];
+    accountForResponseOffset = ~true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.0;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    
+    targetLcenterRGCindices = [8];
+    accountForResponseOffset = true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.0;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    
+    
+    targetLcenterRGCindices = [10];
+    accountForResponseOffset = true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+
+%     
+    targetLcenterRGCindices = [11];
+    accountForResponseOffset = true;                     
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+
+end
+
+if (doMcells)
+    targetLcenterRGCindices = [];
+    
+    targetMcenterRGCindices = [1];
+    accountForResponseOffset = ~true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+   fittedModelResidualDefocus = 0.067;
+   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+
+    targetMcenterRGCindices = [2];
+    accountForResponseOffset = true;                      
+    fitBias = 'flat';
+    fittedModelResidualDefocus = 0.067;
+   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+
+     targetMcenterRGCindices = [4];
+    accountForResponseOffset = true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+
+end
+
+    
+
+end
+
+function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+        
+% Select stimulus
     stimulusType = 'LCDdisplayAchromatic'; % 'AO'; % 'LCDdisplayAchromatic';;
 
     switch (stimulusType)
@@ -20,28 +108,22 @@ function computeISETBioModelSTFdata
     end
 
     monkeyID = 'M838';
-
     
-    % Load a fitted model
-    % Model variant to use for the cone pooling weights
-    % L4-cone weights
-    targetLcenterRGCindices = [8];
-    targetMcenterRGCindices = [];
     startingPointsNum = 512;
 
-    accountForResponseOffset = true;
-    fitBias = 'none';                           % 1/stdErr
-    fitBias = 'boostHighSpatialFrequencies';
-    %fitBias = 'flat'; 
-
+    
+    % Select the single cone center, with residual defocus of fittedModelResidualDefocus
     modelVariant = struct(...
         'centerConesSchema', 'single', ...
-        'residualDefocusDiopters', 0.067, ...
+        'residualDefocusDiopters', fittedModelResidualDefocus, ...
         'coneCouplingLambda', 0, ...
         'transducerFunctionAccountsForResponseOffset', accountForResponseOffset, ...
         'transducerFunctionAccountsForResponseSign', false, ...
         'fitBias', fitBias);
 
+    defocusOTFFilename = sprintf('/Volumes/SSDdisk/MATLAB/projects/ISETMacaque/simulations/generatedData/OTF_%1.3fDiopters.mat', modelVariant.residualDefocusDiopters);
+    
+    
     operationMode = 'fitModelOnSessionAveragedData';
 %   operationMode = 'fitModelOnSingleSessionData';
 
@@ -74,27 +156,61 @@ function computeISETBioModelSTFdata
     theTrainedModelFitsfilename = fitsFilename(modelVariant, startingPointsNum, ...
                         crossValidateModel, crossValidateModelAgainstAllSessions, trainModel, ...
                         targetLcenterRGCindices, targetMcenterRGCindices);
+                    
 
     [dModel, dData] = loadModelAndAverageSessionMeasuredData(theTrainedModelFitsfilename, monkeyID);
+    theMeasuredSTF = dData.dFresponses;
     
-    % Select the model with smallest RMSerror to the data it was fitted to
-    [~, theMinRMSmodelIndex] = min(dModel.rmsErrors);
+    % Recompute RMS-errors at each position without any weighting
+    residuals = (bsxfun(@minus, dModel.fittedSTFs, theMeasuredSTF)).^2;
+    rmsErrors = sqrt(sum(residuals,2));
+    
+    % Find position with lowest RMS error
+    [~, theSelectedPosition] = min(rmsErrors);
 
-    % Extract the model params for the selected model
-    centerConeIndices = dModel.centerConeIndices{theMinRMSmodelIndex};
-    centerConeWeights = dModel.centerConeWeights{theMinRMSmodelIndex};
-    surroundConeIndices = dModel.surroundConeIndices{theMinRMSmodelIndex};
-    surroundConeWeights = dModel.surroundConeWeights{theMinRMSmodelIndex};
-    DoGparams = dModel.fittedParamsPositionExamined(theMinRMSmodelIndex,:);
-    theFittedSTF = squeeze(dModel.fittedSTFs(theMinRMSmodelIndex,:));
+    % The selected fitted model's center and surround cone pooling weights
+    centerConeIndices = dModel.centerConeIndices{theSelectedPosition};
+    centerConeWeights = dModel.centerConeWeights{theSelectedPosition};
+    surroundConeIndices = dModel.surroundConeIndices{theSelectedPosition};
+    surroundConeWeights = dModel.surroundConeWeights{theSelectedPosition};
     
+    % The selected fitted model's STF
+    theFittedSTF = squeeze(dModel.fittedSTFs(theSelectedPosition,:));
     
+    % Retrieve selected fitted model's DoG params
+    DoGparams = dModel.fittedParamsPositionExamined(theSelectedPosition,:);
+    Kc = DoGparams(1);
+    KsToKc = DoGparams(2);
+    Ks = Kc * KsToKc;
+    
+    % Remove effect of residual defocus
+    if (modelVariant.residualDefocusDiopters ~= 0)
+        load(sprintf('SpatialFrequencyData_%s_OD_2021.mat', monkeyID), 'otf');
+        load(defocusOTFFilename, 'OTF_ResidualDefocus');
+        % Correction factor: add diffraction-limited, remove residual defocus
+        % OTF (which includes diffraction-limited)
+        defocusCorrectionFactor = otf./OTF_ResidualDefocus;
 
+        theFittedSTF = theFittedSTF .* defocusCorrectionFactor;
+        theMeasuredSTF = theMeasuredSTF .* defocusCorrectionFactor;
+    end
+    
+    
     % Load the cone mosaic responses
-    residualDefocus = 0.001;  % this was run for a pupil size of 2.0 mm
+    switch(pupilDiamForPhysiologicalOptics)
+        case 3.0 
+            residualDefocusForPhysiologicalOpticsEncodingPupilSize = 0.003;  % this was run for a pupil size of 3.0 mm
+        case 2.0
+            residualDefocusForPhysiologicalOpticsEncodingPupilSize= 0.002;  % this was run for a pupil size of 2.0 mm
+        case 2.5 
+            residualDefocusForPhysiologicalOpticsEncodingPupilSize = -0.002;  % this was run for a pupil size of 2.5 mm
+        otherwise
+            error('not computed');
+    end
+
     sParams = struct(...
         'apertureParams', struct('shape', 'Gaussian', 'sigma', 0.204), ...
-        'modelVariant', struct('coneCouplingLambda', 0, 'residualDefocusDiopters', residualDefocus), ...
+        'modelVariant', struct('coneCouplingLambda', 0, 'residualDefocusDiopters', residualDefocusForPhysiologicalOpticsEncodingPupilSize), ...
         'PolansSubject', 838, ...
         'visualStimulus', visualStimulus);
     modelSTFrunData = loadConeMosaicSTFResponses(monkeyID, sParams);
@@ -103,15 +219,13 @@ function computeISETBioModelSTFdata
     centerConeResponses = modelSTFrunData.coneMosaicSpatiotemporalActivation(:,:,centerConeIndices);
     
     % Surround model cone responses
-    centerConeResponses = modelSTFrunData.coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices);
+    surroundConeResponses = modelSTFrunData.coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices);
 
-    Kc = DoGparams(1);
-    KsToKc = DoGparams(2);
-    Ks = Kc * KsToKc;
+    
 
     modelRGCresponses = computeRGCresponseByPoolingConeMosaicResponses( ...
             centerConeResponses , ...
-            centerConeResponses, ...
+            surroundConeResponses, ...
             centerConeWeights, ...
             surroundConeWeights, ...
             Kc, Ks);
@@ -143,10 +257,74 @@ function computeISETBioModelSTFdata
         theModelSTF(iSF) = fluorescenceDC + STFamplitude;
     end
 
-    figure(100); clf;
-    plot(modelSTFrunData.examinedSpatialFrequencies, theFittedSTF/max(theFittedSTF), 'ko-');
+    hFig = figure(100); clf;
+    set(hFig, 'Color', [1 1 1], 'Position', [10 10 430 480]);
+    maxSTF = max([max(theMeasuredSTF) max(theFittedSTF)]);
+    
+     yyaxis left
+     %subplot('Position', [0.13 0.55 0.85 0.42]);
+    
+    p1 = plot(modelSTFrunData.examinedSpatialFrequencies, theMeasuredSTF, 'ko', ...
+        'MarkerFaceColor', [0.8 0.8 0.8], 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerSize', 18, ...
+        'LineWidth', 2, 'Color', [0.2 0.2 0.2]);
     hold on;
-    plot(modelSTFrunData.examinedSpatialFrequencies, theModelSTF/max(theModelSTF), 'r-');
+    p2 = plot(modelSTFrunData.examinedSpatialFrequencies, theFittedSTF, '-', ...
+        'LineWidth', 3.0, 'Color', [0.2 0.2 0.2]);
+    plot(modelSTFrunData.examinedSpatialFrequencies, theMeasuredSTF, 'ko', ...
+         'MarkerFaceColor', [0.8 0.8 0.8], 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerSize', 18, ...
+        'LineWidth', 1.5, 'Color', [0.2 0.2 0.2]);
+    
+%     plot(modelSTFrunData.examinedSpatialFrequencies, theModelSTF, 'ro-', ...
+%         'MarkerFaceColor', [1 .3 .5], 'MarkerEdgeColor',  [1 .3 .5]*0.5, 'MarkerSize', 18, ...
+%         'Color',  [1 .3 .5]*0.5, ...
+%         'LineWidth', 1.5);
+    
+   
+    maxSTF =  1.5*max(theFittedSTF);
+    if (maxSTF < 0.7)
+         yTicks = 0:0.1:2;
+         yTicks2 = 0:0.01:2;
+    else
+         yTicks = 0:0.2:2;
+         yTicks2 = 0:0.02:2;
+    end
+    
+    legend boxoff
+    set(gca, 'XScale', 'log',  'YColor', [0.2 0.2 0.2], 'XLim', [4 60], 'YLim', [0 maxSTF], 'YTick', yTicks, 'XTick', [5 10 20 40 60], 'FontSize', 20);
+    grid on; box off;
+    ylabel('STF');
+    if (~isempty(targetLcenterRGCindices))
+        fName = sprintf('L%d_defocus_%2.3fD_pupilDiamMM_%2.1f.pdf',  targetLcenterRGCindices(1), fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+        title(sprintf('L%d', targetLcenterRGCindices(1)), 'FontSize', 16);
+        
+    else
+        fName = sprintf('M%d_defocus_%2.3fD_pupilDiamMM_%2.1f.pdf',  targetMcenterRGCindices(1), fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+        title(sprintf('M%d',  targetMcenterRGCindices(1)), 'FontSize', 16);
+    end
+    
+    
+    %subplot('Position', [0.13 0.08 0.85 0.42]);
+    yyaxis right
+    
+
+     plot(modelSTFrunData.examinedSpatialFrequencies, theModelSTF, '-', ...
+        'Color',  [1 .3 .5]*0.5, ...
+        'LineWidth', 3);
+    p3 = plot(modelSTFrunData.examinedSpatialFrequencies, theModelSTF, 'ro-', ...
+        'MarkerFaceColor', [1 .3 .5], 'MarkerEdgeColor',  [1 .3 .5]*0.5, 'MarkerSize', 18, ...
+        'Color',  [1 .3 .5]*0.5, ...
+        'LineWidth', 1.5);
+     hLegend = legend([p1 p2 p3], {'AOSLO data', 'AOSLO model fit (diffr.-limited, 6.7 mm pupil)', ...
+                       sprintf('physiological optics (%2.1f mm pupil)', pupilDiamForPhysiologicalOptics)}, ...
+        'Location', 'NorthWest', 'FontSize', 13);
+    
+    legend boxoff
+    set(gca, 'XScale', 'log', 'XLim', [4 60], 'YLim', [0 1.5*max(theModelSTF)], 'YTick', yTicks2, 'XTick', [5 10 20 40 60], 'FontSize', 20);
+    set(gca, 'YColor',  [1 .3 .5]);
+    grid on; box off;
+    xlabel('spatial frequency (c/deg)');
+    
+    NicePlot.exportFigToPDF(fName, hFig,300);
 
 end
 
