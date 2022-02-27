@@ -1,61 +1,113 @@
 function computeISETBioModelSTFdata
     
 
-    pupilDiamForPhysiologicalOptics = 2.5;
+pupilDiamForPhysiologicalOptics = 2.5;
     
     
-doLcells = false;
+doLcells = true;
 doMcells = true;
+
+KsToKc = [];
+RsToRc = [];
 
 if (doLcells)
     targetMcenterRGCindices = [];
     
     % Load a fitted model
 
-     targetLcenterRGCindices = [3];
+    targetLcenterRGCindices = [1];
+    accountForResponseOffset = true;                      
+    fitBias = 'none';
+    fittedModelResidualDefocus = 0.0;
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
+    targetLcenterRGCindices = [3];
     accountForResponseOffset = ~true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.067;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
     
+
     targetLcenterRGCindices = [4];
     accountForResponseOffset = true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.067;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
-    
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
+
+    targetLcenterRGCindices = [5];
+    accountForResponseOffset = true;                      
+    fitBias = 'boostHighSpatialFrequencies';
+    fittedModelResidualDefocus = 0.067;
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+  
     targetLcenterRGCindices = [6];
     accountForResponseOffset = ~true;                      
     fitBias = 'boostHighSpatialFrequencies';
-    fittedModelResidualDefocus = 0.00;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
-    
+    fittedModelResidualDefocus = 0.067;
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
+   
+
      targetLcenterRGCindices = [7];
     accountForResponseOffset = ~true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.0;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
-    
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
+   
+
     targetLcenterRGCindices = [8];
     accountForResponseOffset = true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.0;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
-    
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
+
+   
     
     targetLcenterRGCindices = [10];
     accountForResponseOffset = true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.067;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
 
+   
 %     
     targetLcenterRGCindices = [11];
     accountForResponseOffset = true;                     
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.067;
-    doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
 
+   
 end
 
 if (doMcells)
@@ -64,28 +116,153 @@ if (doMcells)
     targetMcenterRGCindices = [1];
     accountForResponseOffset = ~true;                      
     fitBias = 'boostHighSpatialFrequencies';
-   fittedModelResidualDefocus = 0.067;
-   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    fittedModelResidualDefocus = 0.067;
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
 
+   
     targetMcenterRGCindices = [2];
     accountForResponseOffset = true;                      
     fitBias = 'flat';
     fittedModelResidualDefocus = 0.067;
-   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc];
 
-     targetMcenterRGCindices = [4];
+   
+    targetMcenterRGCindices = [4];
     accountForResponseOffset = true;                      
     fitBias = 'boostHighSpatialFrequencies';
     fittedModelResidualDefocus = 0.067;
-   doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+    summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics);
+    d = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData);
+    KsToKc(size(KsToKc,1)+1,:) = [d.physiologicalOpticsKsToKc summaryData.diffractionLimitedKsToKc ];
+    RsToRc(size(RsToRc,1)+1,:) = [d.physiologicalOpticsRsToRc summaryData.diffractionLimitedRsToRc ];
 
+   
 end
 
-    
+   
+hFig = figure(333); clf;
+set(hFig, 'Color', [1 1 1]);
 
+edges = 0:5:1000;
+
+[KaplanKsToKc, eccDegs] = CronerKaplanFig6Data();
+subplot(3,3,7)
+h = histogram(1./KaplanKsToKc,edges);
+h.FaceColor = [1 .8 .5];
+h.EdgeColor = [1 .8 .5]*0.5;
+set(gca, 'XLim', [0 100],  ...
+    'XTick',  0:10:100, 'YLim',[0 7], 'FontSize', 18);
+xlabel('Kc/Ks');
+title('Croner & Kaplan ''94');
+xtickangle(0)
+ylabel('count')
+
+subplot(3,3,4);
+h = histogram(1./KsToKc(:,1),edges);
+h.FaceColor = [1 .3 .5]*0.8;
+h.EdgeColor = [1 .3 .5]*0.5;
+set(gca, 'XLim', [0 100],  ...
+    'XTick',  0:10:100, 'YLim', [ 0 7], 'FontSize', 18);
+xlabel('Kc/Ks');
+title('physiological optics (M3)');
+xtickangle(0)
+ylabel('count')
+
+subplot(3,3,1);
+h = histogram(1./KsToKc(:,2),edges);
+h.FaceColor = [0.8 0.8 0.8];
+h.EdgeColor = [0.2 0.2 0.2];
+set(gca, 'XLim', [0 100], 'YLim', [0 7], ...
+    'XTick',  0:10:100, 'FontSize', 18);
+xlabel('Kc/Ks');
+title('diffraction limited optics (M3)');
+xtickangle(0)
+ylabel('count')
+
+edges = 0:2:20;
+[Rc, Rs] = CronerKaplanFig4Data();
+kaplanRsToRc = (Rs.radiusDegs)./(Rc.radiusDegs);
+subplot(3,3,8);
+h = histogram(kaplanRsToRc,edges);
+h.FaceColor = [1 .8 .5];
+h.EdgeColor = [1 .8 .5]*0.5;
+
+set(gca, 'XLim', [0 20], 'YLim', [0 22], ...
+    'XTick', [0:2:20], 'FontSize', 18);
+xlabel('Rs/Rc ratio');
+title('Croner & Kaplan ''94');
+xtickangle(0);
+
+
+subplot(3,3,5)
+h = histogram(RsToRc(:,1),edges);
+h.FaceColor = [1 .3 .5]*0.8;
+h.EdgeColor = [1 .3 .5]*0.5;
+set(gca, 'XLim', [0 20],  ...
+    'XTick', [0:2:20], 'FontSize', 18);
+xlabel('Rs/Rc ratio');
+title('physiological optics (M3)');
+xtickangle(0);
+
+subplot(3,3,2)
+h = histogram(RsToRc(:,2),edges);
+h.FaceColor = [0.8 0.8 0.8];
+h.EdgeColor = [0.2 0.2 0.2];
+set(gca, 'XLim', [0 20],  ...
+    'XTick', [0:2:20], 'FontSize', 18);
+xlabel('Rs/Rc ratio');
+xtickangle(0)
+title('diffraction limited optics (M3)');
+
+
+integratedSensitivitySurroundToCenter(:,1) = KsToKc(:,1) .* (RsToRc(:,1)).^2;
+integratedSensitivitySurroundToCenter(:,2) = KsToKc(:,2) .* (RsToRc(:,2)).^2;
+
+
+edges = 0:0.25:5;
+subplot(3,3,6);
+h = histogram(integratedSensitivitySurroundToCenter(:,1),edges);
+h.FaceColor = [1 .3 .5]*0.8;
+h.EdgeColor = [1 .3 .5]*0.5;
+set(gca, 'XLim', [0 5],  ...
+    'XTick', [0:0.5:5], 'YLim', [0 6], 'FontSize', 18);
+xlabel('S/C integrated sensitivity ratio');
+title('physiological optics (M3)');
+
+xtickangle(0)
+
+subplot(3,3,3);
+h = histogram(integratedSensitivitySurroundToCenter(:,2),edges);
+h.FaceColor = [0.8 0.8 0.8];
+h.EdgeColor = [0.2 0.2 0.2];
+
+set(gca, 'XLim', [0 5],  ...
+    'XTick', [0:0.5:5], 'YLim', [0 6], 'FontSize', 18);
+xlabel('S/C integrated sensitivity ratio');
+title('diffraction limited optics (M3)');
+xtickangle(0)
+
+
+subplot(3,3,9);
+[eccDegs, KaplanIntegratedSensitivitySurroundToCenter ] = CronerKaplanFig11Data();
+h = histogram(KaplanIntegratedSensitivitySurroundToCenter,edges);
+h.FaceColor = [1 .8 .5];
+h.EdgeColor = [1 .8 .5]*0.5;
+
+set(gca, 'XLim', [0 5],  ...
+    'XTick', [0:0.5:5], 'FontSize', 18);
+xlabel('S/C integrated sensitivity ratio');
+title('Croner&Kaplan ''94');
+xtickangle(0)
 end
 
-function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
+function summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)
         
 % Select stimulus
     stimulusType = 'LCDdisplayAchromatic'; % 'AO'; % 'LCDdisplayAchromatic';;
@@ -164,7 +341,8 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
     % Recompute RMS-errors at each position without any weighting
     residuals = (bsxfun(@minus, dModel.fittedSTFs, theMeasuredSTF)).^2;
     rmsErrors = sqrt(sum(residuals,2));
-    
+
+
     % Find position with lowest RMS error
     [~, theSelectedPosition] = min(rmsErrors);
 
@@ -179,13 +357,17 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
     
     % Retrieve selected fitted model's DoG params
     DoGparams = dModel.fittedParamsPositionExamined(theSelectedPosition,:);
+    
     Kc = DoGparams(1);
     KsToKc = DoGparams(2);
+    RsToRc = DoGparams(3);
     Ks = Kc * KsToKc;
     
-    % Remove effect of residual defocus
+
+    % Remove effect of residual defocus assumed in the model
+    load(sprintf('SpatialFrequencyData_%s_OD_2021.mat', monkeyID), 'otf');
     if (modelVariant.residualDefocusDiopters ~= 0)
-        load(sprintf('SpatialFrequencyData_%s_OD_2021.mat', monkeyID), 'otf');
+        
         load(defocusOTFFilename, 'OTF_ResidualDefocus');
         % Correction factor: add diffraction-limited, remove residual defocus
         % OTF (which includes diffraction-limited)
@@ -193,7 +375,12 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
 
         theFittedSTF = theFittedSTF .* defocusCorrectionFactor;
         theMeasuredSTF = theMeasuredSTF .* defocusCorrectionFactor;
+    else
+        % Add diffraction-limited OTF only
+        theFittedSTF = theFittedSTF .* otf;
+        theMeasuredSTF = theMeasuredSTF .* otf;
     end
+
     
     
     % Load the cone mosaic responses
@@ -253,8 +440,7 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
             []);
         STFamplitude = fittedParams(1);
 
-        fluorescenceDC = 0;
-        theModelSTF(iSF) = fluorescenceDC + STFamplitude;
+        theModelSTF(iSF) = STFamplitude;
     end
 
     hFig = figure(100); clf;
@@ -306,6 +492,7 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
     %subplot('Position', [0.13 0.08 0.85 0.42]);
     yyaxis right
     
+   
 
      plot(modelSTFrunData.examinedSpatialFrequencies, theModelSTF, '-', ...
         'Color',  [1 .3 .5]*0.5, ...
@@ -326,7 +513,69 @@ function doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForRespon
     
     NicePlot.exportFigToPDF(fName, hFig,300);
 
+    summaryData = struct(...
+         'physiologicalOpticsSTF', theModelSTF, ...
+         'sfSupport', modelSTFrunData.examinedSpatialFrequencies, ...
+         'diffractionLimitedKsToKc', KsToKc, ...
+         'diffractionLimitedRsToRc', RsToRc ...
+         );
+
+
 end
+
+function dataOut = fitDogModel(targetLcenterRGCindices, targetMcenterRGCindices, summaryData)
+
+    sf = summaryData.sfSupport;
+    weights  = summaryData.physiologicalOpticsSTF*0+1;
+
+    DoGFunction = @(params,sf)(...
+                    params(1)           * ( pi * params(2)^2             * exp(-(pi*params(2)*sf).^2) ) - ...
+                    params(1)*params(3) * ( pi * (params(2)*params(4))^2 * exp(-(pi*params(2)*params(4)*sf).^2) ));
+               
+    %                Kc                 RcDegs                 kS/kC                  Rs/Rc
+    initialParams1 = [1000               1/60                    1e-1                 7];
+    lowerBound1    = [1           0.17/60                   1e-3                 1];
+    upperBound1    = [5000       5/60                      1                    20];
+
+
+    objective1 = @(p) sum(weights .* (DoGFunction(p, sf) - summaryData.physiologicalOpticsSTF).^2);
+
+
+
+    problem1 = createOptimProblem('fmincon',...
+                    'x0', initialParams1, ...
+                    'objective', objective1, ...
+                    'lb', lowerBound1, ...
+                    'ub', upperBound1 ...
+                    );
+
+
+    displayProgress = 'off'; % 'iter';
+    ms = MultiStart(...
+                        'Display', displayProgress, ...
+                        'StartPointsToRun','bounds-ineqs', ...
+                        'FunctionTolerance', 2e-4, ...
+                        'UseParallel', true);
+    startingPointsNum = 512;
+    fitParams1 = run(ms, problem1, startingPointsNum);
+
+
+    for k = 1:4
+        [lowerBound1(k) fitParams1(k) upperBound1(k)]
+    end
+
+
+    dataOut.physiologicalOpticsKsToKc = fitParams1(3);
+    dataOut.physiologicalOpticsRsToRc = fitParams1(4);
+
+    figure(222); clf;
+    plot(sf, summaryData.physiologicalOpticsSTF, 'ko'); hold on;
+    plot(sf, DoGFunction(fitParams1, sf), 'r-');
+    title('physiological optics');
+
+    
+end
+
 
 function modelSTFrunData = loadConeMosaicSTFResponses(monkeyID, sParams)
 
