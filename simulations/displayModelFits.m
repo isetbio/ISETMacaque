@@ -1,16 +1,16 @@
 function displayModelFits()
 
-    targetLcenterRGCindices = [8];
+    targetLcenterRGCindices = [6];
     targetMcenterRGCindices = [];
    
-    accountForResponseOffset = true;
+    accountForResponseOffset = ~true;
     accountForResponseSignReversal = false;
     
     % Choose whether to bias toward the high SF points in the computation of the RMSError
     % Select between {'none', 'flat', 'boostHighSpatialFrequencies'}
     fitBias = 'none';                           % 1/stdErr
     fitBias = 'boostHighSpatialFrequencies';   % 1/stdErr .* linearlyIncreasingFactor
-    fitBias = 'flat';                          % all ones
+    %fitBias = 'flat';                          % all ones
 
 
     monkeyID = 'M838';
