@@ -147,9 +147,9 @@ end
 
    
 hFig = figure(333); clf;
-set(hFig, 'Color', [1 1 1]);
+set(hFig, 'Color', [1 1 1], 'Position', [10 10 1400 1050]);
 
-edges = 0:5:1000;
+edges = 0:5:100;
 
 [KaplanKsToKc, eccDegs] = CronerKaplanFig6Data();
 subplot(3,3,7)
@@ -157,14 +157,17 @@ theData = 1./KaplanKsToKc;
 h = histogram(theData,edges);
 h.FaceColor = [1 .8 .5];
 h.EdgeColor = [1 .8 .5]*0.5;
-set(gca, 'XLim', [0 100],  ...
-    'XTick',  0:10:100, 'YLim',[0 7], 'FontSize', 18);
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
+set(gca,  'XLim', [0 90],  ...
+    'XTick',  0:10:200, 'YLim',[0 7], 'YTick', 0:1:8, 'FontSize', 22);
 xlabel('Kc/Ks');
 title('Croner & Kaplan ''94');
 xtickangle(0)
 ylabel('count')
-meanKaplanKcToKs = median(theData(:))
-pause
+
 
 
 subplot(3,3,4);
@@ -172,28 +175,30 @@ theData = 1./KsToKc(:,1);
 h = histogram(theData,edges);
 h.FaceColor = [1 .3 .5]*0.8;
 h.EdgeColor = [1 .3 .5]*0.5;
-set(gca, 'XLim', [0 100],  ...
-    'XTick',  0:10:100, 'YLim', [ 0 7], 'FontSize', 18);
-xlabel('Kc/Ks');
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+set(gca,  'XLim', [0 90],  ...
+    'XTick',  0:10:200, 'YLim',[0 5], 'YTick', 0:7, 'FontSize', 22);
+box off
+grid on
 title('physiological optics (M3)');
 xtickangle(0)
 ylabel('count')
-meanPhysioKcToKs = median(theData(:))
-pause
 
 subplot(3,3,1);
 theData = 1./KsToKc(:,2);
 h = histogram(theData,edges);
 h.FaceColor = [0.8 0.8 0.8];
 h.EdgeColor = [0.2 0.2 0.2];
-set(gca, 'XLim', [0 100], 'YLim', [0 7], ...
-    'XTick',  0:10:100, 'FontSize', 18);
-xlabel('Kc/Ks');
-title('diffraction limited optics (M3)');
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+set(gca,  'XLim', [0 90],  ...
+    'XTick',  0:10:200, 'YLim',[0 7], 'YTick', 0:7, 'FontSize', 22);
+title('diffr.-limited optics (M3)');
+box off
+grid on
 xtickangle(0)
 ylabel('count')
-meanDiffractionKcToKs = median(theData(:))
-pause
 
 
 edges = 0:2:20;
@@ -203,14 +208,15 @@ subplot(3,3,8);
 h = histogram(theData,edges);
 h.FaceColor = [1 .8 .5];
 h.EdgeColor = [1 .8 .5]*0.5;
-
-set(gca, 'XLim', [0 20], 'YLim', [0 22], ...
-    'XTick', [0:2:20], 'FontSize', 18);
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
+set(gca, 'XLim', [0 14], 'YLim', [0 25], 'YTick', 0:5:25, ...
+    'XTick', [0:2:20], 'FontSize', 22);
 xlabel('Rs/Rc ratio');
 title('Croner & Kaplan ''94');
 xtickangle(0);
-meanKaplanRsToRc = median(theData(:))
-pause
 
 
 subplot(3,3,5)
@@ -218,26 +224,29 @@ theData = RsToRc(:,1);
 h = histogram(RsToRc(:,1),edges);
 h.FaceColor = [1 .3 .5]*0.8;
 h.EdgeColor = [1 .3 .5]*0.5;
-set(gca, 'XLim', [0 20],  ...
-    'XTick', [0:2:20], 'FontSize', 18);
-xlabel('Rs/Rc ratio');
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
+set(gca, 'XLim', [0 14],  'YLim', [0 8], ...
+    'XTick', [0:2:20], 'FontSize', 22);
+
 title('physiological optics (M3)');
 xtickangle(0);
-meanPhysioRsToRc = median(theData(:))
-pause
 
 subplot(3,3,2)
 theData = RsToRc(:,2);
 h = histogram(theData,edges);
 h.FaceColor = [0.8 0.8 0.8];
 h.EdgeColor = [0.2 0.2 0.2];
-set(gca, 'XLim', [0 20],  ...
-    'XTick', [0:2:20], 'FontSize', 18);
-xlabel('Rs/Rc ratio');
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
+set(gca, 'XLim', [0 14],  ...
+    'XTick', [0:2:20], 'YLim', [0 8], 'FontSize', 22);
 xtickangle(0)
-title('diffraction limited optics (M3)');
-meanDiffrRsToRc = median(theData(:))
-pause
+title('diffr.-limited optics (M3)');
 
 
 
@@ -251,9 +260,12 @@ theData = integratedSensitivitySurroundToCenter(:,1);
 h = histogram(theData,edges);
 h.FaceColor = [1 .3 .5]*0.8;
 h.EdgeColor = [1 .3 .5]*0.5;
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
 set(gca, 'XLim', [0 5],  ...
-    'XTick', [0:0.5:5], 'YLim', [0 6], 'FontSize', 18);
-xlabel('S/C integrated sensitivity ratio');
+    'XTick', [0:1:5], 'YLim', [0 6], 'YTick', 0:6, 'FontSize', 22);
 title('physiological optics (M3)');
 
 xtickangle(0)
@@ -265,29 +277,32 @@ theData = integratedSensitivitySurroundToCenter(:,2);
 h = histogram(theData,edges);
 h.FaceColor = [0.8 0.8 0.8];
 h.EdgeColor = [0.2 0.2 0.2];
-
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
 set(gca, 'XLim', [0 5],  ...
-    'XTick', [0:0.5:5], 'YLim', [0 6], 'FontSize', 18);
-xlabel('S/C integrated sensitivity ratio');
-title('diffraction limited optics (M3)');
+    'XTick', [0:1:5], 'YLim', [0 6], 'YTick', 0:6, 'FontSize', 22);
+
+title('diffr.-limited optics (M3)');
 xtickangle(0)
-meanIntSensDiffr = median(theData(:))
 
 
 subplot(3,3,9);
 [eccDegs, KaplanIntegratedSensitivitySurroundToCenter ] = CronerKaplanFig11Data();
-
-h = histogram(KaplanIntegratedSensitivitySurroundToCenter,edges);
+theData = KaplanIntegratedSensitivitySurroundToCenter;
+h = histogram(theData,edges);
 h.FaceColor = [1 .8 .5];
 h.EdgeColor = [1 .8 .5]*0.5;
-
-set(gca, 'XLim', [0 5],  ...
-    'XTick', [0:0.5:5], 'FontSize', 18);
+hold on;
+plot(median(theData(:))*[1 1], [0 50], 'k--', 'LineWidth', 1.5);
+box off
+grid on
+set(gca, 'XLim', [0 5],  'YLim', [0 40], 'YTick', 0:10:50, ...
+    'XTick', [0:1:5], 'FontSize', 22);
 xlabel('S/C integrated sensitivity ratio');
 title('Croner&Kaplan ''94');
 xtickangle(0)
-meanIntSensKaplan = median(KaplanIntegratedSensitivitySurroundToCenter(:))
-
 end
 
 function summaryData = doIt(targetLcenterRGCindices, targetMcenterRGCindices, accountForResponseOffset, fitBias, fittedModelResidualDefocus, pupilDiamForPhysiologicalOptics)

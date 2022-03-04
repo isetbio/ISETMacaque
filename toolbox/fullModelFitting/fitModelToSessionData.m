@@ -181,7 +181,6 @@ function [fittedParams, fittedSTFs, rmsErrors, rmsErrorsTrain, ...
 
                     rmsErrors(iSession,iRGCindex, iCone) = fitResults.rmsErrors;
                     fittedSTFs(iSession,iRGCindex, iCone,:) =  fitResults.theFittedSTFs;
-                    fittedCenterSTFs(iSession,iRGCindex, iCone,:) =  fitResults.theFittedCenterSTFs;
                 end
             end
 
@@ -308,7 +307,6 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     
     % Fit model to training session data
-
     % The objective
     w = fitSpatialFrequencyWeights';
     testData = theSTF';
@@ -470,9 +468,6 @@ function fitResults = fitConePoolingDoGModelToSTF(theSTF, theSTFstdErr, ...
 
     % Form return struct
     fitResults.theFittedSTFs = theFittedSTF;
-    fitResults.theFittedCenterSTFs = theFittedCenterSTF;
-    fitResults.theFittedSurroundSTFs = theFittedSurroundSTF;
-
     fitResults.centerConeCharacteristicRadiusDegs = centerConeCharacteristicRadiusDegs;
 
     fitResults.fittedParams = trainedModelFitParams;
@@ -582,6 +577,9 @@ function [theModelSTF, theModelCenterSTF, theModelSurroundSTF, ...
               centerConeIndices, centerConeWeights, centroidPosition, centerConesFractionalNum, ...
               surroundConeIndices, surroundConeWeights] = ISETBioComputedSTF(DoGparams, constants, visualizeCenterWeights)
 
+    theModelCenterSTF = [];
+    theModelSurroundSTF = [];
+    
     Kc = DoGparams(1);
     if (strcmp(constants.centerConesSchema, 'single'))
         RcDegs = nan;
