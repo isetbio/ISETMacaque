@@ -6,40 +6,27 @@
 % 10/23/18  NPC   Wrote it.
 
 %% Define project
-toolboxName = 'ISETMacaque';
+projectName = 'ISETMacaque';
 
 %% Clear out old preferences
-if (ispref(toolboxName))
-    rmpref(toolboxName);
+if (ispref(projectName))
+    rmpref(projectName);
 end
 
 %% Specify project location
-istsBaseDir = tbLocateProject('ISETMacaque');
+projectBaseDir = tbLocateProject('ISETMacaque');
 
-% Figure out where baseDir for other kinds of data files is.
-%
-% Can only do this when we have GetComputerInfo available.
-if (exist('GetComputerInfo','file'))
-    sysInfo = GetComputerInfo();
-    switch (sysInfo.localHostName)
-        case 'eagleray'
-            % DHB's desktop
-            baseDir = fullfile(filesep,'Volumes','Users1','Dropbox (Aguirre-Brainard Lab)');
-            
-        case {'Manta', 'Manta-2'}
-            % Nicolas's iMac
-            baseDir = fullfile(filesep,'Volumes','DropBoxDisk/Dropbox','Dropbox (Aguirre-Brainard Lab)');
-            
-        otherwise
-            % Some unspecified machine, try user specific customization
-            switch(sysInfo.userShortName)
-                % Could put user specific things in, but at the moment generic
-                % is good enough.
-                otherwise
-                    baseDir = ['/Users/' sysInfo.userShortName '/Dropbox (Aguirre-Brainard Lab)'];
-            end
-    end
+%% Specificy generatedData dir location
+computerInfo = GetComputerInfo;
+
+generatedDataDir = projectBaseDir;
+switch (computerInfo.localHostName)
+    case 'Santorini'
+        generatedDataDir = '/Volumes/SSDdisk/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData'; 
 end
+
+setpref(projectName, 'computerName', computerInfo.localHostName);
+setpref(projectName, 'generatedDataDir', generatedDataDir);
 
 
 

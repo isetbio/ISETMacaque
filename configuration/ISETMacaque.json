@@ -6,7 +6,7 @@
 		"localHookTemplate": "configuration/ISETMacaqueLocalHookTemplate.m",
 		"name": "ISETMacaque",
 		"pathPlacement": "append",
-		"subfolder": ["toolbox", "dataResources", "tutorials", "compute", "validations"],
+		"subfolder": ["toolbox", "tutorials", "compute"],
 		"toolboxRoot": "",
 		"type": "git",
 		"update": "",
