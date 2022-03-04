@@ -23,6 +23,8 @@ generatedDataDir = projectBaseDir;
 switch (computerInfo.localHostName)
     case 'Santorini'
         generatedDataDir = '/Volumes/SSDdisk/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData'; 
+    case 'Ithaka'
+        generatedDataDir = '/Volumes/SSDdisk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
 end
 
 setpref(projectName, 'computerName', computerInfo.localHostName);
