@@ -20,14 +20,19 @@ projectBaseDir = tbLocateProject('ISETMacaque');
 computerInfo = GetComputerInfo;
 
 generatedDataDir = projectBaseDir;
-switch (computerInfo.localHostName)
-    case 'Santorini'
-        generatedDataDir = '/Volumes/SSDdisk/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData'; 
-    case 'Ithaka'
-        generatedDataDir = '/Volumes/SSDdisk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
+if (strcmp(computerInfo.localHostName, 'leviathan.psych.upenn.edu'))
+    generatedDataDir = '/media/dropbox_disk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
+    setpref(projectName, 'computerName', 'leviathan');
+else
+    switch (computerInfo.localHostName)
+        case 'Santorini'
+            generatedDataDir = '/Volumes/SSDdisk/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData'; 
+        case 'Ithaka'
+            generatedDataDir = '/Volumes/SSDdisk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
+    end
+    setpref(projectName, 'computerName', computerInfo.localHostName);
 end
 
-setpref(projectName, 'computerName', computerInfo.localHostName);
 setpref(projectName, 'generatedDataDir', generatedDataDir);
 
 
