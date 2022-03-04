@@ -20,7 +20,7 @@ projectBaseDir = tbLocateProject('ISETMacaque');
 computerInfo = GetComputerInfo;
 
 generatedDataDir = projectBaseDir;
-if (strcmp(computerInfo.localHostName, 'leviathan.psych.upenn.edu'))
+if (strcmp(computerInfo.networkName, 'leviathan.psych.upenn.edu'))
     generatedDataDir = '/media/dropbox_disk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
     setpref(projectName, 'computerName', 'leviathan');
 else
