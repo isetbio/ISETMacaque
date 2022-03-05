@@ -1,8 +1,8 @@
-function coneMosaicSTFResponses(monkeyID, stimulusType)
+function cMosaicSTFResponses(monkeyID, stimulusType)
 % Compute cone mosaic responses to stimuli of different SFs
 %
 % Syntax:
-%   compute.coneMosaicSTFResponses(monkeyID, stimulusType)
+%   compute.cMosaicSTFResponses(monkeyID, stimulusType)
 %
 % Description:
 %   Compute cone mosaic responses to stimuli of different SFs
