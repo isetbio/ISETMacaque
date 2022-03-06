@@ -2,7 +2,7 @@ function cMosaic(monkeyID, reCompute)
 % Generate a macaque cone mosaic based on an animal's cone density data
 %
 % Syntax:
-%   compute.cMosaic(monkeyID)
+%   simulator.compute.cMosaic(monkeyID)
 %
 % Description: Generate a macaque cone mosaic based on an animals' cone spacing data
 %              Also shows how to generate a cone mosaic using a custom cone

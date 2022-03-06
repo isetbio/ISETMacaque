@@ -1,4 +1,15 @@
 function measuredVsModelConeDiameters(cm, measuredConeDiameterData)
+% Contrast measured (input) to model cone mosaic diameters
+%
+% Syntax:
+%   simulator.analyze.measuredVsModelConeDiameters(cm, measuredConeDiameterData)
+%
+% Description: Contrast and plot the measured (input) vs. the model cone mosaic diameters
+%
+%
+% History:
+%    09/23/21  NPC  ISETBIO TEAM, 2021
+
 
     medianConeDiameterMicronsModel = zeros(1, numel(measuredConeDiameterData.medianConeDiametersMicrons));    
     horizontalEccSupport = sort(unique(measuredConeDiameterData.horizontalEccMicrons), 'ascend');
