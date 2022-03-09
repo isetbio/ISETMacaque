@@ -1,4 +1,4 @@
-function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, varargin)
+function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, contrast, varargin)
 % Generate an ISETBIo scene encoding a stimulus frame
 %
 % Syntax:
@@ -10,12 +10,12 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
 % History:
 %    09/23/21  NPC  ISETBIO TEAM, 2021
     p = inputParser;
-    p.addRequired('contrast', [], @(x)(isempty(x)||(isscalar(x))));
+    p.addRequired('contrast', @(x)(isempty(x)||(isscalar(x))));
     p.addParameter('AOSLOptics', [], @(x)(isempty(x)||((isstruct(x))&&(strcmp(x.type, 'opticalimage')))));
     p.addParameter('sceneRadianceScalingFactor', [], @(x)(isempty(x)||(isscalar(x))));
     
     p.parse(contrast, varargin{:});
-    theContrast = p.Results.contrast;
+    theContrast = contrast;
     theSceneRadianceScalingFactor = p.Results.sceneRadianceScalingFactor;
     theOI = p.Results.AOSLOptics;
     
