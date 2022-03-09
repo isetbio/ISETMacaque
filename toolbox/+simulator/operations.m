@@ -3,7 +3,7 @@ classdef operations
    enumeration
       generateConeMosaic
       computeConeMosaicSTFresponses
+      visualizeConeMosaicSTFresponses
       fitData
-      visualizeSomething
    end
 end

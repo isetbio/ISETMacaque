@@ -1,4 +1,4 @@
-function coneMosaicSTF(spatialFrequenciesExamined, stimulusParams, theOI, theConeMosaic, coneMosaicResponsesFileName)
+function coneMosaicSTF(stimulusParams, theOI, theConeMosaic, coneMosaicResponsesFileName)
 % Compute cone mosaic responses to stimuli of different SFs
 %
 % Syntax:
@@ -49,7 +49,8 @@ function coneMosaicSTF(spatialFrequenciesExamined, stimulusParams, theOI, theCon
         stimulusParams.frameDurationSeconds);
 
     stimContrast = 1.0;
-    
+    spatialFrequenciesExamined = stimulusParams.STFspatialFrequencySupport;
+
     for iSF = 1:numel(spatialFrequenciesExamined)
         % Generate the list of optical images for each frame of the drifting grating
         fprintf('Generating OIsequence for the %2.1f c/deg drifting grating.\n', spatialFrequenciesExamined(iSF));

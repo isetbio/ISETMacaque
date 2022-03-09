@@ -1,8 +1,17 @@
-function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength)
+function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength, varargin)
 
-    hFig = figure(2000); clf;
-    set(hFig, 'Color', [1 1 1], 'Position', [40 40 550 600]);
-    ax = subplot('Position', [0.1 0.1 0.85 0.85]);
+    p = inputParser;
+    p.addParameter('axesHandle', [], @(x)(isempty(x)||(ishandle(x))));
+    axesHandle = p.Results.axesHandle;
+
+    if (isempty(axesHandle))
+        hFig = figure(2000); clf;
+        set(hFig, 'Color', [1 1 1], 'Position', [40 40 550 600]);
+        ax = subplot('Position', [0.1 0.1 0.85 0.85]);
+    else
+        ax = axesHandle;
+    end
+    
     theConeMosaic.visualize('figureHandle', hFig, ...
         'axesHandle', ax, ...
         'domain', 'microns', ...
