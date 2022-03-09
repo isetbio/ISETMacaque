@@ -32,23 +32,28 @@ function runOperation
     % --------------------------------------
     operation = 'computeConeMosaicSTFresponses';
 
-    % Stimulus params
-    options.stimulusParams = struct(...
-        'type', 'monochromaticAO', ...
-        'orientation', 90);
+    % Monochromatic (AOSLO) stimulus params
+    options.stimulusParams = simulator.params.AOSLOstimulus();
+    
+    % Achromatic (LCD) stimulus params
+    % options.stimulusParams = simulator.params.LCDachromaticStimulus();
+    
+    [~,options.stimulusParams.STFspatialFrequencySupport] = simulator.load.fluorescenceSTFdata(monkeyID);
     
     % Optics params
     options.opticsParams = struct(...
         'type', 'diffractionLimited', ...
         'residualDefocusDiopters', 0.067, ...
-        'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM ...
-        );
+        'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
+        'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
    % Cone mosaic params
     options.cMosaicParams = struct(...
         'coneCouplingLambda', 0, ...
         'apertureShape', 'Gaussian', ...
-        'apertureSigmaToDiameterRatio', 0.204);
+        'apertureSigmaToDiameterRatio', 0.204, ...
+        'integrationTimeSeconds', 1/WilliamsLabData.constants.galvanoMeterScannerRefreshRate, ...
+        'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
 
     % --------------------------------------
@@ -70,14 +75,24 @@ function performOperation(operation, options, monkeyID)
     % Switch
     switch (operation)
         case simulator.operations.generateConeMosaic
-            simulator.compute.cMosaic(monkeyID, options.recompute);
+            simulator.coneMosaic.generate(monkeyID, options.recompute);
 
         case simulator.operations.computeConeMosaicSTFresponses
             
-            simulator.compute.cMosaicSTFResponses(monkeyID, ...
-                options.stimulusParams, ...
-                options.opticsParams, ...
-                options.cMosaicParams);
+            % Modify the default cone mosaic with the examined cone mosaic params
+            theConeMosaic = simulator.coneMosaic.modify(monkeyID, options.cMosaicParams);
+            
+            % Generate optics using the desired optics params
+            [theOI, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
+            
+            % Visualize mosaic and PSF
+            visualizedDomainRangeMicrons = 40;
+            simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
+                WilliamsLabData.constants.imagingPeakWavelengthNM);
+        
+            % Compute cone mosaic responses for the stimuli used to measure
+            % the RGC spatial transfer functions (STFs)
+            simulator.responses.coneMosaicSTF(options.stimulusParams, theOI, theConeMosaic);
     end
 
 end

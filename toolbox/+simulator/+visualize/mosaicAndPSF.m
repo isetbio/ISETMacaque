@@ -1,6 +1,4 @@
-function mosaicAndPSF(theConeMosaic, visualizedDomainRangeMicrons, thePSF, ...
-    psfSupportMinutesX, psfSupportMinutesY, psfSupportWavelength, ...
-    inFocusWavelength, opticsParams)
+function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength)
 
     hFig = figure(2000); clf;
     set(hFig, 'Color', [1 1 1], 'Position', [40 40 550 600]);
@@ -18,17 +16,17 @@ function mosaicAndPSF(theConeMosaic, visualizedDomainRangeMicrons, thePSF, ...
         'noXlabel', ~true, ...
         'plotTitle', ' ', ...
         'fontSize', 18);
-    psfSupportMicronsX = psfSupportMinutesX/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-    psfSupportMicronsY = psfSupportMinutesY/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
+    psfSupportMicronsX = thePSFdata.supportMinutesX/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
+    psfSupportMicronsY = thePSFdata.supportMinutesY/60*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
 
-    if (1==1)
+    
     % Add contour plot of the PSF
     hold(ax, 'on');
     cmap = brewermap(1024,'greys');
     alpha = 0.5;
     contourLineColor = [0.0 0.0 0.0];
-    [~,idx] = min(abs(psfSupportWavelength-inFocusWavelength));
-    visualizedPSF = squeeze(thePSF(:,:,idx));
+    [~,idx] = min(abs(thePSFdata.supportWavelengthNM-inFocusWavelength));
+    visualizedPSF = squeeze(thePSFdata.psf(:,:,idx));
     visualizedPSF = visualizedPSF / max(visualizedPSF(:));
     cMosaic.semiTransparentContourPlot(ax, psfSupportMicronsX, psfSupportMicronsY, visualizedPSF, [0.03:0.15:0.95], cmap, alpha, contourLineColor);
 
@@ -58,7 +56,8 @@ function mosaicAndPSF(theConeMosaic, visualizedDomainRangeMicrons, thePSF, ...
     hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
     hL.Color = [1,1,0.8,0.7];
     plot(ax,xx, yy, 'k-', 'LineWidth', 2);
-    end
+    drawnow;
+
     
     
 %     if (PolansSubject == 0)
