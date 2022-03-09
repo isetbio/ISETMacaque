@@ -100,7 +100,7 @@ function exportResidualDefocusOTF(theOI, psfSupportWavelength, residualDefocusDi
     sfSupportCyclesPerDeg = sfSupportCyclesPerMM/1e3*WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
    
     % Export
-    save(simulator.utils.residualDefocusOTFFilename(residualDefocusDiopters), ...
+    save(simulator.filename.residualDefocusOTF(residualDefocusDiopters), ...
         'sfSupportCyclesPerDeg', 'residualDefocusOTFmag');
 
     fprintf('Residual defocus OTF saved to %s\n', simulator.utils.residualDefocusOTFFilename(residualDefocusDiopters));

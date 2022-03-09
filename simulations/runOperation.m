@@ -33,7 +33,7 @@ function runOperation
     operation = 'computeConeMosaicSTFresponses';
 
     % Monochromatic (AOSLO) stimulus params
-    options.stimulusParams = simulator.params.AOSLOstimulus();
+    options.stimulusParams = simulator.params.AOSLOStimulus();
     
     % Achromatic (LCD) stimulus params
     % options.stimulusParams = simulator.params.LCDachromaticStimulus();
@@ -42,17 +42,22 @@ function runOperation
     
     % Optics params
     options.opticsParams = struct(...
-        'type', 'diffractionLimited', ...
+        'type', simulator.opticsTypes.diffractionLimited, ...
         'residualDefocusDiopters', 0.067, ...
         'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
+%     options.opticsParams = struct(...
+%         'type', simulator.opticsTypes.M838, ...
+%         'pupilSizeMM', 2.5, ...
+%         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
    % Cone mosaic params
     options.cMosaicParams = struct(...
         'coneCouplingLambda', 0, ...
         'apertureShape', 'Gaussian', ...
         'apertureSigmaToDiameterRatio', 0.204, ...
-        'integrationTimeSeconds', 1/WilliamsLabData.constants.galvanoMeterScannerRefreshRate, ...
+        'integrationTimeSeconds', options.stimulusParams.frameDurationSeconds, ...
         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
 
@@ -79,6 +84,10 @@ function performOperation(operation, options, monkeyID)
 
         case simulator.operations.computeConeMosaicSTFresponses
             
+            % Synthesize responses filename
+            coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options)
+            pause
+
             % Modify the default cone mosaic with the examined cone mosaic params
             theConeMosaic = simulator.coneMosaic.modify(monkeyID, options.cMosaicParams);
             
@@ -92,7 +101,8 @@ function performOperation(operation, options, monkeyID)
         
             % Compute cone mosaic responses for the stimuli used to measure
             % the RGC spatial transfer functions (STFs)
-            simulator.responses.coneMosaicSTF(options.stimulusParams, theOI, theConeMosaic);
+            simulator.responses.coneMosaicSTF(options.stimulusParams, ...
+                theOI, theConeMosaic, coneMosaicResponsesFileName);
     end
 
 end

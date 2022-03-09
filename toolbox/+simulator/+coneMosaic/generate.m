@@ -47,12 +47,12 @@ function generate(monkeyID, reCompute)
         );
         
         % Save the generated mosaic
-        mosaicFileName = simulator.utils.cMosaicFilename(monkeyID);
+        mosaicFileName = simulator.filename.coneMosaic(monkeyID);
         save(mosaicFileName, 'cm');
     
     else
         % Load the generated mosaic
-        mosaicFileName = simulator.utils.cMosaicFilename(monkeyID);
+        mosaicFileName = simulator.filename.coneMosaic(monkeyID);
         load(mosaicFileName, 'cm');
     end
     

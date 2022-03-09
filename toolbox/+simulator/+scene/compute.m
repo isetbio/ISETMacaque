@@ -1,15 +1,14 @@
+function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, varargin)
 % Generate an ISETBIo scene encoding a stimulus frame
 %
 % Syntax:
-%   theOI = simulator.scene.compute(visualStimulus, varargin)
+%   [theScene, theSceneRadianceScalingFactor] = simulator.scene.compute(visualStimulus, varargin)
 %
 % Description: Generate optics
 %
 %
 % History:
 %    09/23/21  NPC  ISETBIO TEAM, 2021
-function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, varargin)
-
     p = inputParser;
     p.addParameter('spatialFrequency', [], @(x)(isempty(x)||(isscalar(x))));
     p.addParameter('spatialPhaseDegs', [], @(x)(isempty(x)||(isscalar(x))));
@@ -28,13 +27,18 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
         
         case simulator.stimTypes.monochromaticAO
             if (isempty(theContrast))
+
+                if (isempty(theOI))
+                    error('When contrast is set to [], we need a valid OI to compute the scene radiance scaling factor');
+                end
                 % Background Scene
                 % Compute the scaling factor using a 3 deg, uniform field stimulus to compute the energy over a
                 % retinal region of 2.54x1.92 (which we know from measurements that it has a power of 2.5 microWatts)
-                theBackgroundScene = simulator.scene.monochromaticGratingScene(visualStimulus);
+
+                theUncalibratedBackgroundScene = simulator.scene.monochromaticGratingScene(visualStimulus);
 
                 % Compute the OI of the background scene
-                theOI = oiCompute(theBackgroundScene, theOI);
+                theOI = oiCompute(theUncalibratedBackgroundScene, theOI);
 
                 % Compute scaling factor using the OI for the uniform field and the calibrationROI
                 visualStimulus.sceneRadianceScalingFactor = simulator.scene.radianceScalingFactor(...
@@ -51,7 +55,9 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
 
                 % The background stimulus frame, now with the size used in the recordings
                 visualStimulus = simulator.params.AOSLOStimulus(...
-                    'sceneRadianceScalingFactor', visualStimulus.sceneRadianceScalingFactor);
+                    'sceneRadianceScalingFactor', visualStimulus.sceneRadianceScalingFactor, ...
+                    'contrast', 0);
+
             else
                 visualStimulus = simulator.params.AOSLOStimulus(...
                     'sceneRadianceScalingFactor', theSceneRadianceScalingFactor, ...
@@ -71,6 +77,12 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
             theDisplay = simulator.scene.presentationDisplay(visualStimulus);
             
             % Generate the scene
+            visualStimulus = simulator.params.LCDAchromaticStimulus(...
+                    'spatialFrequency', theSpatialFrequency, ...
+                    'spatialPhaseDegs', theSpatialPhaseDegs, ...
+                    'contrast', theContrast ...
+                    );
+
             theScene = simulator.scene.achromaticGratingSceneOnLCDdisplay(...
                 visualStimulus, theDisplay);
             theSceneRadianceScalingFactor = [];
