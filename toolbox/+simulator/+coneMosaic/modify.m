@@ -1,7 +1,7 @@
 function theConeMosaic = modify(monkeyID, coneMosaicParams)
 
      % Load cone mosaic model
-    load(simulator.utils.cMosaicFilename(monkeyID), 'cm');
+    load(simulator.filename.coneMosaic(monkeyID), 'cm');
     theConeMosaic = cm;
     clear 'cm';
 

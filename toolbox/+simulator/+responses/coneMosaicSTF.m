@@ -1,4 +1,4 @@
-function coneMosaicSTF(stimulusParams, theOI, theConeMosaic, coneMosaicResponsesFileName)
+function coneMosaicSTF(spatialFrequenciesExamined, stimulusParams, theOI, theConeMosaic, coneMosaicResponsesFileName)
 % Compute cone mosaic responses to stimuli of different SFs
 %
 % Syntax:
@@ -40,11 +40,10 @@ function coneMosaicSTF(stimulusParams, theOI, theConeMosaic, coneMosaicResponses
     fprintf('Mean scene luminance is: %f\n', sceneGet(theBackgroundScene, 'mean luminance'));
    
     
-    % Load spatial frequencies examined
-    [~, spatialFrequenciesExamined] = simulator.load.fluorescenceSTFdata(monkeyID);
-    
     % Compute spatial phase for each of the frames of the drifting grating
-    spatialPhasesDegs = simulator.scene.spatialPhasesForDriftingGratingFrameScenes(stimulusParams.frameDurationSeconds);
+    spatialPhasesDegs = simulator.scene.spatialPhasesForDriftingGratingFrameScenes(...
+        stimulusParams.stimulationDurationCycles, ...
+        stimulusParams.frameDurationSeconds)
 
     for iSF = 1:numel(spatialFrequenciesExamined)
         % Generate the list of optical images for each frame of the drifting grating

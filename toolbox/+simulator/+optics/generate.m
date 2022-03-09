@@ -103,5 +103,5 @@ function exportResidualDefocusOTF(theOI, psfSupportWavelength, residualDefocusDi
     save(simulator.filename.residualDefocusOTF(residualDefocusDiopters), ...
         'sfSupportCyclesPerDeg', 'residualDefocusOTFmag');
 
-    fprintf('Residual defocus OTF saved to %s\n', simulator.utils.residualDefocusOTFFilename(residualDefocusDiopters));
+    fprintf('Residual defocus OTF saved to %s\n', simulator.filename.residualDefocusOTF(residualDefocusDiopters));
 end

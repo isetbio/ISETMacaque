@@ -85,15 +85,17 @@ function performOperation(operation, options, monkeyID)
         case simulator.operations.computeConeMosaicSTFresponses
             
             % Synthesize responses filename
-            coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options)
-            pause
+            coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
+
+            % Load spatial frequencies examined
+            [~, spatialFrequenciesExamined] = simulator.load.fluorescenceSTFdata(monkeyID);
 
             % Modify the default cone mosaic with the examined cone mosaic params
             theConeMosaic = simulator.coneMosaic.modify(monkeyID, options.cMosaicParams);
             
             % Generate optics using the desired optics params
             [theOI, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
-            
+    
             % Visualize mosaic and PSF
             visualizedDomainRangeMicrons = 40;
             simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
@@ -101,7 +103,8 @@ function performOperation(operation, options, monkeyID)
         
             % Compute cone mosaic responses for the stimuli used to measure
             % the RGC spatial transfer functions (STFs)
-            simulator.responses.coneMosaicSTF(options.stimulusParams, ...
+            simulator.responses.coneMosaicSTF(spatialFrequenciesExamined, ...
+                options.stimulusParams, ...
                 theOI, theConeMosaic, coneMosaicResponsesFileName);
     end
 
