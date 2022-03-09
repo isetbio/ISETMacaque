@@ -10,15 +10,11 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
 % History:
 %    09/23/21  NPC  ISETBIO TEAM, 2021
     p = inputParser;
-    p.addParameter('spatialFrequency', [], @(x)(isempty(x)||(isscalar(x))));
-    p.addParameter('spatialPhaseDegs', [], @(x)(isempty(x)||(isscalar(x))));
-    p.addParameter('contrast', [], @(x)(isempty(x)||(isscalar(x))));
+    p.addRequired('contrast', [], @(x)(isempty(x)||(isscalar(x))));
     p.addParameter('AOSLOptics', [], @(x)(isempty(x)||((isstruct(x))&&(strcmp(x.type, 'opticalimage')))));
     p.addParameter('sceneRadianceScalingFactor', [], @(x)(isempty(x)||(isscalar(x))));
     
-    p.parse(varargin{:});
-    theSpatialFrequency = p.Results.spatialFrequency;
-    theSpatialPhaseDegs = p.Results.spatialPhaseDegs;
+    p.parse(contrast, varargin{:});
     theContrast = p.Results.contrast;
     theSceneRadianceScalingFactor = p.Results.sceneRadianceScalingFactor;
     theOI = p.Results.AOSLOptics;
@@ -34,7 +30,8 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
                 % Background Scene
                 % Compute the scaling factor using a 3 deg, uniform field stimulus to compute the energy over a
                 % retinal region of 2.54x1.92 (which we know from measurements that it has a power of 2.5 microWatts)
-
+                visualStimulus.fovDegs = 3;
+                visualStimulus.contrast = 0;
                 theUncalibratedBackgroundScene = simulator.scene.monochromaticGratingScene(visualStimulus);
 
                 % Compute the OI of the background scene
@@ -54,19 +51,14 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
                     WilliamsLabData.constants.calibrationROI.energyMicroWatts, computedROIenergyMicroWatts); 
 
                 % The background stimulus frame, now with the size used in the recordings
-                visualStimulus = simulator.params.AOSLOStimulus(...
-                    'sceneRadianceScalingFactor', visualStimulus.sceneRadianceScalingFactor, ...
-                    'spatialFrequency', 0, ...
-                    'spatialPhaseDegs', 0, ...
-                    'contrast', 0);
-
+                visualStimulus.fovDegs = WilliamsLabData.constants.sfTuningStimulusFOVdegs;
             else
-                visualStimulus = simulator.params.AOSLOStimulus(...
-                    'sceneRadianceScalingFactor', theSceneRadianceScalingFactor, ...
-                    'spatialFrequency', theSpatialFrequency, ...
-                    'spatialPhaseDegs', theSpatialPhaseDegs, ...
-                    'contrast', theContrast ...
-                    );
+                % Size used in the recordings
+                visualStimulus.fovDegs = WilliamsLabData.constants.sfTuningStimulusFOVdegs;
+                % Same radiance scaling factor
+                visualStimulus.sceneRadianceScalingFactor = theSceneRadianceScalingFactor;
+                % Contrast
+                visualStimulus.contrast = theContrast;
             end
             
             % Generate the scene
@@ -79,14 +71,9 @@ function [theScene, theSceneRadianceScalingFactor] = compute(visualStimulus, var
             theDisplay = simulator.scene.presentationDisplay(visualStimulus);
             
             % Generate the scene
-            visualStimulus = simulator.params.LCDAchromaticStimulus(...
-                    'spatialFrequency', theSpatialFrequency, ...
-                    'spatialPhaseDegs', theSpatialPhaseDegs, ...
-                    'contrast', theContrast ...
-                    );
-
-            theScene = simulator.scene.achromaticGratingSceneOnLCDdisplay(...
-                visualStimulus, theDisplay);
+            visualStimulus.fovDegs = WilliamsLabData.constants.sfTuningStimulusFOVdegs;
+            visualStimulus.contrast = theContrast;
+            theScene = simulator.scene.achromaticGratingSceneOnLCDdisplay(visualStimulus, theDisplay);
             theSceneRadianceScalingFactor = [];
             
         otherwise

@@ -19,18 +19,14 @@ function s = AOSLOStimulus(varargin)
 %    'contrast'           : stimulus contrast
 
     p = inputParser;
-    p.addParameter('spatialFrequency', [], @(x)(isempty(x)||(isscalar(x))));
-    p.addParameter('spatialPhaseDegs', [], @(x)(isempty(x)||(isscalar(x))));
     p.addParameter('contrast', [], @(x)(isempty(x)||(isscalar(x))));
     p.addParameter('sceneRadianceScalingFactor', 1, @(x)(isempty(x)||(isscalar(x))));
-    p.parse(varargin{:});
-    theSpatialFrequency = p.Results.spatialFrequency;
-    theSpatialPhaseDegs = p.Results.spatialPhaseDegs;
+    p.parse(varargin{:})
     theContrast = p.Results.contrast;
     theSceneRadianceScalingFactor = p.Results.sceneRadianceScalingFactor;
     
     s = struct(...
-            'type', 'monochromaticAO', ...
+            'type', simulator.stimTypes.monochromaticAO, ...
             'stimulationDurationCycles', 4, ...
             'orientation', 90, ...
             'fovDegs', [], ...                % variable
@@ -56,7 +52,5 @@ function s = AOSLOStimulus(varargin)
         % Stimulus frame params for the test stimulus
         s.fovDegs = WilliamsLabData.constants.sfTuningStimulusFOVdegs;
         s.contrast = theContrast;
-        s.spatialFrequencyCPD = theSpatialFrequency;
-        s.spatialPhaseDegs = theSpatialPhaseDegs;
     end
 end

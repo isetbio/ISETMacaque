@@ -19,21 +19,17 @@ function s = LCDAchromaticStimulus(varargin)
 %    'contrast'           : stimulus contrast
 
    p = inputParser;
-   p.addParameter('spatialFrequency', [], @(x)(isempty(x)||(isscalar(x))));
-   p.addParameter('spatialPhaseDegs', [], @(x)(isempty(x)||(isscalar(x))));
    p.addParameter('contrast', [], @(x)(isempty(x)||(isscalar(x))));
    p.parse(varargin{:});
-   theSpatialFrequency = p.Results.spatialFrequency;
-   theSpatialPhaseDegs = p.Results.spatialPhaseDegs;
    theContrast = p.Results.contrast;
    
    wavelengthSupport = WilliamsLabData.constants.imagingPeakWavelengthNM + (-500:5:500);
    % Only doing L/M cone simulation, so skip short wavelengths
-   idx = find((wavelengthSupport >= 465)&&(wavelengthSupport<=750));
+   idx = find((wavelengthSupport >= 465)&(wavelengthSupport<=750));
    wavelengthSupport = wavelengthSupport(idx);
             
    s = struct(...
-       'type', 'LCDdisplayAchromatic', ...
+       'type', simulator.stimTypes.achromaticLCD, ...
        'stimulationDurationCycles', 4, ...
        'orientation', 90, ...
        'fovDegs', WilliamsLabData.constants.sfTuningStimulusFOVdegs, ...
@@ -55,9 +51,7 @@ function s = LCDAchromaticStimulus(varargin)
    else
        % Stimulus frame params for the test stimulus
        s.fovDegs = WilliamsLabData.constants.sfTuningStimulusFOVdegs;
-       s.spatialFrequencyCPD = theSpatialFrequency;
-       s.spatialPhaseDegs = theSpatialPhaseDegs;
-       s.contrast = 1;
+       s.contrast = theContrast;
    end
    
 end

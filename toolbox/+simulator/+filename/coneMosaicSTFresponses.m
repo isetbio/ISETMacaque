@@ -16,6 +16,8 @@ function filename = coneMosaicSTFresponses(monkeyID, options)
     responseFilename = sprintf('%s', monkeyID);
 
     % Add stimulus descriptor
+    options.stimulusParams
+    options
     switch (options.stimulusParams.type)
         
         case simulator.stimTypes.monochromaticAO
@@ -23,9 +25,11 @@ function filename = coneMosaicSTFresponses(monkeyID, options)
 
         case simulator.stimTypes.achromaticLCD
             stimDescriptor = sprintf('_CRTLMS_%2.2f_%2.2f_%2.2f', ...
-                visualStimulus.lmsConeContrasts(1), visualStimulus.lmsConeContrasts(2), visualStimulus.lmsConeContrasts(3));
+                options.stimulusParams.lmsConeContrasts(1), ...
+                options.stimulusParams.lmsConeContrasts(2), ...
+                options.stimulusParams.lmsConeContrasts(3));
         otherwise
-            error('Unknown stimulus type: ''%s''.', visualStimulus.type);
+            error('Unknown stimulus type: ''%s''.', options.stimulusParams.type);
     end
     responseFilename = strcat(responseFilename, stimDescriptor);
 

@@ -1,6 +1,5 @@
 function theScene = achromaticGratingSceneOnLCDdisplay(stimParams, theDisplay)
 
-    
     meanLuminance = stimParams.backgroundLuminanceCdM2;
     meanChromaticity = stimParams.backgroundChromaticity;
 
@@ -29,8 +28,7 @@ function theScene = achromaticGratingSceneOnLCDdisplay(stimParams, theDisplay)
     % Compute spatial modulation pattern
     spatialModulationPattern = 0.5*(1 + stimParams.contrast * sin(2*pi*stimParams.spatialFrequencyCPD * quantizedX + stimParams.spatialPhaseDegs/180*pi));
 
-    % Create an empty scene.  Put it far enough away so it
-    % is basically in focus for an emmetropic eye accommodated to infinity.
+    % Create an empty scene.
     theScene = sceneCreate('empty');
     theScene = sceneSet(theScene,'wavelength',stimParams.wavelengthSupport);
     theScene = sceneSet(theScene,'distance', stimParams.viewingDistanceMeters);

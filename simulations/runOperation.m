@@ -32,27 +32,39 @@ function runOperation
     % --------------------------------------
     operation = 'computeConeMosaicSTFresponses';
 
-    % Monochromatic (AOSLO) stimulus params
-    options.stimulusParams = simulator.params.AOSLOStimulus();
     
-    % Achromatic (LCD) stimulus params
-    % options.stimulusParams = simulator.params.LCDachromaticStimulus();
     
+    simulateCronerKaplan = true;
+    simulateWilliams = ~simulateCronerKaplan;
+    
+    if (simulateWilliams) 
+        % Monochromatic (AOSLO) stimulus params
+        options.stimulusParams = simulator.params.AOSLOStimulus();
+    
+        % Diffraction-limited optics
+        options.opticsParams = struct(...
+            'type', simulator.opticsTypes.diffractionLimited, ...
+            'residualDefocusDiopters', 0.067, ...
+            'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
+            'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
+    else
+        
+        % Achromatic (LCD) stimulus params
+        options.stimulusParams = simulator.params.LCDAchromaticStimulus();
+    
+        % Physiological optics
+        options.opticsParams = struct(...
+            'type', simulator.opticsTypes.M838, ...
+            'pupilSizeMM', 2.5, ...
+            'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+    end
+    
+    % SF support
     [~,options.stimulusParams.STFspatialFrequencySupport] = simulator.load.fluorescenceSTFdata(monkeyID);
+   
     
-    % Optics params
-    options.opticsParams = struct(...
-        'type', simulator.opticsTypes.diffractionLimited, ...
-        'residualDefocusDiopters', 0.067, ...
-        'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
-        'wavelengthSupport', options.stimulusParams.wavelengthSupport);
-
-%     options.opticsParams = struct(...
-%         'type', simulator.opticsTypes.M838, ...
-%         'pupilSizeMM', 2.5, ...
-%         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
-
-   % Cone mosaic params
+    % Cone mosaic params
     options.cMosaicParams = struct(...
         'coneCouplingLambda', 0, ...
         'apertureShape', 'Gaussian', ...
