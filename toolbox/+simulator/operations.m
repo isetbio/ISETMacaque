@@ -4,6 +4,6 @@ classdef operations
       generateConeMosaic
       computeConeMosaicSTFresponses
       visualizeConeMosaicSTFresponses
-      fitData
+      fitMeasuredSTFresponsesForSpecificModelScenario
    end
 end

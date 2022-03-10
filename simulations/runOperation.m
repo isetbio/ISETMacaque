@@ -1,72 +1,46 @@
-function runOperation
-% Main gateway to all operations
-%
-% Syntax:
-%   runOperation()
-%
-% Description:
-%   Run some operation (e.g., generate cone mosaic responses, fit etc)
-%
-% Inputs:
-%    none
-%
-% Outputs:
-%    none
-%
-% Optional key/value pairs:
-%    None
-%         
+function runOperation(operation, operationOptions, monkeyID)
 
-    % Monkey to analyze
-    monkeyID = 'M838';
-
-    % Choose operation
-    % --------------------------------------
-    % 1. Generate cone mosaic
-    % --------------------------------------
-    %operation = simulator.operations.generateConeMosaic;
-    %options.recompute = ~true;
-    
-    % --------------------------------------
-    % 2. Compute cone mosaic responses
-    % --------------------------------------
-    operation = simulator.operations.computeConeMosaicSTFresponses;
-
-    % --------------------------------------
-    % 3. Visualize cone mosaic responses
-    % --------------------------------------
-    operation = simulator.operations.visualizeConeMosaicSTFresponses;
+    % Assert that we have a valid operation
+    assert(ismember(operation, enumeration('simulator.operations')), ...
+        sprintf('''%s'' is not a valid operation.\nValid options are:\n %s', ...
+        operation, sprintf('\t%s\n',(enumeration('simulator.operations')))));
 
     
-    simulateCronerKaplan = true;
-    simulateWilliams = ~simulateCronerKaplan;
+    % Assert that we have a valid model scenario
+    assert(ismember(operationOptions.modelScenario, enumeration('simulator.modelScenarios')), ...
+        sprintf('''%s'' is not a valid model scenario.\nValid options are:\n %s', ...
+        operationOptions.modelScenario, sprintf('\t%s\n',(enumeration('simulator.modelScenarios')))));
     
-    if (simulateWilliams) 
-        % Monochromatic (AOSLO) stimulus params
-        options.stimulusParams = simulator.params.AOSLOStimulus();
-    
-        % Diffraction-limited optics
-        options.opticsParams = struct(...
-            'type', simulator.opticsTypes.diffractionLimited, ...
-            'residualDefocusDiopters', 0.067, ...
-            'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
-            'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
-    else
+    switch (operationOptions.modelScenario)
+        case simulator.modelScenarios.diffrLimitedOptics_0067DResidualDefocus_MonochromaticGrating
+            % Monochromatic (AOSLO) stimulus params
+            options.stimulusParams = simulator.params.AOSLOStimulus();
         
-        % Achromatic (LCD) stimulus params
-        options.stimulusParams = simulator.params.LCDAchromaticStimulus();
+            % Diffraction-limited optics
+            options.opticsParams = struct(...
+                'type', simulator.opticsTypes.diffractionLimited, ...
+                'residualDefocusDiopters', 0.067, ...
+                'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
+                'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
+        case simulator.modelScenarios.M838Optics_AchromaticGrating
+            % Achromatic (LCD) stimulus params
+            options.stimulusParams = simulator.params.LCDAchromaticStimulus();
     
-        % Physiological optics
-        options.opticsParams = struct(...
-            'type', simulator.opticsTypes.M838, ...
-            'pupilSizeMM', 2.5, ...
-            'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+            % M838 optics
+            options.opticsParams = struct(...
+                'type', simulator.opticsTypes.M838, ...
+                'pupilSizeMM', operationOptioncs.M838PupilSizeMM, ...
+                'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
+        otherwise
+            error('Unknown model scenario: ''%s''.', modelScenario)
     end
+
     
-    % SF support
+    % Set spatial frequency support for the STF measurements
     [~,options.stimulusParams.STFspatialFrequencySupport] = simulator.load.fluorescenceSTFdata(monkeyID);
-   
     
     % Cone mosaic params
     options.cMosaicParams = struct(...
@@ -77,24 +51,12 @@ function runOperation
         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
 
-    
-
-
-    % Go !
-    performOperation(operation, options, monkeyID);
-end
-
-function performOperation(operation, options, monkeyID)
-
-    % Assert that we have a valid operation
-    assert(ismember(operation, enumeration('simulator.operations')), ...
-        sprintf('''%s'' is not a valid operation name.\nValid options are:\n %s', ...
-        operation, sprintf('\t%s\n',(enumeration('simulator.operations')))));
-
     % Switch
     switch (operation)
-        case simulator.operations.generateConeMosaic
-            simulator.coneMosaic.generate(monkeyID, options.recompute);
+        
+        case simulator.operations.fitMeasuredSTFresponsesForSpecificModelScenario
+            disp('here')
+            pause
 
         case simulator.operations.visualizeConeMosaicSTFresponses
             % Synthesize responses filename
@@ -118,7 +80,6 @@ function performOperation(operation, options, monkeyID)
                 'axesHandle', d.axPSF);
 
         case simulator.operations.computeConeMosaicSTFresponses
-            
             % Synthesize responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
@@ -137,6 +98,10 @@ function performOperation(operation, options, monkeyID)
             % the RGC spatial transfer functions (STFs)
             simulator.responses.coneMosaicSTF(options.stimulusParams, ...
                 theOI, theConeMosaic, coneMosaicResponsesFileName);
+
+       case simulator.operations.generateConeMosaic
+            simulator.coneMosaic.generate(monkeyID, operationOptions.recompute);
+
     end
 
 end
