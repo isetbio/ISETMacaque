@@ -102,15 +102,20 @@ function performOperation(operation, options, monkeyID)
 
             % Visualize responses
             visualizedDomainRangeMicrons = 60;
-            [d, hFig] = simulator.visualize.coneMosaicSTFresponses(coneMosaicResponsesFileName, ...
+            d = simulator.visualize.coneMosaicSTFresponses(coneMosaicResponsesFileName, ...
                 'visualizedDomainRangeMicrons', visualizedDomainRangeMicrons, ...
                 'framesToVisualize', [1]);
 
+            % Co-visualize the cone mosaic with the PSF
             % Generate optics using the desired optics params
             [~, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
+            % Import the cone mosaic
+            load(coneMosaicResponsesFileName, 'theConeMosaic');
+
             simulator.visualize.mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, ...
                 WilliamsLabData.constants.imagingPeakWavelengthNM, ...
-                'axesHandle', d(15).v);
+                'figureHandle', d.hFig, ...
+                'axesHandle', d.axPSF);
 
         case simulator.operations.computeConeMosaicSTFresponses
             

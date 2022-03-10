@@ -1,8 +1,12 @@
-function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength, varargin)
+function hFig = mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength, varargin)
 
     p = inputParser;
-    p.addParameter('axesHandle', [], @(x)(isempty(x)||(ishandle(x))));
+    p.addParameter('figureHandle', [], @(x)(isempty(x)||isa(x, 'handle')));
+    p.addParameter('axesHandle', [], @(x)(isempty(x)||isa(x, 'handle')));
+    p.parse(varargin{:});
+    
     axesHandle = p.Results.axesHandle;
+    figureHandle = p.Results.figureHandle;
 
     if (isempty(axesHandle))
         hFig = figure(2000); clf;
@@ -10,6 +14,7 @@ function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, 
         ax = subplot('Position', [0.1 0.1 0.85 0.85]);
     else
         ax = axesHandle;
+        hFig = figureHandle;
     end
     
     theConeMosaic.visualize('figureHandle', hFig, ...
@@ -18,7 +23,7 @@ function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, 
         'visualizedConeAperture', 'lightCollectingArea4sigma', ...
         'visualizedConeApertureThetaSamples', 30, ...
         'domainVisualizationLimits', visualizedDomainRangeMicrons*0.5*[-1 1 -1 1], ...
-        'domainVisualizationTicks', struct('x', -20:20:20, 'y', -20:20:20), ...
+        'domainVisualizationTicks', struct('x', -50:10:50, 'y', -50:10:50), ...
         'crossHairsOnMosaicCenter', true, ...
         'labelCones', true, ...
         'noYLabel', ~true, ...
@@ -47,7 +52,6 @@ function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, 
     
     xx = psfSupportMicronsX(idx);
     yy = -visualizedDomainRangeMicrons*0.5*0.95 + visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
-    %shadedAreaPlot(ax,xx,yy, -visualizedDomainRangeMicrons*0.5*0.95, [0.8 0.8 0.8], [0.1 0.1 0.9], 0.5, 1.5);
 
     hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
     hL.Color = [1,1,0.8,0.7];
@@ -59,7 +63,6 @@ function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, 
     visualizedPSFslice = visualizedPSFslice(idx);
     xx = visualizedDomainRangeMicrons*0.5*0.95 - visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
     yy = psfSupportMicronsY(idx);
-    %shadedAreaPlot(ax,xx,yy, -visualizedDomainRangeMicrons*0.5*0.95, [0.8 0.8 0.8], [0.1 0.1 0.9], 0.5, 1.5);
 
     
     hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
@@ -67,13 +70,4 @@ function mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, 
     plot(ax,xx, yy, 'k-', 'LineWidth', 2);
     drawnow;
 
-    
-    
-%     if (PolansSubject == 0)
-%         title(['PSF focused at \lambda = ' sprintf('%2.0fnm', inFocusWavelength)], 'FontWeight', 'normal');
-%     else
-%         title(['PSF focused at \lambda = ' sprintf('%2.0fnm (Polans subj. %d)', inFocusWavelength, PolansSubject)], 'FontWeight', 'normal');
-%     end
-%     drawnow;
-%     NicePlot.exportFigToPDF(sprintf('PolansSubject%dPSFonMosaic.pdf', PolansSubject), hFig, 300);
 end
