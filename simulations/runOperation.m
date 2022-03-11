@@ -13,16 +13,17 @@ function runOperation(operation, operationOptions, monkeyID)
     
 
     switch (operationOptions.modelScenario)
-        case simulator.modelScenarios.diffrLimitedOptics_0067DResidualDefocus_MonochromaticGrating
+        case simulator.modelScenarios.diffrLimitedOptics_residualDefocus_MonochromaticGrating
             % Monochromatic (AOSLO) stimulus params
             options.stimulusParams = simulator.params.AOSLOStimulus();
         
             % Diffraction-limited optics
             options.opticsParams = struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
-                'residualDefocusDiopters', 0.067, ...
+                'residualDefocusDiopters', operationOptions.residualDefocusDiopters, ...
                 'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
 
         case simulator.modelScenarios.M838Optics_AchromaticGrating
             % Achromatic (LCD) stimulus params
@@ -54,8 +55,8 @@ function runOperation(operation, operationOptions, monkeyID)
     % Switch
     switch (operation)
         
-        case simulator.operations.fitMeasuredSTFresponsesForSpecificModelScenario
-            disp('here')
+        case simulator.operations.fitFluorescenceSTFresponses
+            operationOptions.STFdataToFit
             pause
 
         case simulator.operations.visualizeConeMosaicSTFresponses
@@ -100,7 +101,7 @@ function runOperation(operation, operationOptions, monkeyID)
                 theOI, theConeMosaic, coneMosaicResponsesFileName);
 
        case simulator.operations.generateConeMosaic
-            simulator.coneMosaic.generate(monkeyID, operationOptions.recompute);
+            simulator.coneMosaic.generate(monkeyID, operationOptions.recomputeMosaic);
 
     end
 
