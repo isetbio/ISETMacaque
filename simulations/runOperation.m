@@ -49,15 +49,15 @@ function runOperation(operation, operationOptions, monkeyID)
             % M838 optics
             options.opticsParams = struct(...
                 'type', simulator.opticsTypes.M838, ...
-                'pupilSizeMM', operationOptions.M838PupilSizeMM, ...
+                'pupilSizeMM', operationOptions.pupilSizeMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
     end
 
     
     % Set spatial frequency support for the STF measurements
-    [~,options.stimulusParams.STFspatialFrequencySupport] = simulator.load.fluorescenceSTFdata(monkeyID);
-    
+    dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
+    options.stimulusParams.STFspatialFrequencySupport = dStruct.spatialFrequencySupport;
     
     % Set the cone mosaic params
     options.cMosaicParams = struct(...

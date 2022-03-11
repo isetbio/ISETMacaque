@@ -5,7 +5,7 @@ function visHandles = coneMosaicSTFresponses(coneMosaicResponsesFileName, vararg
 %   simulator.visualize.coneMosaicSTFresponses(coneMosaicResponsesFileName, varargin)
 %
 % Description:
-%   Visualize closecone mosaic responses to stimuli of different SFs
+%   Visualize cone mosaic responses to stimuli of different SFs
 %
 % Inputs:
 %    coneMosaicResponsesFileName       Fullpath to the file containing the computed coneMosaicResponses
@@ -14,8 +14,8 @@ function visHandles = coneMosaicSTFresponses(coneMosaicResponsesFileName, vararg
 %    none
 %
 % Optional key/value pairs:
-%    None
-%       
+%    'framesToVisualize'              - which frame of the sequence to visualize
+%    'visualizedDomainRangeMicrons'   - visualization domain in microns  
 
     p = inputParser;
     p.addParameter('framesToVisualize', 1, @(x)(isnumeric(x)));
@@ -118,8 +118,7 @@ function visHandles = coneMosaicSTFresponses(coneMosaicResponsesFileName, vararg
                  ax.YTickLabel = {};
              end
 
-             yOffset = 0;
-             yGain = 30;
+      
              plot(ax, identifiedLConeXPositionsMicrons,  (identifiedLConeActivations)/(activationRange(2)), ...
                  'k-', 'LineWidth', 3.0);
              plot(ax, identifiedMConeXPositionsMicrons,  (identifiedMConeActivations)/(activationRange(2)), ...
