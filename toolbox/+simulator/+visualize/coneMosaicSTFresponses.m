@@ -24,12 +24,12 @@ function visHandles = coneMosaicSTFresponses(coneMosaicResponsesFileName, vararg
     framesToVisualize = p.Results.framesToVisualize;
     visualizedDomainRangeMicrons = p.Results.visualizedDomainRangeMicrons;
 
-    % Import the data
+    % Import the cone mosaic STF response data (cone excitations)
     load(coneMosaicResponsesFileName, 'theConeMosaic', 'coneMosaicBackgroundActivation', ...
         'coneMosaicSpatiotemporalActivation', 'temporalSupportSeconds', ...
         'spatialFrequenciesExamined');
 
-    % Convert to modulations
+    % Convert to cone modulations
     b = coneMosaicBackgroundActivation;
     coneMosaicSpatiotemporalActivation = ...
         bsxfun(@times, bsxfun(@minus, coneMosaicSpatiotemporalActivation, b), 1./b);

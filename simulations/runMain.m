@@ -20,11 +20,28 @@ function runMain()
     % Monkey to analyze
     monkeyID = 'M838';
 
-    % Model scenario to examine
-    operationOptions.modelScenario = simulator.modelScenarios.diffrLimitedOptics_residualDefocus_MonochromaticGrating;
-    operationOptions.residualDefocusDiopters = 0.0;
 
-    % Choose operation
+    % Choose which optics scenario to run.
+    % To list the available options, type:
+    %    enumeration simulator.opticsScenarios
+    operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
+    operationOptions.residualDefocusDiopters = 0.067;
+
+    % M838, 2.5 mm pupil optics scenario
+    operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
+    operationOptions.M838PupilSizeMM = 2.5;
+
+
+    % Choose which stimulus type to use.
+    % To list the available options, type:
+    %    enumeration simulator.stimTypes
+    operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
+    operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+
+    % Choose what operation to run.
+    % To list the available options, type:
+    %    enumeration simulator.operations
+
     % --------------------------------------
     % 1. Generate cone mosaic
     % --------------------------------------
@@ -34,7 +51,7 @@ function runMain()
     % -----------------------------------------------------------------
     % 2. Compute cone mosaic responses
     % -----------------------------------------------------------------
-    operation = simulator.operations.computeConeMosaicSTFresponses;
+    %operation = simulator.operations.computeConeMosaicSTFresponses;
 
     % -----------------------------------------------------------------
     % 3. Visualize cone mosaic responses
@@ -45,15 +62,15 @@ function runMain()
     % -----------------------------------------------------------------
     % 4. Fit fluorescence STF responses for some modeling scenario
     % -----------------------------------------------------------------
-    %operation = simulator.operations.fitFluorescenceSTFresponses;
+    operation = simulator.operations.fitFluorescenceSTFresponses;
 
-    % Select the diffraction-limited optics, 0.067D residual defocus model scenario
+    % Select which fluoresence data to fit. 
+    % To list the available options, type:
+    %    enumeration simulator.fluorescenceResponseData
     operationOptions.STFdataToFit = simulator.fluorescenceResponseData.meanOverAllSessions;
+    
 
-
-    % Or, select the M838, 2.5 mm pupil model scenario
-    %operationOptions.modelScenario = simulator.modelScenario.M838Optics_AchromaticGrating
-    %operationOptioncs.M838PupilSizeMM = 2.5;
+   
     
     % Go !
     runOperation(operation, operationOptions, monkeyID);

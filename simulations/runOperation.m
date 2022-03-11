@@ -1,22 +1,43 @@
 function runOperation(operation, operationOptions, monkeyID)
+% Configure the selected operation and run it
+%
+% Syntax:
+%   runOperation(operation, operationOptions, monkeyID)
+%
+% Description:
+%   Configure the selected operation and run it
+%
+% Inputs:
+%    none
+%
+% Outputs:
+%    none
+%
+% Optional key/value pairs:
+%    None
 
     % Assert that we have a valid operation
     assert(ismember(operation, enumeration('simulator.operations')), ...
         sprintf('''%s'' is not a valid operation.\nValid options are:\n %s', ...
         operation, sprintf('\t%s\n',(enumeration('simulator.operations')))));
 
-    
-    % Assert that we have a valid model scenario
-    assert(ismember(operationOptions.modelScenario, enumeration('simulator.modelScenarios')), ...
-        sprintf('''%s'' is not a valid model scenario.\nValid options are:\n %s', ...
-        operationOptions.modelScenario, sprintf('\t%s\n',(enumeration('simulator.modelScenarios')))));
-    
-
-    switch (operationOptions.modelScenario)
-        case simulator.modelScenarios.diffrLimitedOptics_residualDefocus_MonochromaticGrating
-            % Monochromatic (AOSLO) stimulus params
+    % Set stimulus params based on selected stimulusType enumeration
+    switch (operationOptions.stimulusType)
+        case simulator.stimTypes.monochromaticAO
             options.stimulusParams = simulator.params.AOSLOStimulus();
-        
+
+        case simulator.stimTypes.achromaticLCD
+            % Achromatic (LCD) stimulus params
+            options.stimulusParams = simulator.params.LCDAchromaticStimulus();
+
+        otherwise
+            error('Unknown stimulus type: ''%s''.', operationOptions.stimulusType)
+    end
+
+    % Set optics params based on selected opticsScenario enumeration
+    switch (operationOptions.opticsScenario)
+        case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
+
             % Diffraction-limited optics
             options.opticsParams = struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
@@ -24,26 +45,21 @@ function runOperation(operation, operationOptions, monkeyID)
                 'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
-
-        case simulator.modelScenarios.M838Optics_AchromaticGrating
-            % Achromatic (LCD) stimulus params
-            options.stimulusParams = simulator.params.LCDAchromaticStimulus();
-    
+        case simulator.opticsScenarios.M838Optics
             % M838 optics
             options.opticsParams = struct(...
                 'type', simulator.opticsTypes.M838, ...
-                'pupilSizeMM', operationOptioncs.M838PupilSizeMM, ...
+                'pupilSizeMM', operationOptions.M838PupilSizeMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
-        otherwise
-            error('Unknown model scenario: ''%s''.', modelScenario)
     end
 
     
     % Set spatial frequency support for the STF measurements
     [~,options.stimulusParams.STFspatialFrequencySupport] = simulator.load.fluorescenceSTFdata(monkeyID);
     
-    % Cone mosaic params
+    
+    % Set the cone mosaic params
     options.cMosaicParams = struct(...
         'coneCouplingLambda', 0, ...
         'apertureShape', 'Gaussian', ...
@@ -52,15 +68,21 @@ function runOperation(operation, operationOptions, monkeyID)
         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
 
+
     % Switch
     switch (operation)
         
         case simulator.operations.fitFluorescenceSTFresponses
-            operationOptions.STFdataToFit
-            pause
+            % Synthesize cone mosaic responses filename
+            coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
+
+            simulator.fit.ISETBioRGCmodelToFluorescenceRGCdata(monkeyID, ...
+                coneMosaicResponsesFileName, ...
+                operationOptions.STFdataToFit);
+            
 
         case simulator.operations.visualizeConeMosaicSTFresponses
-            % Synthesize responses filename
+            % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
             % Visualize responses
@@ -72,16 +94,17 @@ function runOperation(operation, operationOptions, monkeyID)
             % Co-visualize the cone mosaic with the PSF
             % Generate optics using the desired optics params
             [~, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
+
             % Import the cone mosaic
             load(coneMosaicResponsesFileName, 'theConeMosaic');
 
-            simulator.visualize.mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, ...
+            simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
                 WilliamsLabData.constants.imagingPeakWavelengthNM, ...
                 'figureHandle', d.hFig, ...
                 'axesHandle', d.axPSF);
 
         case simulator.operations.computeConeMosaicSTFresponses
-            % Synthesize responses filename
+            % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
             % Modify the default cone mosaic with the examined cone mosaic params
