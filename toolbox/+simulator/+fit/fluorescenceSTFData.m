@@ -38,13 +38,17 @@ function fluorescenceSTFData(STFdataToFit, fitParams, ...)
     % Fit the DoG cone pooling model for the different cone pooling scenarios examined
     fittedModels = containers.Map();
 
+
+    % Turn off the nearlySingularMatrix warning
+    warning('off','MATLAB:nearlySingularMatrix')
+
     % Start the parallel pool
     poolobj = gcp('nocreate');
     if isempty(poolobj)
         parpool('local')
     end
 
-    % Turn off the nearlySingularMatrix warning
+    % Turn off the nearlySingularMatrix warning on all workers
     pctRunOnAll warning('off','MATLAB:nearlySingularMatrix');
 
     for iCenterConePoolingScenarioIdx = 1:numel(rfCenterConePoolingScenariosExamined)

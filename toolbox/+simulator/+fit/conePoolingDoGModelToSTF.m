@@ -29,14 +29,14 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
 
     % Select spatial frequency weighting factors
     switch(fitParams.spatialFrequencyBias)
-        case simulator.spatialFrequencyWeighting.standardErrorOfTheMeanBased
+        case simulator.spatialFrequencyWeightings.standardErrorOfTheMeanBased
             sfWeightingFactors = 1./(STFdataToFit.responseSE);
 
-        case simulator.spatialFrequencyWeighting.boostHighEnd
+        case simulator.spatialFrequencyWeightings.boostHighEnd
             sfWeightingFactors = 1./(STFdataToFit.responseSE) .* ...
                                  linspace(0.1,1,numel(STFdataToFit.responseSE));
 
-        case simulator.spatialFrequencyWeighting.flat
+        case simulator.spatialFrequencyWeightings.flat
             sfWeightingFactors = ones(1,numel(STFdataToFit.responseSE));
     end
 
@@ -149,9 +149,14 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
         bestFitRGCSTF = bestFitRGCSTF + min([0 min(STFdataToFit.responses(:))]);
     end
 
+    % Compute the RMSE of the fit
+    bestFitRMSE = sqrt(sum(sfWeightingFactors .* (bestFitRGCSTF - dataToFit).^2)/sum(sfWeightingFactors(:)));
+
+    
     fitResults = struct(...
         'DoGparams', DoGparams, ...
         'fittedRGCRF', bestFitRGCRFmodel, ...
+        'fittedRMSE', bestFitRMSE, ...
         'fittedSTF', bestFitRGCSTF);
 
 

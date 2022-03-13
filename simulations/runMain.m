@@ -2,10 +2,10 @@ function runMain()
 % Main gateway to all operations
 %
 % Syntax:
-%   selectOperation()
+%   runMain()
 %
 % Description:
-%   Select which operation to run (e.g., generate cone mosaic responses, fit etc)
+%   Main gateway to all operations
 %
 % Inputs:
 %    none
@@ -26,6 +26,7 @@ function runMain()
     %    enumeration simulator.opticsScenarios
     operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
     operationOptions.residualDefocusDiopters = 0.067;
+    operationOptions.residualDefocusDiopters = 0.000;
 
     % M838, 2.5 mm pupil optics scenario
     %operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
@@ -79,23 +80,23 @@ function runMain()
     % the central 6 arcmin of the fovea"
     operationOptions.coneMosaicSamplingParams = struct(...
         'maxEccArcMin', 6, ...
-        'positionsExamined', 7 ... % select 7 positions within the maxEcc region
+        'positionsExamined', 7 ... % select 7 cone positions within the maxEcc region
         );
 
     % Fit options
     operationOptions.fitParams = struct(...
         'multiStartsNum', 512, ...
         'accountForNegativeSTFdata', true, ...
-        'spatialFrequencyBias', simulator.spatialFrequencyWeighting.boostHighEnd ...
+        'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
         );
     
 
     % -----------------------------------------------------------------
     % 5. Visualize model fits for some modeling scenario
     % -----------------------------------------------------------------
-    %operation = simulator.operations.visualizedFittedModels;
+    operation = simulator.operations.visualizedFittedModels;
 
     % Go !
-    runOperation(operation, operationOptions, monkeyID);
+    simulator.performOperation(operation, operationOptions, monkeyID);
 end
 

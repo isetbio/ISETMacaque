@@ -1,4 +1,4 @@
-classdef spatialFrequencyWeighting
+classdef spatialFrequencyWeightings
 % Enumeration for the available SF point weighting
    enumeration
       standardErrorOfTheMeanBased

@@ -1,8 +1,8 @@
-function runOperation(operation, operationOptions, monkeyID)
+function performOperation(operation, operationOptions, monkeyID)
 % Configure the selected operation and run it
 %
 % Syntax:
-%   runOperation(operation, operationOptions, monkeyID)
+%   simulator.performOperation(operation, operationOptions, monkeyID)
 %
 % Description:
 %   Configure the selected operation and run it
@@ -73,24 +73,19 @@ function runOperation(operation, operationOptions, monkeyID)
     switch (operation)
         
         case simulator.operations.visualizedFittedModels
-            fittedModelFileName = 'fits.mat';
-            simulator.visualize.fittedModel(fittedModelFileName);
+            % Generate a filename to save the fitted RGCmodel 
+            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
+                operationOptions.coneMosaicSamplingParams, operationOptions.fitParams, operationOptions.STFdataToFit);
+            
+            simulator.visualize.fittedRGCModel(fittedModelFileName,operationOptions);
 
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
-            % Generate a filename to save the results
-            % Filename should include 
-            %monkeyID
-            %operationOptions.stimulusType
-            %operationOptions.opticsScenario
-            %either:
-            %    operationOptions.residualDefocusDiopters
-            %    operationOptions.pupilSizeMM 
-            fittedModelFileName = 'fits.mat';
-
-            operationOptions.STFdataToFit
+            % Generate a filename to save the fitted RGCmodel 
+            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
+                operationOptions.coneMosaicSamplingParams, operationOptions.fitParams, operationOptions.STFdataToFit);
 
             simulator.fit.fluorescenceSTFData(...
                 operationOptions.STFdataToFit, ...
