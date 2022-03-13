@@ -62,21 +62,39 @@ function runMain()
     % -----------------------------------------------------------------
     % 4. Fit fluorescence STF responses for some modeling scenario
     % -----------------------------------------------------------------
-    %operation = simulator.operations.fitFluorescenceSTFresponses;
+    operation = simulator.operations.fitFluorescenceSTFresponses;
 
-    % Select which recording session and which cell to fit. 
+    % RF center pooling scenarios to examine
+    operationOptions.rfCenterConePoolingScenariosExamined = ...
+        {'single-cone', 'multi-cone'};
+
+    % Select which recording session and which RGC to fit. 
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindices', [8]);
+        'whichRGCindex', 8);
  
-    % 
-    operationOptions.fitOptions = struct(...
+    % Select the spatial sampling within the cone mosaic
+    % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
+    % the central 6 arcmin of the fovea"
+    operationOptions.coneMosaicSamplingParams = struct(...
+        'maxEccArcMin', 6, ...
+        'positionsExamined', 7 ... % select 7 positions within the maxEcc region
+        );
+
+    % Fit options
+    operationOptions.fitParams = struct(...
         'multiStartsNum', 512, ...
         'accountForNegativeSTFdata', true, ...
-        'spatialFrequencyBias', 'boostHighSpatialFrequencies' ...
+        'spatialFrequencyBias', simulator.spatialFrequencyWeighting.boostHighEnd ...
         );
     
+
+    % -----------------------------------------------------------------
+    % 5. Visualize model fits for some modeling scenario
+    % -----------------------------------------------------------------
+    %operation = simulator.operations.visualizedFittedModels;
+
     % Go !
     runOperation(operation, operationOptions, monkeyID);
 end

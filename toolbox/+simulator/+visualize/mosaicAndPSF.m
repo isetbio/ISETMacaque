@@ -1,4 +1,25 @@
 function hFig = mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength, varargin)
+% Visualize cone mosaic and PSF
+%
+% Syntax:
+%   simulator.visualize.mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMicrons, inFocusWavelength, varargin)
+%
+% Description:
+%   Visualize cone mosaic and PSF
+%
+% Inputs:
+%    theConeMosaic  
+%    thePSFdata
+%    visualizedDomainRangeMicrons
+%    inFocusWavelength
+%
+% Outputs:
+%    hFig
+%
+% Optional key/value pairs:
+%    'figureHandle'              - 
+%    'axesHandle'                - 
+
 
     p = inputParser;
     p.addParameter('figureHandle', [], @(x)(isempty(x)||isa(x, 'handle')));

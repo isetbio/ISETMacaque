@@ -5,5 +5,6 @@ classdef operations
       computeConeMosaicSTFresponses
       visualizeConeMosaicSTFresponses
       fitFluorescenceSTFresponses
+      visualizedFittedModels
    end
 end

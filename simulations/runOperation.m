@@ -72,14 +72,34 @@ function runOperation(operation, operationOptions, monkeyID)
     % Switch
     switch (operation)
         
+        case simulator.operations.visualizedFittedModels
+            fittedModelFileName = 'fits.mat';
+            simulator.visualize.fittedModel(fittedModelFileName);
+
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
-            simulator.fit.ISETBioRGCmodelToFluorescenceRGCdata(monkeyID, ...
+            % Generate a filename to save the results
+            % Filename should include 
+            %monkeyID
+            %operationOptions.stimulusType
+            %operationOptions.opticsScenario
+            %either:
+            %    operationOptions.residualDefocusDiopters
+            %    operationOptions.pupilSizeMM 
+            fittedModelFileName = 'fits.mat';
+
+            operationOptions.STFdataToFit
+
+            simulator.fit.fluorescenceSTFData(...
+                operationOptions.STFdataToFit, ...
+                operationOptions.fitParams, ...
+                operationOptions.coneMosaicSamplingParams, ...
+                operationOptions.rfCenterConePoolingScenariosExamined, ...
                 coneMosaicResponsesFileName, ...
-                operationOptions.STFdataToFit);
-            
+                fittedModelFileName);
+                
 
         case simulator.operations.visualizeConeMosaicSTFresponses
             % Synthesize cone mosaic responses filename
@@ -120,7 +140,7 @@ function runOperation(operation, operationOptions, monkeyID)
         
             % Compute cone mosaic responses for the stimuli used to measure
             % the RGC spatial transfer functions (STFs)
-            simulator.responses.coneMosaicSTF(options.stimulusParams, ...
+            simulator.compute.coneMosaicSTF(options.stimulusParams, ...
                 theOI, theConeMosaic, coneMosaicResponsesFileName);
 
        case simulator.operations.generateConeMosaic

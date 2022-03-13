@@ -27,14 +27,14 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
 
     p = inputParser;
     p.addParameter('whichSession', 'meanOverSessions', @(x)(ischar(x)||isscalar(x)));
-    p.addParameter('whichCenterConeType', 'all', @(x)(ismember(lower(x), {'l', 'm', 'all'})));
-    p.addParameter('whichRGCindices', [1], @isscalar);
+    p.addParameter('whichCenterConeType', 'l', @(x)(ismember(lower(x), {'l', 'm'})));
+    p.addParameter('whichRGCindex', [1], @isscalar);
     p.addParameter('deconvolveOTF', true, @islogical);
     p.parse(varargin{:});
 
     whichSession = p.Results.whichSession;
     whichCenterConeType = p.Results.whichCenterConeType;
-    whichRGCindices = p.Results.whichRGCindices;
+    whichRGCindex = p.Results.whichRGCindex;
     deconvolvedOTF = p.Results.deconvolveOTF;
 
     if (ischar(whichSession))
@@ -63,7 +63,7 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
         midget_dfF_otf_all = bsxfun(@times, midget_dfF_otf_all, otf); 
     end
 
-    switch (whichCenterConeType)
+    switch (upper(whichCenterConeType))
         case 'L'
             idx = find(strcmp(cone_center_guesses, 'L')==1);
             midget_dfF_otf_all = midget_dfF_otf_all(idx,:,:);
@@ -85,8 +85,10 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
 
     % Return the data
     stfDataStruct = struct(...
-        'responses',   midget_dfF_otf_all(whichRGCindices,:), ...
-        'responseSE' , midget_dfF_otf_all_errors(whichRGCindices,:), ... 
+        'whichCenterConeType', whichCenterConeType, ...
+        'whichRGCindex', whichRGCindex, ...
+        'responses',   midget_dfF_otf_all(whichRGCindex,:), ...
+        'responseSE' , midget_dfF_otf_all_errors(whichRGCindex,:), ... 
         'spatialFrequencySupport', spatialFrequencySupport, ...
         'otf', otf);
 

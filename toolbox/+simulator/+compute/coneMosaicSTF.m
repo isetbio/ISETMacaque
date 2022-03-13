@@ -2,7 +2,7 @@ function coneMosaicSTF(stimulusParams, theOI, theConeMosaic, coneMosaicResponses
 % Compute cone mosaic responses to stimuli of different SFs
 %
 % Syntax:
-%   simulator.responses.coneMosaicSTF(stimulusParams, opticsParams, cMosaicParams)
+%   simulator.compute.coneMosaicSTF(stimulusParams, opticsParams, cMosaicParams)
 %
 % Description:
 %   Compute cone mosaic responses to stimuli of different SFs
