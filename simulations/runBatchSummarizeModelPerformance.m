@@ -31,7 +31,7 @@ function runBatchSummarizeModelPerformance
         {'single-cone', 'multi-cone'};
 
     % Examined residual defocus values
-    residualDefocusDiopterValuesExamined = [0.00 0.042 0.067];
+    residualDefocusDiopterValuesExamined = [0.00 0.042 0.047 0.067];
 
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -64,20 +64,8 @@ function runBatchSummarizeModelPerformance
     coneRGCindices(1:LconeRGCsNum) = 1:LconeRGCsNum;
     coneRGCindices(LconeRGCsNum+(1:MconeRGCsNum)) = 1:MconeRGCsNum;
 
-    % Set-up figure
-    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
-       'colsNum', 8, ...
-       'rowsNum', 2, ...
-       'heightMargin',  0.03, ...
-       'widthMargin',    0.02, ...
-       'leftMargin',     0.02, ...
-       'rightMargin',    0.02, ...
-       'bottomMargin',   0.05, ...
-       'topMargin',      0.02);
-
-    
     for iRGCindex = 1:numel(coneRGCindices)
-
+        
         % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                  'whichSession', 'meanOverSessions', ...
@@ -85,8 +73,11 @@ function runBatchSummarizeModelPerformance
                  'whichRGCindex', coneRGCindices(iRGCindex));
         
         for iResidualDefocus = 1:numel(residualDefocusDiopterValuesExamined)
-            % Get model performance at best cone position
+
             operationOptions.residualDefocusDiopters = residualDefocusDiopterValuesExamined(iResidualDefocus);
+            fprintf('Extracting performance for cell %d (defocus:%2.3fD)\n', iRGCindex, operationOptions.residualDefocusDiopters);
+            
+            % Get model performance at best cone position
             modelPerformance = simulator.performOperation(operation, operationOptions, monkeyID);
 
             % Single-cone RF models with different residual defocus values
@@ -97,51 +88,82 @@ function runBatchSummarizeModelPerformance
         end
     end
 
-    % Plot model performance as a function of residual defocus: cells 1-8
+    % Plot model performance as a function of residual defocus for group1 cells
     hFig = figure();
-    set(hFig, 'Position', [1 1 1600 600], 'Color', [1 1 1]);
+    set(hFig, 'Position', [1 200 1990 730], 'Color', [1 1 1]);
 
-    for iRGCindex = 1:8
+    group1cells = [3 4 6 9 10 11 12 5];
+    group2cells = [14 15 2 1 7 8 13 ];
+
+    % Set-up figure
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+       'colsNum', max([numel(group1cells) numel(group2cells)]), ...
+       'rowsNum', 2, ...
+       'heightMargin',  0.03, ...
+       'widthMargin',    0.02, ...
+       'leftMargin',     0.02, ...
+       'rightMargin',    0.00, ...
+       'bottomMargin',   0.05, ...
+       'topMargin',      0.01);
+
+    for k = 1:numel(group1cells)
+        iRGCindex = group1cells(k);
+        rmsRange(1) = min([min(singleConeModelPerformance(iRGCindex,:),[],2) min(multiConeModelPerformance(iRGCindex,:),[],2)]);
+        rmsRange(2) = max([max(singleConeModelPerformance(iRGCindex,:),[],2) max(multiConeModelPerformance(iRGCindex,:),[],2)]);
         cellIDstring = sprintf('%s%d (single-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
-        ax = subplot('Position', subplotPosVectors(1, iRGCindex).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, singleConeModelPerformance(iRGCindex,:), cellIDstring, iRGCindex);
+        ax = subplot('Position', subplotPosVectors(1, k).v);
+        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
+            singleConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
         
-        ax = subplot('Position', subplotPosVectors(2, iRGCindex).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, multiConeModelPerformance(iRGCindex,:), cellIDstring, iRGCindex);
+        cellIDstring = sprintf('%s%d (multi-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
+        ax = subplot('Position', subplotPosVectors(2, k).v);
+        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
+            multiConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
+        drawnow;
+    end
+    NicePlot.exportFigToPDF('summaryModelPerformanceDependenceOnResidualDefocusGroup1.pdf', hFig, 300);
+
+
+    % Plot model performance as a function of residual defocus for group 2 cells
+    hFig = figure();
+    set(hFig, 'Position', [1 200 1990 730], 'Color', [1 1 1]);
+
+    for k = 1:numel(group2cells)
+        iRGCindex = group2cells(k);
+        rmsRange(1) = min([min(singleConeModelPerformance(iRGCindex,:),[],2) min(multiConeModelPerformance(iRGCindex,:),[],2)]);
+        rmsRange(2) = max([max(singleConeModelPerformance(iRGCindex,:),[],2) max(multiConeModelPerformance(iRGCindex,:),[],2)]);
+        
+        cellIDstring = sprintf('%s%d (single-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
+        ax = subplot('Position', subplotPosVectors(1, k).v);
+        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
+            singleConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
+        
+        cellIDstring = sprintf('%s%d (multi-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
+        ax = subplot('Position', subplotPosVectors(2, k).v);
+        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
+            multiConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
         drawnow;
     end
 
-    % Plot model performance as a function of residual defocus: cells 9-15
-    hFig = figure();
-    set(hFig, 'Position', [1 200 1600 600], 'Color', [1 1 1]);
+    NicePlot.exportFigToPDF('summaryModelPerformanceDependenceOnResidualDefocusGroup2.pdf', hFig, 300);
 
-    for iRGCindex = 9:15
-
-        cellIDstring = sprintf('%s%d (single-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
-        ax = subplot('Position', subplotPosVectors(1, iRGCindex).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, singleConeModelPerformance(iRGCindex,:), cellIDstring, iRGCindex-8);
-        
-        ax = subplot('Position', subplotPosVectors(2, iRGCindex).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, multiConeModelPerformance(iRGCindex,:), cellIDstring, iRGCindex-8);
-        drawnow;
-    end
 
 end
 
 
-function plotRMSErrors(ax, residualDefocusDiopterValuesExamined, modelPerformance, cellIDstring, iRGCindex)
+function plotRMSErrors(ax, residualDefocusDiopterValuesExamined, modelPerformance, rmsRange, cellIDstring, iRGCindex)
         
     bar(ax,1:numel(residualDefocusDiopterValuesExamined), modelPerformance,1);
     axis(ax, 'square');
     set(ax, 'XTick', 1:numel(residualDefocusDiopterValuesExamined), ...
              'XTickLabel', sprintf('%0.3fD\n', residualDefocusDiopterValuesExamined));
     if (iRGCindex > 1)
-        set(ax, 'YTickLabel', {});
     else
         ylabel(ax, 'RMSE');
     end
-    set(ax, 'YLim', [0.01 0.05], 'YTick', 0.01:0.01:0.1, 'FontSize', 12);
+    set(ax, 'YLim', [rmsRange(1)-0.005 rmsRange(2)+0.005], 'YTick', 0.0:0.01:0.1, 'FontSize', 16);
     xlabel(ax,'residual defocus (D)')
+    xtickangle(ax, 90);
     title(ax,cellIDstring);
     box(ax, 'off');
     grid(ax, 'on')

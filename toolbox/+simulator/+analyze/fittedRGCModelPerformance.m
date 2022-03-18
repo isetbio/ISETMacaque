@@ -17,7 +17,7 @@ function modelPerformance = fittedRGCModelPerformance(fittedModelFileName, opera
 %    none
 
     load(fittedModelFileName, 'STFdataToFit','fittedModels');
-    
+
     % Extract performance at the best cone position
     modelPerformance = containers.Map();
     for iModel = 1:numel(operationOptions.rfCenterConePoolingScenariosExamined)
