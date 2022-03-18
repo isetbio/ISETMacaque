@@ -78,7 +78,26 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
 
     % Switch
     switch (operation)
-        
+        case simulator.operations.computeSynthesizedRGCSTFresponses
+            % Synthesize cone mosaic responses filename
+            coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
+
+            % Synthesize RGC model filename
+            syntheticRGCmodelFilename = simulator.filename.fittedRGCmodel(monkeyID, ...
+                operationOptions.syntheticRGCmodelParams, ...
+                operationOptions.coneMosaicSamplingParams, ...
+                operationOptions.fitParams, ...
+                operationOptions.syntheticRGCmodelParams.STFdataToFit);
+
+
+            % Compute synthetic RGC responses for the stimuli used to measure
+            % the RGC spatial transfer functions (STFs)
+            simulator.compute.syntheticRGCSTF(syntheticRGCmodelFilename, ...
+                coneMosaicResponsesFileName, ...
+                operationOptions.syntheticRGCmodelParams.rfCenterConePoolingScenario, ...
+                operationOptions.syntheticRGCmodelParams.STFdataToFit, ...
+                operationOptions.syntheticRGCmodelParams.rmsSelector);
+
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);

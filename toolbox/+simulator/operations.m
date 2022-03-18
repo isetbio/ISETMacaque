@@ -7,5 +7,6 @@ classdef operations
       fitFluorescenceSTFresponses
       visualizedFittedModels
       extractFittedModelPerformance
+      computeSynthesizedRGCSTFresponses
    end
 end

@@ -35,8 +35,7 @@ function coneMosaicSTF(stimulusParams, theOI, theConeMosaic, coneMosaicResponses
          % Report radiance scaling factor
          fprintf('Scene Radiance Scaling Factor is %f\n', theSceneRadianceScalingFactor);
     else
-        theBackgroundScene = simulator.scene.compute(stimulusParams, ...
-            'contrast', 0);
+        theBackgroundScene = simulator.scene.compute(stimulusParams, 0);
     end
     
     % Report  mean luminance

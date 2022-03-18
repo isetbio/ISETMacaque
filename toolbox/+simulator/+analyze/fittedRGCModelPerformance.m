@@ -22,10 +22,10 @@ function modelPerformance = fittedRGCModelPerformance(fittedModelFileName, opera
     modelPerformance = containers.Map();
     for iModel = 1:numel(operationOptions.rfCenterConePoolingScenariosExamined)
         theRFcenterConePoolingScenario = operationOptions.rfCenterConePoolingScenariosExamined{iModel};
-        examinedModelConePositionFits = fittedModels(theRFcenterConePoolingScenario);
+        coneMosaicPositionModels  = fittedModels(theRFcenterConePoolingScenario);
         
         [bestConePosIdx, RMSErrorsAllPositions] = simulator.analyze.bestConePositionAcrossMosaic(...
-            examinedModelConePositionFits, STFdataToFit, operationOptions.rmsSelector);
+            coneMosaicPositionModels, STFdataToFit, operationOptions.rmsSelector);
 
         modelPerformance(theRFcenterConePoolingScenario) = RMSErrorsAllPositions(bestConePosIdx);
     end

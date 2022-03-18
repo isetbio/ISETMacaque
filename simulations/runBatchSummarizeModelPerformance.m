@@ -88,81 +88,78 @@ function runBatchSummarizeModelPerformance
         end
     end
 
-    % Plot model performance as a function of residual defocus for group1 cells
-    hFig = figure();
-    set(hFig, 'Position', [1 200 1990 730], 'Color', [1 1 1]);
-
     group1cells = [3 4 6 9 10 11 12 5];
     group2cells = [14 15 2 1 7 8 13 ];
 
-    % Set-up figure
+    
+    generateGroupedCellsFigure(group1cells, residualDefocusDiopterValuesExamined, ...
+        singleConeModelPerformance, multiConeModelPerformance, ...
+        coneTypes, coneRGCindices, ...
+        'summaryModelPerformanceDependenceOnResidualDefocusGroup1.pdf');
+
+    generateGroupedCellsFigure(group2cells, residualDefocusDiopterValuesExamined, ...
+        singleConeModelPerformance, multiConeModelPerformance, ...
+        coneTypes, coneRGCindices, ...
+        'summaryModelPerformanceDependenceOnResidualDefocusGroup2.pdf');
+end
+
+
+function generateGroupedCellsFigure(groupedCellIndices, residualDefocusDiopterValuesExamined, ...
+        singleConeModelPerformance, multiConeModelPerformance, ...
+        coneTypes, coneRGCindices, pdfFileName)
+    
+    % Set-up figure layout
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
-       'colsNum', max([numel(group1cells) numel(group2cells)]), ...
+       'colsNum', 8, ...
        'rowsNum', 2, ...
-       'heightMargin',  0.03, ...
-       'widthMargin',    0.02, ...
-       'leftMargin',     0.02, ...
+       'heightMargin',  0.05, ...
+       'widthMargin',    0.03, ...
+       'leftMargin',     0.03, ...
        'rightMargin',    0.00, ...
        'bottomMargin',   0.05, ...
-       'topMargin',      0.01);
+       'topMargin',      0.00);
 
-    for k = 1:numel(group1cells)
-        iRGCindex = group1cells(k);
-        rmsRange(1) = min([min(singleConeModelPerformance(iRGCindex,:),[],2) min(multiConeModelPerformance(iRGCindex,:),[],2)]);
-        rmsRange(2) = max([max(singleConeModelPerformance(iRGCindex,:),[],2) max(multiConeModelPerformance(iRGCindex,:),[],2)]);
-        cellIDstring = sprintf('%s%d (single-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
-        ax = subplot('Position', subplotPosVectors(1, k).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
-            singleConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
-        
-        cellIDstring = sprintf('%s%d (multi-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
-        ax = subplot('Position', subplotPosVectors(2, k).v);
-        plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
-            multiConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
-        drawnow;
-    end
-    NicePlot.exportFigToPDF('summaryModelPerformanceDependenceOnResidualDefocusGroup1.pdf', hFig, 300);
-
-
-    % Plot model performance as a function of residual defocus for group 2 cells
+    % Plot model performance as a function of residual defocus for group1 cells
     hFig = figure();
-    set(hFig, 'Position', [1 200 1990 730], 'Color', [1 1 1]);
+    set(hFig, 'Position', [1 200 1990 650], 'Color', [1 1 1]);
 
-    for k = 1:numel(group2cells)
-        iRGCindex = group2cells(k);
+    for k = 1:numel(groupedCellIndices)
+        iRGCindex = groupedCellIndices(k);
+        
         rmsRange(1) = min([min(singleConeModelPerformance(iRGCindex,:),[],2) min(multiConeModelPerformance(iRGCindex,:),[],2)]);
         rmsRange(2) = max([max(singleConeModelPerformance(iRGCindex,:),[],2) max(multiConeModelPerformance(iRGCindex,:),[],2)]);
         
-        cellIDstring = sprintf('%s%d (single-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
         ax = subplot('Position', subplotPosVectors(1, k).v);
+        cellIDstring = sprintf('%s%d (1 cone RF center)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
         plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
             singleConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
         
-        cellIDstring = sprintf('%s%d (multi-cone)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
         ax = subplot('Position', subplotPosVectors(2, k).v);
+        cellIDstring = sprintf('%s%d (1+ cone RF center)', coneTypes{iRGCindex}, coneRGCindices(iRGCindex));
         plotRMSErrors(ax, residualDefocusDiopterValuesExamined, ...
             multiConeModelPerformance(iRGCindex,:), rmsRange, cellIDstring, k);
         drawnow;
     end
-
-    NicePlot.exportFigToPDF('summaryModelPerformanceDependenceOnResidualDefocusGroup2.pdf', hFig, 300);
-
+    NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
 
 end
 
 
 function plotRMSErrors(ax, residualDefocusDiopterValuesExamined, modelPerformance, rmsRange, cellIDstring, iRGCindex)
         
-    bar(ax,1:numel(residualDefocusDiopterValuesExamined), modelPerformance,1);
+    bar(ax,1:numel(residualDefocusDiopterValuesExamined), modelPerformance,1, ...
+        'FaceColor',[1.0 .6 .1],'EdgeColor',[.3 .1 .0],'LineWidth',1.0);
     axis(ax, 'square');
-    set(ax, 'XTick', 1:numel(residualDefocusDiopterValuesExamined), ...
-             'XTickLabel', sprintf('%0.3fD\n', residualDefocusDiopterValuesExamined));
+    
     if (iRGCindex > 1)
     else
         ylabel(ax, 'RMSE');
     end
     set(ax, 'YLim', [rmsRange(1)-0.005 rmsRange(2)+0.005], 'YTick', 0.0:0.01:0.1, 'FontSize', 16);
-    xlabel(ax,'residual defocus (D)')
+    set(ax, 'XTick', 1:1:numel(residualDefocusDiopterValuesExamined), ...
+            'XTickLabel', sprintf('%0.3f\n', residualDefocusDiopterValuesExamined), ...
+            'XLim', [0 numel(residualDefocusDiopterValuesExamined)+1.0])
+    xlabel(ax,'residual defocus (D)', 'FontSize', 20)
     xtickangle(ax, 90);
     title(ax,cellIDstring);
     box(ax, 'off');

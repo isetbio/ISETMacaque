@@ -71,7 +71,7 @@ function filename = fittedRGCmodel(monkeyID, options, ...
     fitDescriptor = strcat(fitDescriptor, sprintf('_%dconePositionsTested', coneMosaicSamplingParams.positionsExamined));
     modelFilename = strcat(modelFilename, fitDescriptor);
 
-    % Finalize responses full filename
+    % Finalize model full filename
     filename = fullfile(p.generatedDataDir, 'fittedRGCModels', sprintf('%s_fittedRGCmodel.mat',modelFilename));
     
 end
