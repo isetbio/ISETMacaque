@@ -1,4 +1,4 @@
-function performOperation(operation, operationOptions, monkeyID)
+function dataOut = performOperation(operation, operationOptions, monkeyID)
 % Configure the selected operation and run it
 %
 % Syntax:
@@ -38,12 +38,16 @@ function performOperation(operation, operationOptions, monkeyID)
     switch (operationOptions.opticsScenario)
         case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
 
-            % Diffraction-limited optics
+            % Diffraction-limited optics with defocus-based residual blur
             options.opticsParams = struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
                 'residualDefocusDiopters', operationOptions.residualDefocusDiopters, ...
                 'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
+
+        case simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur
+            % Diffraction-limited optics with Gaussian-based residual blur 
+            error('Optic scenario ''%s'' is not implemented yet', simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur);
 
         case simulator.opticsScenarios.M838Optics
             % M838 optics
@@ -52,6 +56,8 @@ function performOperation(operation, operationOptions, monkeyID)
                 'pupilSizeMM', operationOptions.pupilSizeMM, ...
                 'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
+        otherwise
+            error('Unknown optics scenario: ''%s''.', operationOptions.opticsScenario);
     end
 
     
@@ -68,25 +74,20 @@ function performOperation(operation, operationOptions, monkeyID)
         'wavelengthSupport', options.stimulusParams.wavelengthSupport);
 
 
+    dataOut = [];
 
     % Switch
     switch (operation)
         
-        case simulator.operations.visualizedFittedModels
-            % Generate a filename to save the fitted RGCmodel 
-            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
-                operationOptions.coneMosaicSamplingParams, operationOptions.fitParams, operationOptions.STFdataToFit);
-            
-            simulator.visualize.fittedRGCModel(fittedModelFileName,operationOptions);
-
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
 
-            % Generate a filename to save the fitted RGCmodel 
+            % Synthesize filename for the fitted RGCmodel 
             fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
                 operationOptions.coneMosaicSamplingParams, operationOptions.fitParams, operationOptions.STFdataToFit);
 
+            % Fit the model
             simulator.fit.fluorescenceSTFData(...
                 operationOptions.STFdataToFit, ...
                 operationOptions.fitParams, ...
@@ -94,7 +95,36 @@ function performOperation(operation, operationOptions, monkeyID)
                 operationOptions.rfCenterConePoolingScenariosExamined, ...
                 coneMosaicResponsesFileName, ...
                 fittedModelFileName);
-                
+
+        case simulator.operations.extractFittedModelPerformance
+            % Synthesize filename for the fitted RGCmodel  
+            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
+                operationOptions.coneMosaicSamplingParams, ...
+                operationOptions.fitParams, ...
+                operationOptions.STFdataToFit);
+
+            % Extract rms performance at best position
+            dataOut = simulator.analyze.fittedRGCModelPerformance(fittedModelFileName,operationOptions);
+
+        case simulator.operations.visualizedFittedModels
+            % Synthesize filename for the fitted RGCmodel  
+            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
+                operationOptions.coneMosaicSamplingParams, ...
+                operationOptions.fitParams, ...
+                operationOptions.STFdataToFit);
+            
+            % Synthesize filenames for the PDFs of the fitted RGCmodel
+            [fittedModelFilenameAllPositionsPDF, ...
+             fittedModelFilenameBestPositionPDF] = simulator.filename.fittedRGCmodelPDFs(...
+                        monkeyID, options, ...
+                        operationOptions.coneMosaicSamplingParams, ...
+                        operationOptions.fitParams, ...
+                        operationOptions.STFdataToFit);
+
+            % Visualize fitted model
+            simulator.visualize.fittedRGCModel(fittedModelFileName,operationOptions, ...
+                fittedModelFilenameAllPositionsPDF, fittedModelFilenameBestPositionPDF);
+
 
         case simulator.operations.visualizeConeMosaicSTFresponses
             % Synthesize cone mosaic responses filename
@@ -113,6 +143,7 @@ function performOperation(operation, operationOptions, monkeyID)
             % Import the cone mosaic
             load(coneMosaicResponsesFileName, 'theConeMosaic');
 
+            % Visualize the cone mosaic and the PSF
             simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
                 WilliamsLabData.constants.imagingPeakWavelengthNM, ...
                 'figureHandle', d.hFig, ...
@@ -139,7 +170,9 @@ function performOperation(operation, operationOptions, monkeyID)
                 theOI, theConeMosaic, coneMosaicResponsesFileName);
 
        case simulator.operations.generateConeMosaic
-            simulator.coneMosaic.generate(monkeyID, operationOptions.recomputeMosaic);
+
+           % Generate the cone mosaic
+           simulator.coneMosaic.generate(monkeyID, operationOptions.recomputeMosaic);
 
     end
 

@@ -31,8 +31,6 @@ function runBatchFit
     operationOptions.rfCenterConePoolingScenariosExamined = ...
         {'single-cone', 'multi-cone'};
 
-    
- 
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
@@ -52,8 +50,9 @@ function runBatchFit
     % Operation to run
     operation = simulator.operations.fitFluorescenceSTFresponses;
 
-    % Examined L-center RGCs
-    LconeRGCindicesExamined = 1:11;
+    % Examined RGCs
+    centerConeType = 'L';
+    coneRGCindicesExamined = 1:11;
 
     % Examined residual defocus values
     residualDefocusDiopterValuesExamined = [0.00 0.067];
@@ -61,12 +60,12 @@ function runBatchFit
     for iResidualDefocus = 1:numel(residualDefocusDiopterValuesExamined)
         operationOptions.residualDefocusDiopters = residualDefocusDiopterValuesExamined(iResidualDefocus);
    
-        for iLconeRGCindex = 1:numel(LconeRGCindicesExamined)
+        for iConeRGCindex = 1:numel(coneRGCindicesExamined)
             % Select which recording session and which RGC to fit. 
             operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                  'whichSession', 'meanOverSessions', ...
-                 'whichCenterConeType', 'L', ...
-                 'whichRGCindex', LconeRGCindicesExamined(iLconeRGCindex));
+                 'whichCenterConeType', centerConeType, ...
+                 'whichRGCindex', coneRGCindicesExamined(iConeRGCindex));
             
             simulator.performOperation(operation, operationOptions, monkeyID);
         end

@@ -26,7 +26,7 @@ function runMain()
     %    enumeration simulator.opticsScenarios
     operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
     operationOptions.residualDefocusDiopters = 0.067;
-    operationOptions.residualDefocusDiopters = 0.000;
+    %operationOptions.residualDefocusDiopters = 0.000;
 
     % M838, 2.5 mm pupil optics scenario
     %operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
@@ -72,8 +72,8 @@ function runMain()
     % Select which recording session and which RGC to fit. 
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
-        'whichCenterConeType', 'L', ...
-        'whichRGCindex', 8);
+        'whichCenterConeType', 'M', ...
+        'whichRGCindex', 4);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -94,6 +94,9 @@ function runMain()
     % -----------------------------------------------------------------
     % 5. Visualize model fits for some modeling scenario
     % -----------------------------------------------------------------
+    % How to select the best cone position
+    % choose between {'weighted', 'unweighted'} RMSE
+    operationOptions.rmsSelector = 'unweighted';
     operation = simulator.operations.visualizedFittedModels;
 
     % Go !

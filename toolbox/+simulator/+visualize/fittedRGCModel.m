@@ -1,8 +1,10 @@
-function fittedModel(fittedModelFileName, operationOptions)
-% Visualize a fitted RGCSTF model 
+function fittedRGCModel(fittedModelFileName, operationOptions, ...
+    fittedModelFilenameAllPositionsPDF, fittedModelFilenameBestPositionPDF)
+% Visualize a fitted RGC model 
 %
 % Syntax:
-%   simulator.visualize.fittedModel(fittedModelFileName, operationOptions)
+%   simulator.visualize.fittedModel(fittedModelFileName, operationOptions,
+%       fittedModelFilenameAllPositionsPDF, fittedModelFilenameBestPositionPDF)
 %
 % Description:
 %   Visualize a fitted RGCSTF model 
@@ -17,137 +19,141 @@ function fittedModel(fittedModelFileName, operationOptions)
 %    none
 
     load(fittedModelFileName, 'STFdataToFit', 'theConeMosaic', 'fittedModels');
-    theSTF = STFdataToFit.responses;
-    theSTFstdErr = STFdataToFit.responseSE;
-    theSFsupport = STFdataToFit.spatialFrequencySupport;
     
-    singleConeCenterModelFits = fittedModels('single-cone');
-    multiConeCenterModelFits = fittedModels('multi-cone');
-
-    switch (operationOptions.opticsScenario)
-        case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
-            opticsLabel = sprintf('%s(%1.3fD)', ...
-                operationOptions.opticsScenario, operationOptions.residualDefocusDiopters);
-    
-        case simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur
-            error('no Gaussian blur label');
-
-        otherwise
-            opticsLabel = sprintf('%s %2.2f mm pupil', ...
-                operationOptions.opticsScenario, operationOptions.pupilSizeMM);
-    end
-
-    conePositionsNum = numel(singleConeCenterModelFits);
-    rmsErrorsSingleCone = zeros(conePositionsNum,1);
-    rmsErrorsMultiCone = zeros(conePositionsNum,1);
-    for iCenterConeIdx = 1:conePositionsNum
-        rmsErrorsSingleCone(iCenterConeIdx) = singleConeCenterModelFits{iCenterConeIdx}.fittedRMSE;
-        rmsErrorsMultiCone(iCenterConeIdx) = multiConeCenterModelFits{iCenterConeIdx}.fittedRMSE;
-    end
-
-    [~, bestSingleConePos] = min(rmsErrorsSingleCone);
-    [~, bestMultiConePos] = min(rmsErrorsMultiCone);
-
-
-    hFig = figure(1); clf;
-    set(hFig, 'Name', opticsLabel);
-
-    % Plot STF fits for all positions
-    for iCenterConeIdx = 1:conePositionsNum
-        singleConeModelFitAtPosition = singleConeCenterModelFits{iCenterConeIdx};
-        %singleConeModelFitAtPosition.fittedRGCRF
-        %singleConeModelFitAtPosition.DoGparams
-        theSingleConeFittedSTF = singleConeModelFitAtPosition.fittedSTF;
-        multiConeModelFitAtPosition = multiConeCenterModelFits{iCenterConeIdx};
-        theMultiConeFittedSTF = multiConeModelFitAtPosition.fittedSTF;
-
-        ax = subplot(2,7,iCenterConeIdx);
-        plotSTFs(ax, theSFsupport, theSTF, theSTFstdErr, ...
-            theSingleConeFittedSTF, ...
-            rmsErrorsSingleCone(iCenterConeIdx), ...
-            (iCenterConeIdx == bestSingleConePos), ...
-            'single-cone');
-
-        ax = subplot(2,7,iCenterConeIdx+7);
-        plotSTFs(ax, theSFsupport, theSTF, theSTFstdErr, ...
-            theMultiConeFittedSTF, ...
-            rmsErrorsMultiCone(iCenterConeIdx), ...
-            (iCenterConeIdx == bestMultiConePos), ...
-            'multi-cone');
-    end
-
-
-    hFig = figure(2); clf;
-    set(hFig, 'Name', opticsLabel);
-
-    % Plot fitted RGC RF for all positions
-    for iCenterConeIdx = 1:conePositionsNum
-        singleConeModelFitAtPosition = singleConeCenterModelFits{iCenterConeIdx};
+    % Visualize all models
+    for iModel = 1:numel(operationOptions.rfCenterConePoolingScenariosExamined)
+        theRFcenterConePoolingScenario = operationOptions.rfCenterConePoolingScenariosExamined{iModel};
+        visualizedModel = fittedModels(theRFcenterConePoolingScenario);
         
-        conesNum = size(theConeMosaic.coneRFpositionsDegs,1);
-        theCenterConeWeights = zeros(1, conesNum);
-        theCenterConeWeights(singleConeModelFitAtPosition.fittedRGCRF.centerConeIndices) = ...
-            singleConeModelFitAtPosition.fittedRGCRF.centerConeWeights;
-    
-        theSurroundConeWeights = zeros(1, conesNum);
-        theSurroundConeWeights(singleConeModelFitAtPosition.fittedRGCRF.surroundConeIndices) = ...
-            -singleConeModelFitAtPosition.fittedRGCRF.surroundConeWeights;
-    
-        maxActivationRange = max([max(abs(theCenterConeWeights(:))) max(abs(theSurroundConeWeights(:)))]);
-        
-        centerConePositionMicrons = mean(...
-            theConeMosaic.coneRFpositionsMicrons(singleConeModelFitAtPosition.fittedRGCRF.centerConeIndices,:), 1);
-        xRangeMicrons = centerConePositionMicrons(1) + 10*[-1 1];
-        yRangeMicrons = centerConePositionMicrons(2) + 10*[-1 1];
+        % Generate a model name for the generated figure title
+        switch (operationOptions.opticsScenario)
+            case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
+                % Diffraction-limited optics with defocus-based residual blur
+                modelName = sprintf('%s (%2.3fD)', ...
+                    operationOptions.opticsScenario, ...
+                    operationOptions.residualDefocusDiopters);
 
+            case simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur
+                % Diffraction-limited optics with Gaussian-based residual blur 
+                error('Optic scenario ''%s'' is not implemented yet', simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur);
 
-        ax = subplot(4,7,iCenterConeIdx);
-        theConeMosaic.visualize(...
-            'figureHandle', hFig, 'axesHandle', ax, ...
-            'domain', 'microns', ...
-            'domainVisualizationLimits', [xRangeMicrons(1) xRangeMicrons(2) yRangeMicrons(1) yRangeMicrons(2)], ...
-            'domainVisualizationTicks', struct('x', -40:2:40, 'y', -40:2:40), ...
-            'visualizedConeAperture', 'lightCollectingArea4sigma', ...
-            'activation', theCenterConeWeights, ...
-            'activationRange', 1.2*maxActivationRange*[-1 1], ...
-            'activationColorMap', brewermap(1024, '*RdBu'), ...
-            'noYLabel', true, ...
-            'fontSize', 18, ...
-            'plotTitle', ' '); 
+            case simulator.opticsScenarios.M838Optics
+                % M838 optics
+                error('Not fitting model to M838 based optics');
 
-        ax = subplot(4,7,iCenterConeIdx+7);
-        theConeMosaic.visualize(...
-            'figureHandle', hFig, 'axesHandle', ax, ...
-            'domain', 'microns', ...
-            'domainVisualizationLimits', [xRangeMicrons(1) xRangeMicrons(2) yRangeMicrons(1) yRangeMicrons(2)], ...
-            'domainVisualizationTicks', struct('x', -40:2:40, 'y', -40:2:40), ...
-            'visualizedConeAperture', 'lightCollectingArea4sigma', ...
-            'activation', theSurroundConeWeights, ...
-            'activationRange', 1.2*maxActivationRange*[-1 1], ...
-            'activationColorMap', brewermap(1024, '*RdBu'), ...
-            'noYLabel', true, ...
-            'fontSize', 18, ...
-            'plotTitle', ' '); 
+            otherwise
+                error('Unknown optics scenario: ''%s''.', operationOptions.opticsScenario);
+        end
 
+        % Plot model fits for all positions
+        hFig = plotFittedModelAtAllPositions(visualizedModel, STFdataToFit, theConeMosaic, modelName, operationOptions.rmsSelector);
+        thePDFfilename = fittedModelFilenameAllPositionsPDF;
+        thePDFfilename = strrep(thePDFfilename, 'WhichModel', theRFcenterConePoolingScenario); 
+        NicePlot.exportFigToPDF(thePDFfilename, hFig, 300);
 
+        % Plot model fits for the best position
+        hFig = plotFittedModelAtBestPosition(visualizedModel, STFdataToFit, theConeMosaic, modelName, operationOptions.rmsSelector);
+        thePDFfilename = fittedModelFilenameBestPositionPDF;
+        thePDFfilename = strrep(thePDFfilename, 'WhichModel', theRFcenterConePoolingScenario); 
+        NicePlot.exportFigToPDF(thePDFfilename, hFig, 300);
     end
+end
 
+
+function hFig = plotFittedModelAtBestPosition(visualizedModelFits, STFdataToFit, theConeMosaic, modelName, rmsSelector)
+    % Find cone position resulting in the minimal RMSE
+    [bestConePosIdx, RMSErrorsAllPositions] = ...
+        simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, STFdataToFit, rmsSelector);
+
+    % Set-up figure
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+       'colsNum', 4, ...
+       'rowsNum', 1, ...
+       'heightMargin',  0.03, ...
+       'widthMargin',    0.05, ...
+       'leftMargin',     0.09, ...
+       'rightMargin',    0.02, ...
+       'bottomMargin',   0.2, ...
+       'topMargin',      0.02);
+
+    % Plot model fits at all examined positions
+    hFig = figure();
+    set(hFig, 'Position', [1 1 670 200], 'Color', [1 1 1], ...
+              'Name', modelName);
+
+    axCenter = subplot('Position', subplotPosVectors(1,1).v);
+    axSurround = subplot('Position', subplotPosVectors(1,2).v);
+    axProfile = subplot('Position', subplotPosVectors(1,3).v);
+    axSTF = subplot('Position', subplotPosVectors(1,4).v);
+
+    % Visualize the cone weights to the RF center and RF surround
+    simulator.visualize.fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
+                theConeMosaic, visualizedModelFits{bestConePosIdx}.fittedRGCRF, ...
+                false, false);
+
+    % Visualize the STF and the fit
+    simulator.visualize.fittedSTF(hFig, axSTF, ...
+            STFdataToFit.spatialFrequencySupport, ...
+            STFdataToFit.responses, ...
+            STFdataToFit.responseSE, ...
+            visualizedModelFits{bestConePosIdx}.fittedSTF, ...
+            RMSErrorsAllPositions(bestConePosIdx), ...
+            true, ...
+            false, ...
+            sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex));
+end
+
+
+
+function hFig = plotFittedModelAtAllPositions(visualizedModelFits, STFdataToFit, theConeMosaic, modelName, rmsSelector)
+    
+    % Find cone position resulting in the minimal RMSE
+    examinedConePositionsNum = numel(visualizedModelFits);
+
+    % Find cone position resulting in the minimal RMSE
+    [bestConePosIdx, RMSErrorsAllPositions] = ...
+        simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, STFdataToFit, rmsSelector);
+
+    % Set-up figure
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+       'colsNum', 4, ...
+       'rowsNum', examinedConePositionsNum, ...
+       'heightMargin',  0.03, ...
+       'widthMargin',    0.00, ...
+       'leftMargin',     0.04, ...
+       'rightMargin',    0.00, ...
+       'bottomMargin',   0.05, ...
+       'topMargin',      0.01);
+
+    % Plot model fits at all examined positions
+    hFig = figure();
+    set(hFig, 'Position', [1 1 670 1200], 'Color', [1 1 1], ...
+              'Name', modelName);
+
+    for iConePosIdx = 1:examinedConePositionsNum
+        
+        axCenter = subplot('Position', subplotPosVectors(iConePosIdx,1).v);
+        axSurround = subplot('Position', subplotPosVectors(iConePosIdx,2).v);
+        axProfile = subplot('Position', subplotPosVectors(iConePosIdx,3).v);
+        axSTF = subplot('Position', subplotPosVectors(iConePosIdx,4).v);
+
+        % Visualize the cone weights to the RF center and RF surround
+        simulator.visualize.fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
+                theConeMosaic, visualizedModelFits{iConePosIdx}.fittedRGCRF, ...
+                (iConePosIdx < examinedConePositionsNum), true);
+                
+        % Visualize the STF and the fit
+        simulator.visualize.fittedSTF(hFig, axSTF, ...
+            STFdataToFit.spatialFrequencySupport, ...
+            STFdataToFit.responses, ...
+            STFdataToFit.responseSE, ...
+            visualizedModelFits{iConePosIdx}.fittedSTF, ...
+            RMSErrorsAllPositions(iConePosIdx), ...
+            (iConePosIdx == bestConePosIdx), ...
+            (iConePosIdx < examinedConePositionsNum), ...
+            sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex));
+    end
 
 end
 
-function plotSTFs(ax, theSFsupport, theSTF, theSTFstdErr, ...
-        theFittedSTF, rmsError, isBestPosition, modelName)
-    plot(ax, theSFsupport, theSTF, 'ks');
-    hold(ax, 'on');
-    if (isBestPosition)
-        color = [1 0 0];
-    else
-        color = [0 0 0];
-    end
-    plot(ax, theSFsupport, theFittedSTF, 'k-', 'Color', color, 'LineWidth', 1.5);
-    set(ax, 'XScale', 'log', 'XLim', [4 60], 'XTick', [5 10 20 40 60]);
-    set(ax, 'YLim', [-0.2 0.8], 'YTick', -0.2:0.1:1.0);
-    grid(ax, 'on')
-    title(ax, sprintf('%s (rmse: %2.4f)', modelName, rmsError));
-end
 
