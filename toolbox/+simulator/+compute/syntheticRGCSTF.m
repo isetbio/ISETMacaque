@@ -1,5 +1,5 @@
 function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName, ...
-    rfCenterConePoolingScenario, STFdataToFit, rmsSelector)
+    syntheticSTFdataPDFFilename, STFdataToFit, rfCenterConePoolingScenario, rmsSelector)
 % Compute synthetic RGC responses to stimuli of different SFs
 %
 % Syntax:
@@ -21,7 +21,7 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
     
     coneMosaicResponsesFileName
     syntheticRGCmodelFilename
-    pause
+
     % Load the computed cone mosaic responses for the STF stimulus
     load(coneMosaicResponsesFileName, 'theConeMosaic', 'coneMosaicBackgroundActivation', ...
         'coneMosaicSpatiotemporalActivation', 'temporalSupportSeconds', ...
@@ -58,7 +58,7 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
     surroundConeIndices = surroundConeIndices(:);
     surroundConeWeights = surroundConeWeights(:);
 
-    figure();
+    %figure();
     for iSF = 1:numel(spatialFrequenciesExamined)
         for tBin = 1:numel(temporalSupportSeconds)
             cMosaicSpatialActivation = squeeze(coneMosaicSpatiotemporalActivation(iSF,tBin,:));
@@ -68,19 +68,35 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
             surroundActivation = sum(surroundConeSignals(:) .* surroundConeWeights(:));
             RGCresponse(iSF,tBin) = centerActivation - surroundActivation;
         end 
-        subplot(3,5, iSF)
-        plot(temporalSupportSeconds, RGCresponse(iSF,:), 'k-');
-        title(sprintf('%2.3f c/deg', spatialFrequenciesExamined(iSF)));
+%         subplot(3,5, iSF)
+%         plot(temporalSupportSeconds, RGCresponse(iSF,:), 'k-');
+%         title(sprintf('%2.3f c/deg', spatialFrequenciesExamined(iSF)));
 
     end
 
-    figure()
-    subplot(1,2,1)
-    plot(spatialFrequenciesExamined, max(RGCresponse,[],2), 'ks-');
-    subplot(1,2,2)
+    theSynthesizedSTF = max(RGCresponse,[],2);
+    hFig = figure()
+    subplot(1,3,1)
+    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-');
+    set(gca, 'XScale', 'log', 'XLim', [4 60])
+    subplot(1,3,2)
     plot(spatialFrequenciesExamined, STFdataToFit.responses, 'ro');
     hold on
     plot(spatialFrequenciesExamined, theBestConePositionModel.fittedSTF, 'r-');
+    set(gca, 'XScale', 'log', 'XLim', [4 60])
 
+    theSynthesizedSTF = (theSynthesizedSTF-min(theSynthesizedSTF))/(max(theSynthesizedSTF)-min(theSynthesizedSTF));
+    m1 = min(STFdataToFit.responses);
+    m2 = max(STFdataToFit.responses);
+    STFdataToFit.responses = (STFdataToFit.responses-m1)/(m2-m1);
+    theBestConePositionModel.fittedSTF = (theBestConePositionModel.fittedSTF-m1)/(m2-m1);
+    subplot(1,3,3);
+    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-');
+    hold on;
+    plot(spatialFrequenciesExamined, STFdataToFit.responses, 'ro');
+    plot(spatialFrequenciesExamined, theBestConePositionModel.fittedSTF, 'r-');
+    set(gca, 'XScale', 'log', 'XLim', [4 60], 'YLim', [0 1])
+
+    NicePlot.exportFigToPDF(syntheticSTFdataPDFFilename, hFig, 300);
 end
 

@@ -28,10 +28,15 @@ function runMain()
     operationOptions.residualDefocusDiopters = 0.067;
     %operationOptions.residualDefocusDiopters = 0.000;
 
-    % M838, 2.5 mm pupil optics scenario
+    % M838 optics scenario
     operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
     operationOptions.pupilSizeMM = 3.0;
 
+    % Polans subject optics scenario
+    operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
+    operationOptions.subjectID = 2;
+    operationOptions.pupilSizeMM = 3.0;
+    
 
     % Choose which stimulus type to use.
     % To list the available options, type:
@@ -73,7 +78,7 @@ function runMain()
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindex', 11);
+        'whichRGCindex', 7);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -105,7 +110,7 @@ function runMain()
     % -----------------------------------------------------------------
     %operation = simulator.operations.computeSynthesizedRGCSTFresponses;
 
-    % Params of the synthetic RGC model
+    % Params used to derive the RGC model
     operationOptions.syntheticRGCmodelParams = struct(...
         'opticsParams', struct(...
             'type', simulator.opticsTypes.diffractionLimited, ...
@@ -115,8 +120,7 @@ function runMain()
         'cMosaicParams', struct(...
             'coneCouplingLambda', 0.0), ...
         'rfCenterConePoolingScenario', 'single-cone', ...
-        'rmsSelector', 'unweighted', ...
-        'STFdataToFit', operationOptions.STFdataToFit ...
+        'rmsSelector', 'unweighted'...
       );
     
 
