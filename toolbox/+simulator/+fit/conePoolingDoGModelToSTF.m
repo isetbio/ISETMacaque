@@ -125,9 +125,9 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
             'DerivativeCheck', 'off', ...
             'MaxFunEvals', 10^5, ...
             'MaxIter', 10^3);
-
+    
     % The optimization objective
-    objective = @(p) sum(sfWeightingFactors .* (simulator.modelRGC.STFfromDoGpooledConeMosaicSTFresponses(p, modelConstants) - dataToFit).^2);
+    objective = @(p) sum(sfWeightingFactors .* (simulator.modelRGC.STFfromDoGpooledConeMosaicSTFresponses(p, modelConstants) - STFdataToFit.responses).^2);
 
     % Multi-start
     problem = createOptimProblem('fmincon',...
@@ -152,7 +152,7 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
 
 
     % Compute the RMSE of the fit
-    bestFitRMSE = sqrt(sum(sfWeightingFactors .* (bestFitRGCSTF - dataToFit).^2)/sum(sfWeightingFactors(:)));
+    bestFitRMSE = sqrt(sum(sfWeightingFactors .* (bestFitRGCSTF - STFdataToFit.responses).^2)/sum(sfWeightingFactors(:)));
 
     
     fitResults = struct(...
