@@ -29,20 +29,20 @@ function runMain()
     %operationOptions.residualDefocusDiopters = 0.000;
 
     % M838 optics scenario
-    operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
-    operationOptions.pupilSizeMM = 3.0;
+    %operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
+    %operationOptions.pupilSizeMM = 2.5;
 
     % Polans subject optics scenario
-    operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
-    operationOptions.subjectID = 2;
-    operationOptions.pupilSizeMM = 3.0;
+    %operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
+    %operationOptions.subjectID = 8;
+    %operationOptions.pupilSizeMM = 3.0;
     
 
     % Choose which stimulus type to use.
     % To list the available options, type:
     %    enumeration simulator.stimTypes
-    %operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
-    operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+    operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
+    %operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
 
     % Choose what operation to run.
     % To list the available options, type:
@@ -68,17 +68,17 @@ function runMain()
     % -----------------------------------------------------------------
     % 4. Fit fluorescence STF responses for some modeling scenario
     % -----------------------------------------------------------------
-    %operation = simulator.operations.fitFluorescenceSTFresponses;
+    operation = simulator.operations.fitFluorescenceSTFresponses;
 
     % RF center pooling scenarios to examine
     operationOptions.rfCenterConePoolingScenariosExamined = ...
-        {'single-cone', 'multi-cone'};
+        {'single-cone'} %, 'multi-cone'};
 
     % Select which recording session and which RGC to fit. 
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindex', 7);
+        'whichRGCindex', 8);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -92,7 +92,7 @@ function runMain()
     operationOptions.fitParams = struct(...
         'multiStartsNum', 512, ...
         'accountForNegativeSTFdata', true, ...
-        'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
+        'spatialFrequencyBias', simulator.spatialFrequencyWeightings.flat ... %boostHighEnd ...
         );
     
 
