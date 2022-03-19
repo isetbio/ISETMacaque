@@ -26,7 +26,7 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
     modelConstants.allConeTypes = theConeMosaic.coneTypes;
     modelConstants.coneMosaicSpatiotemporalActivation = coneMosaicSpatiotemporalActivation;
     modelConstants.temporalSupportSeconds = temporalSupportSeconds;
-
+    
     % Select spatial frequency weighting factors
     switch(fitParams.spatialFrequencyBias)
         case simulator.spatialFrequencyWeightings.standardErrorOfTheMeanBased
@@ -89,25 +89,31 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
             error('Unknown rfCenterConePoolingScenario: ''%s''.', rfCenterConePoolingScenario);
     end
  
-    % Data to fit
-    dataToFit = STFdataToFit.responses;
     if (fitParams.accountForNegativeSTFdata)
-        % Remove any negative STF offset
-        dataToFit = dataToFit - min([0 min(STFdataToFit.responses(:))]);
+        % Add extra parameter at the end, encoding dcoffset
+        negativeIndices = find(STFdataToFit.responses<0);
+        if (isempty(negativeIndices))
+           dcOffsetInitialValue = 0;
+        else
+            dcOffsetInitialValue = mean(STFdataToFit.responses(negativeIndices));
+        end
+        DoGparams.initialValues(numel(DoGparams.initialValues)+1) = dcOffsetInitialValue;
+        DoGparams.lowerBounds(numel(DoGparams.lowerBounds)+1) = min([0 min(STFdataToFit.responses(:))]);
+        DoGparams.upperBounds(numel(DoGparams.upperBounds)+1) = 0;  % dc-offset can only be negative
+        DoGparams.names{numel(DoGparams.names)+1} = 'dcOffset';
+    else
+        DoGparams.initialValues(numel(DoGparams.initialValues)+1) = 0;
+        DoGparams.lowerBounds(numel(DoGparams.lowerBounds)+1) = 0;
+        DoGparams.upperBounds(numel(DoGparams.upperBounds)+1) = 0;
+        DoGparams.names{numel(DoGparams.names)+1} = 'dcOffset';
     end
 
     % Prefit test
-
     modelRGCSTF = simulator.modelRGC.STFfromDoGpooledConeMosaicSTFresponses(...
         DoGparams.initialValues, modelConstants);
 
     assert(all(size(modelRGCSTF) == size(sfWeightingFactors)), ...
         sprintf('size of ISETBioComputedSTF not compatible with STF'));
-
-    if (fitParams.accountForNegativeSTFdata)
-        % Add back any negative STF offset
-        modelRGCSTF = modelRGCSTF + min([0 min(STFdataToFit.responses(:))]);
-    end
     % End of prefit test
 
 
@@ -144,10 +150,6 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
     [bestFitRGCSTF, bestFitRGCRFmodel] = simulator.modelRGC.STFfromDoGpooledConeMosaicSTFresponses(...
         DoGparams.bestFitValues, modelConstants);
 
-    if (fitParams.accountForNegativeSTFdata)
-        % Add back any negative STF offset
-        bestFitRGCSTF = bestFitRGCSTF + min([0 min(STFdataToFit.responses(:))]);
-    end
 
     % Compute the RMSE of the fit
     bestFitRMSE = sqrt(sum(sfWeightingFactors .* (bestFitRGCSTF - dataToFit).^2)/sum(sfWeightingFactors(:)));
@@ -158,6 +160,4 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
         'fittedRGCRF', bestFitRGCRFmodel, ...
         'fittedRMSE', bestFitRMSE, ...
         'fittedSTF', bestFitRGCSTF);
-
-
 end
