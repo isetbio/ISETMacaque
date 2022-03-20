@@ -59,7 +59,7 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
 
     % DoG param initial values and limits: RsToCenterConeRc ratio
     RsToCenterConeRc = struct(...
-        'low', 1.2, ...
+        'low', 1.5, ...
         'high', 40, ...
         'initial', 5);
 
@@ -72,7 +72,7 @@ function fitResults = conePoolingDoGModelToSTF(STFdataToFit, fitParams, theConeM
 
     switch (rfCenterConePoolingScenario)
         case 'single-cone'
-            %                          Kc            kS/kC             RsToCenterConeRc          
+            %                          Kc            kS/kC            RsToCenterConeRc          
             DoGparams.initialValues = [Kc.initial   KsToKc.initial    RsToCenterConeRc.initial];
             DoGparams.lowerBounds   = [Kc.low       KsToKc.low        RsToCenterConeRc.low    ];
             DoGparams.upperBounds   = [Kc.high      KsToKc.high       RsToCenterConeRc.high   ];
