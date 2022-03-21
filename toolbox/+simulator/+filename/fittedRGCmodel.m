@@ -42,7 +42,7 @@ function filename = fittedRGCmodel(monkeyID, options, ...
 
         case simulator.opticsTypes.Polans
             opticsDescriptor = sprintf('_%sSubj%dOptics_PupilDiam_%2.2fMM', ...
-                options.opticsParams.type, opticsParams.PolansSubject, options.opticsParams.pupilSizeMM);
+                options.opticsParams.type, options.opticsParams.subjectID, options.opticsParams.pupilSizeMM);
 
         case simulator.opticsTypes.Artal
             error('Artal optics not implemented yet')

@@ -26,15 +26,15 @@ function runMain()
     %    enumeration simulator.opticsScenarios
     operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
     operationOptions.residualDefocusDiopters = 0.067;
-    %operationOptions.residualDefocusDiopters = 0.000;
+    operationOptions.residualDefocusDiopters = 0.000;
 
     % M838 optics scenario
-    %operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
-    %operationOptions.pupilSizeMM = 2.5;
+    operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
+    operationOptions.pupilSizeMM = 2.5;
 
     % Polans subject optics scenario
     %operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
-    %operationOptions.subjectID = 8;
+    %operationOptions.subjectID = 8; % [2 8 9]
     %operationOptions.pupilSizeMM = 3.0;
     
 
@@ -42,7 +42,7 @@ function runMain()
     % To list the available options, type:
     %    enumeration simulator.stimTypes
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
-    %operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+    operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
 
     % Choose what operation to run.
     % To list the available options, type:
@@ -62,7 +62,7 @@ function runMain()
     % -----------------------------------------------------------------
     % 3. Visualize cone mosaic responses
     % -----------------------------------------------------------------
-    %operation = simulator.operations.visualizeConeMosaicSTFresponses;
+    operation = simulator.operations.visualizeConeMosaicSTFresponses;
     
     
     % -----------------------------------------------------------------
@@ -72,13 +72,13 @@ function runMain()
 
     % RF center pooling scenarios to examine
     operationOptions.rfCenterConePoolingScenariosExamined = ...
-        {'single-cone'} %, 'multi-cone'};
+        {'single-cone', 'multi-cone'};
 
     % Select which recording session and which RGC to fit. 
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindex', 8);
+        'whichRGCindex', 1);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -108,19 +108,52 @@ function runMain()
     % -----------------------------------------------------------------
     % 6. Compute synthesized RGC STF responses
     % -----------------------------------------------------------------
-    %operation = simulator.operations.computeSynthesizedRGCSTFresponses;
-
+    operation = simulator.operations.computeSynthesizedRGCSTFresponses;
+   
+    
+    theSyntheticRGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
+    switch (theSyntheticRGCIDstring)
+        case 'L1'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
+        case 'L3'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
+        case 'L4'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
+        case 'L5'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; FLAT b/ 0.062-0.072
+        case 'L6'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.082;
+        case 'L7'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
+        case 'L8'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;   %FLAT n/n 0 - 0.057
+        case 'L10'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; % FLAT b/n 0.067-.0.077
+        case 'L11'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.062; % FLAT b/n 0.057-0.067
+        case 'M1'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; % FLAT between 0.057-0.077
+        case 'M2'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
+        case 'M3'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067;  % FLAT from 0 - 0.072
+        case 'M4'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;  % FLAT from 0 to 0.062
+        otherwise
+            error('Must be a residual defocus for cell %s', theSyntheticRGCIDstring)
+    end
+    
     % Params used to derive the RGC model
     operationOptions.syntheticRGCmodelParams = struct(...
         'opticsParams', struct(...
             'type', simulator.opticsTypes.diffractionLimited, ...
-            'residualDefocusDiopters', 0.067), ...
+            'residualDefocusDiopters', residualDefocusUsedToDerivedOpticmalSyntheticRGCModel), ...
         'stimulusParams', struct(...
             'type', simulator.stimTypes.monochromaticAO), ...
         'cMosaicParams', struct(...
             'coneCouplingLambda', 0.0), ...
         'rfCenterConePoolingScenario', 'single-cone', ...
-        'rmsSelector', 'weighted'...
+        'rmsSelector', 'unweighted'...
       );
     
 

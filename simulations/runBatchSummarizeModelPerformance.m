@@ -31,8 +31,8 @@ function runBatchSummarizeModelPerformance
         {'single-cone', 'multi-cone'};
 
     % Examined residual defocus values
-    residualDefocusDiopterValuesExamined = [0.00 0.042 0.047 0.067];
-
+    residualDefocusDiopterValuesExamined = [0 0.042 0.057 0.062 0.067 0.072 0.077 0.082];
+    
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
@@ -66,6 +66,7 @@ function runBatchSummarizeModelPerformance
 
     for iRGCindex = 1:numel(coneRGCindices)
         
+
         % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                  'whichSession', 'meanOverSessions', ...

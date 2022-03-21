@@ -36,8 +36,6 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
 
     % Load the RGC model to employ
     load(syntheticRGCmodelFilename, 'fittedModels');
-    rfCenterConePoolingScenario
-    pause
     coneMosaicPositionModels = fittedModels(rfCenterConePoolingScenario);
 
     % This model contains fits to a number of cone positions.
@@ -45,9 +43,12 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
     bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(...
             coneMosaicPositionModels, STFdataToFit, rmsSelector);
 
+    rmsSelector
+    bestConePosIdx
+    
     hFig = figure(1); clf;
-    for bestConePosIdx = 1:numel(coneMosaicPositionModels)
-    theBestConePositionModel = coneMosaicPositionModels{bestConePosIdx};
+    for conePosIndex = 1:numel(coneMosaicPositionModels)
+    theBestConePositionModel = coneMosaicPositionModels{conePosIndex};
 
     theBestConePositionModel
     theBestConePositionModel.DoGparams
@@ -110,29 +111,37 @@ function syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName,
 
     end
 
+    if (conePosIndex  == bestConePosIdx)
+        lineWidth = 1.5;
+    else
+        lineWidth = 0.7;
+    end
     
-    subplot(7,3,(bestConePosIdx-1)*3+1)
-    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-');
+    subplot(7,3,(conePosIndex-1)*3+1)
+    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-', 'lineWidth' , lineWidth );
     hold on;
     plot(spatialFrequenciesExamined, theCenterSTF, 'r.-');
     plot(spatialFrequenciesExamined, theSurroundSTF, 'b.-');
     set(gca, 'XScale', 'log', 'XLim', [4 60])
 
-    subplot(7,3,(bestConePosIdx-1)*3+2)
+    subplot(7,3,(conePosIndex-1)*3+2)
     plot(spatialFrequenciesExamined, STFdataToFit.responses, 'ro');
     hold on
     plot(spatialFrequenciesExamined, theBestConePositionModel.fittedSTF, 'r-');
     set(gca, 'XScale', 'log', 'XLim', [4 60])
 
     
-    subplot(7,3,(bestConePosIdx-1)*3+3);
+    subplot(7,3,(conePosIndex-1)*3+3);
     yyaxis('left')
-    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-');
+    plot(spatialFrequenciesExamined, theSynthesizedSTF, 'ks-', 'lineWidth' , lineWidth );
+    ylabel(sprintf('synthesized STF\n(physiological optics)'));
+    set(gca, 'YColor', [0 0 0]);
     yyaxis('right')
     plot(spatialFrequenciesExamined, STFdataToFit.responses, 'ro');
     hold on
     plot(spatialFrequenciesExamined, theBestConePositionModel.fittedSTF, 'r-');
-    set(gca, 'XScale', 'log', 'XLim', [4 60], 'YLim', [0 1])
+    ylabel('measured STF (AOSLO)');
+    set(gca, 'YColor', 'r', 'XScale', 'log', 'XLim', [4 60])
 
     pause
 
