@@ -63,20 +63,23 @@ function [modelRGCSTF, RGCRFmodel] = STFfromDoGpooledConeMosaicSTFresponses(...
         modelConstants.surroundConeTypes, ...
         centroidPosition);
 
+    % Actual center/surround weights
+    centerConeWeights = Kc * centerConeWeights;
+    surroundConeWeights = Ks * surroundConeWeights;
+    
     % Compute RGC responses
-    modelRGCmodulations = poolConeMosaicResponses( ...
+    modelRGCmodulations = simulator.modelRGC.poolConeMosaicResponses( ...
             modelConstants.coneMosaicSpatiotemporalActivation(:,:,centerConeIndices), ...
             modelConstants.coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices), ...
             centerConeWeights, ...
-            surroundConeWeights, ...
-            Kc, Ks);
+            surroundConeWeights);
 
     % The RGC RF model
     RGCRFmodel = struct(...
         'centerConeIndices', centerConeIndices, ...
         'surroundConeIndices', surroundConeIndices, ...
-        'centerConeWeights', Kc*centerConeWeights, ...
-        'surroundConeWeights', Ks*surroundConeWeights);
+        'centerConeWeights', centerConeWeights, ...
+        'surroundConeWeights', surroundConeWeights);
 
     % Fit a sinusoid to the time series responses for each spatial frequency
     % The amplitude of the sinusoid is the STFmagnitude at that spatial frequency
@@ -94,36 +97,3 @@ function [modelRGCSTF, RGCRFmodel] = STFfromDoGpooledConeMosaicSTFresponses(...
         modelRGCSTF(iSF) = dcOffset + fittedParams(1);
     end %iSF
 end
-
-
-function RGCresponses = poolConeMosaicResponses(...
-    coneResponsesToRGCcenter, ...
-    coneResponsesToRGCsurround, ...
-    centerConeWeights, ...
-    surroundConeWeights, ...
-    Kc, Ks)
-
-    % Weighted pooling of center model cone responses
-    weightedCenterModulations = bsxfun(@times, coneResponsesToRGCcenter, reshape(centerConeWeights, [1 1 numel(centerConeWeights)]));
-
-    % Sum weighted center cone responses
-    totalCenterResponse = sum(weightedCenterModulations,3);
-
-    % Apply center gain
-    centerMechanismModulations = Kc * totalCenterResponse;
-
-    % Weighted pooling of surround model cone responses
-    weightedSurroundModulations = bsxfun(@times, coneResponsesToRGCsurround, reshape(surroundConeWeights, [1 1 numel(surroundConeWeights)]));
-    
-    % Sum weighted surround cone responses
-    totalSurroundResponse = sum(weightedSurroundModulations,3);
-
-    % Apply surround gain 
-    surroundMechanismModulations = Ks * totalSurroundResponse;
-
-    % Composite center-surround responses
-    RGCresponses = centerMechanismModulations - surroundMechanismModulations;
-
-end
-
-

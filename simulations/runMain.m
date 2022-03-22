@@ -78,7 +78,7 @@ function runMain()
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindex', 1);
+        'whichRGCindex', 4);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -115,18 +115,22 @@ function runMain()
     switch (theSyntheticRGCIDstring)
         case 'L1'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
+         case 'L2'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.057;
         case 'L3'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
         case 'L4'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
         case 'L5'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; FLAT b/ 0.062-0.072
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; %FLAT b/ 0.062-0.072
         case 'L6'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.082;
         case 'L7'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
         case 'L8'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;   %FLAT n/n 0 - 0.057
+        case 'L9'
+            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; 
         case 'L10'
             residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; % FLAT b/n 0.067-.0.077
         case 'L11'
