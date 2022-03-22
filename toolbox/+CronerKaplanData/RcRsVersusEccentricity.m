@@ -90,7 +90,7 @@ function [Rc, Rs, RcRsRatio, axesHandles] = RcRsVersusEccentricity(varargin)
             plotHandles(numel(plotHandles)+1) = p;
         end
         
-        if (addExtraData2) && (~isempty(extraData.eccDegs))
+        if (addExtraData2) && (~isempty(extraData2.eccDegs))
             hold(ax, 'on');
             p = plot(ax, extraData2.eccDegs, extraData2.values, 'bo', ...
                 'MarkerSize', 8);
