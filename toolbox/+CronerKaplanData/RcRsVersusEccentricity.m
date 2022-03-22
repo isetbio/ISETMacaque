@@ -135,11 +135,13 @@ function [Rc, Rs, RcRsRatio, axesHandles] = RcRsVersusEccentricity(varargin)
         plotHandles(numel(plotHandles)+1) = p;
         
         % Add regression lines from C&K paper
-%         eccDegsSupport = logspace(log10(0.03), log10(30), 100);
-%         CK_regressionLineForRc = RcAlpha*eccDegsSupport.^RcBeta;
-%         CK_regressionLineForRs = RsAlpha*eccDegsSupport.^RsBeta;
-%         plot(eccDegsSupport, CK_regressionLineForRc, '-', 'Color', [0.6 0.6 0.8], 'LineWidth', 2.0);
-%         plot(eccDegsSupport, CK_regressionLineForRs, '-', 'Color', [0.2 0.2 0.8], 'LineWidth', 2.0);
+        eccDegsSupport = logspace(log10(0.03), log10(30), 100);
+        CK_regressionLineForRc = RcAlpha*eccDegsSupport.^RcBeta;
+        CK_regressionLineForRs = RsAlpha*eccDegsSupport.^RsBeta;
+        plot(eccDegsSupport, CK_regressionLineForRc, '-', 'Color', [1 0.8 0.2]*0.2, 'LineWidth', 4.0);
+        plot(eccDegsSupport, CK_regressionLineForRc, '--', 'Color', [1 0.8 0.2], 'LineWidth', 2.0);
+        plot(eccDegsSupport, CK_regressionLineForRs, '-', 'Color', [1 0.5 0.2]*0.2, 'LineWidth', 4.0);
+        plot(eccDegsSupport, CK_regressionLineForRs, '--', 'Color', [1 0.5 0.2], 'LineWidth', 2.0);
 %        
         xlabel(ax,'eccentricity (degs)');
         ylabel(ax,'characteristic radius (degs)');
