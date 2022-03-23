@@ -43,13 +43,9 @@ function runBatchComputePhysiologicalOpticsSTF()
     %    enumeration simulator.stimTypes
     operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
 
-    % Choose what operation to run.
-
-
     % RF center pooling scenarios to examine
-    operationOptions.rfCenterConePoolingScenariosExamined = ...
-        {'single-cone', 'multi-cone'};
-
+%     operationOptions.rfCenterConePoolingScenariosExamined = ...
+%         {'single-cone', 'multi-cone'};
 
  
     % Select the spatial sampling within the cone mosaic
@@ -67,7 +63,7 @@ function runBatchComputePhysiologicalOpticsSTF()
         'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
         );
     
-
+    % Compute synthesized STF responses
     operation = simulator.operations.computeSynthesizedRGCSTFresponses;
    
     
@@ -79,55 +75,34 @@ function runBatchComputePhysiologicalOpticsSTF()
     coneRGCindices(1:LconeRGCsNum) = 1:LconeRGCsNum;
     coneRGCindices(LconeRGCsNum+(1:MconeRGCsNum)) = 1:MconeRGCsNum;
 
-    for iRGCindex = 1:numel(coneRGCindices)
+    dataOut = cell(1, numel(coneRGCindices));
+    
+    for iRGCindex = 1:numel(coneRGCindices)    
+        
+        % Select which recording session and which RGC to fit. 
+        operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
+            'whichSession', 'meanOverSessions', ...
+            'whichCenterConeType', coneTypes{iRGCindex}, ...
+            'whichRGCindex', coneRGCindices(iRGCindex));
+        
+        % Synthesize RGCID string
+        RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
+        
+        % Select optimal residual defocus for deriving the synthetic RGC model
+        residualDefocus = simulator.optimalResidualDefocusForSingleConeCenterRFmodel(...
+            monkeyID, RGCIDstring);
         
          % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
-        'whichSession', 'meanOverSessions', ...
-        'whichCenterConeType', coneTypes{iRGCindex}, ...
-        'whichRGCindex', coneRGCindices(iRGCindex));
-    
-        theSyntheticRGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
-        switch (theSyntheticRGCIDstring)
-            case 'L1'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-             case 'L2'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.057;
-            case 'L3'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-            case 'L4'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-            case 'L5'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; %FLAT b/ 0.062-0.072
-            case 'L6'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.082;
-            case 'L7'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-            case 'L8'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;   %FLAT n/n 0 - 0.057
-            case 'L9'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; 
-            case 'L10'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; % FLAT b/n 0.067-.0.077
-            case 'L11'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.062; % FLAT b/n 0.057-0.067
-            case 'M1'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; % FLAT between 0.057-0.077
-            case 'M2'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-            case 'M3'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067;  % FLAT from 0 - 0.072
-            case 'M4'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;  % FLAT from 0 to 0.062
-            otherwise
-                error('Must be a residual defocus for cell %s', theSyntheticRGCIDstring)
-        end
-    
+            'whichSession', 'meanOverSessions', ...
+            'whichCenterConeType', coneTypes{iRGCindex}, ...
+            'whichRGCindex', coneRGCindices(iRGCindex));
+        
         % Params used to derive the RGC model
         operationOptions.syntheticRGCmodelParams = struct(...
             'opticsParams', struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
-                'residualDefocusDiopters', residualDefocusUsedToDerivedOpticmalSyntheticRGCModel), ...
+                'residualDefocusDiopters', residualDefocus), ...
             'stimulusParams', struct(...
                 'type', simulator.stimTypes.monochromaticAO), ...
             'cMosaicParams', struct(...
@@ -136,115 +111,17 @@ function runBatchComputePhysiologicalOpticsSTF()
             'rmsSelector', 'unweighted'...
           );
     
-
         % Go !
         dataOut{iRGCindex} = simulator.performOperation(operation, operationOptions, monkeyID);
     end
     
-    % Collect the stats
-    for iRGCindex = 1:numel(coneRGCindices)
-        d = dataOut{iRGCindex};
-        weightsSurroundToCenterRatioAllCells(iRGCindex) = d.weightsSurroundToCenterRatio;
-        
-        for iParam = 1:numel(d.physiologicalOpticsDoGParams.names)
-            if (strcmp(d.physiologicalOpticsDoGParams.names{iParam}, 'RsToCenterConeRc'))
-                RsToCenterConeRcPhysiologicalOpticsAllCells(iRGCindex) = d.physiologicalOpticsDoGParams.bestFitValues(iParam);
-            end
-            
-            if (strcmp(d.physiologicalOpticsDoGParams.names{iParam}, 'kS/kC'))
-                KsToKcPhysiologicalOpticsAllCells(iRGCindex) = d.physiologicalOpticsDoGParams.bestFitValues(iParam);
-            end
-            
-            if (strcmp(d.physiologicalOpticsDoGParams.names{iParam}, 'RcDegs'))
-                RcDegsPhysiologicalOpticsAllCells(iRGCindex) = d.physiologicalOpticsDoGParams.bestFitValues(iParam);
-            end
-        end
-        
-        for iParam = 1:numel(d.AOSLOOpticsDoGparams.names)
-            if (strcmp(d.AOSLOOpticsDoGparams.names{iParam}, 'RsToCenterConeRc'))
-                RsToCenterConeRcAOSLOOpticsAllCells(iRGCindex) = d.AOSLOOpticsDoGparams.bestFitValues(iParam);
-            end
-            
-            if (strcmp(d.AOSLOOpticsDoGparams.names{iParam}, 'kS/kC'))
-                KsToKcAOSLOOpticsAllCells(iRGCindex) = d.AOSLOOpticsDoGparams.bestFitValues(iParam);
-            end
-            
-            RcDegsRetinalSingleConeRFcenterAllCells(iRGCindex) = d.centerConeCharacteristicRadiusDegs;
-            eccDegsAllCells(iRGCindex) = d.centerConeEccDegs;
-        end
-    end
+    % Visualize population Rc/Rs stats
+    simulator.visualize.populationRcRsStats(dataOut);
     
-    % Add the variation in coneRc for the M838 mosaic
-    % Load the cone mosaic
-    load(dataOut{iRGCindex}.coneMosaicResponsesFileName, 'theConeMosaic');
+    % Visualize population Ks/Kc stats
+    simulator.visualize.populationKsKcStats(dataOut);
     
-    %  Plot the Rc of all cones in the model mosaic
-    allMosaicConesEcc = sqrt(sum(theConeMosaic.coneRFpositionsDegs.^2,2));
-    allMosaicConesRc = theConeMosaic.coneRFspacingsDegs * 0.204 * sqrt(2.0);
-    idx = find(allMosaicConesEcc< 0.6);
-    allMosaicConesEcc = allMosaicConesEcc(idx);
-    allMosaicConesRc = allMosaicConesRc(idx);
-    
-    % Add the curcio mosaic data
-    obj = WatsonRGCModel();
-    CurcioModelConesEcc = logspace(log10(0.01), log10(100), 100);
-    coneSpacingDegs = obj.coneRFSpacingAndDensityAlongMeridian(CurcioModelConesEcc, 'temporal meridian', 'deg', 'deg^2');
-    CurcioModelConesRc  = coneSpacingDegs * 0.204 * sqrt(2.0);
-
-    
-   
-    % AOSLO-optics figure
-    [~,~,~, axesHandles1] = CronerKaplanData.RcRsVersusEccentricity(...
-        'generateFigure', true, ...
-        'extraRcRsRatioData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', 1./RsToCenterConeRcAOSLOOpticsAllCells, ...
-            'legend', 'M3 - AOSLO optics'), ...
-        'extraRcDegsData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', RcDegsRetinalSingleConeRFcenterAllCells, ...
-            'legend', 'Rc (M3 - AOSLO optics)'), ...
-         'extraRsDegsData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', RcDegsRetinalSingleConeRFcenterAllCells .* RsToCenterConeRcAOSLOOpticsAllCells, ...
-            'legend', 'Rs (M3 - AOSLO optics)'), ...
-         'extraData1', struct(...
-            'eccDegs', allMosaicConesEcc, ...
-            'values', allMosaicConesRc, ...
-            'legend', 'model mosaic cone Rc'), ...
-          'extraData2', struct(...
-            'eccDegs', CurcioModelConesEcc, ...
-            'values', CurcioModelConesRc, ...
-            'legend', 'Curcio model Rc (temporal meridian)') ...
-        );
-    NicePlot.exportFigToPDF('AOSLOopticsRcRsSummary.pdf', axesHandles1.hFig, 300);
-    
-    
-    % Physiological-optics figure
-    [~,~,~, axesHandles2] = CronerKaplanData.RcRsVersusEccentricity(...
-        'generateFigure', true, ...
-        'extraRcRsRatioData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', 1./RsToCenterConeRcPhysiologicalOpticsAllCells, ...
-            'legend', 'M3 - physiological optics'), ...
-        'extraRcDegsData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', RcDegsPhysiologicalOpticsAllCells, ...
-            'legend', 'Rc (M3 - physiological optics)'), ...
-         'extraRsDegsData', struct(...
-            'eccDegs', eccDegsAllCells, ...
-            'values', RcDegsPhysiologicalOpticsAllCells .* RsToCenterConeRcPhysiologicalOpticsAllCells, ...
-            'legend', 'Rs (M3 - physiological optics)'), ...
-         'extraData1', struct(...
-            'eccDegs', allMosaicConesEcc, ...
-            'values', allMosaicConesRc, ...
-            'legend', 'model mosaic cone Rc'), ...
-          'extraData2', struct(...
-            'eccDegs', CurcioModelConesEcc, ...
-            'values', CurcioModelConesRc, ...
-            'legend', 'Curcio model Rc (temporal meridian)') ...
-        );
-        NicePlot.exportFigToPDF('PhysiologicalOpticsRcRsSummary.pdf', axesHandles2.hFig, 300);
-   
+    % Visualize population integrated surround/center sensitivity stats
+    simulator.visualize.populationIntegratedSurroundCenterSensitivityStats(dataOut);
 end
 

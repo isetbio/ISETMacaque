@@ -70,51 +70,15 @@ function runBatchVisualize
             'whichSession', 'meanOverSessions', ...
             'whichCenterConeType', coneTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
-    
-        theSyntheticRGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
-        switch (theSyntheticRGCIDstring)
-            case 'L1'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-             case 'L2'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.057;
-            case 'L3'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-            case 'L4'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-            case 'L5'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; %FLAT b/ 0.062-0.072
-            case 'L6'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.082;
-            case 'L7'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-            case 'L8'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;   %FLAT n/n 0 - 0.057
-            case 'L9'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; 
-            case 'L10'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; % FLAT b/n 0.067-.0.077
-            case 'L11'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.062; % FLAT b/n 0.057-0.067
-            case 'M1'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; % FLAT between 0.057-0.077
-            case 'M2'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-            case 'M3'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067;  % FLAT from 0 - 0.072
-            case 'M4'
-                residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;  % FLAT from 0 to 0.062
-            otherwise
-                error('Must be a residual defocus for cell %s', theSyntheticRGCIDstring)
-        end
-
         
-        operationOptions.residualDefocusDiopters = residualDefocusUsedToDerivedOpticmalSyntheticRGCModel;
+        % Synthesize RGCID string
+        RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
         
+        % Select optimal residual defocus for deriving the synthetic RGC model
+        operationOptions.residualDefocusDiopters = simulator.optimalResidualDefocusForSingleConeCenterRFmodel(...
+            monkeyID, RGCIDstring);
         % Go
-        simulator.performOperation(operation, operationOptions, monkeyID);
-        
+        simulator.performOperation(operation, operationOptions, monkeyID); 
     end
-
-
 
 end

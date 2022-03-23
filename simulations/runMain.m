@@ -26,7 +26,7 @@ function runMain()
     %    enumeration simulator.opticsScenarios
     operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
     operationOptions.residualDefocusDiopters = 0.067;
-    operationOptions.residualDefocusDiopters = 0.000;
+    %operationOptions.residualDefocusDiopters = 0.000;
 
     % M838 optics scenario
     operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
@@ -78,7 +78,7 @@ function runMain()
     operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
         'whichSession', 'meanOverSessions', ...
         'whichCenterConeType', 'L', ...
-        'whichRGCindex', 4);
+        'whichRGCindex', 6);
  
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
@@ -102,7 +102,7 @@ function runMain()
     % How to select the best cone position
     % choose between {'weighted', 'unweighted'} RMSE
     operationOptions.rmsSelector = 'unweighted';
-    %operation = simulator.operations.visualizedFittedModels;
+    operation = simulator.operations.visualizedFittedModels;
 
 
     % -----------------------------------------------------------------
@@ -110,48 +110,20 @@ function runMain()
     % -----------------------------------------------------------------
     operation = simulator.operations.computeSynthesizedRGCSTFresponses;
    
+    % Synthesize RGCID string
+    RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
     
-    theSyntheticRGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
-    switch (theSyntheticRGCIDstring)
-        case 'L1'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-         case 'L2'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.057;
-        case 'L3'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-        case 'L4'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077;
-        case 'L5'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; %FLAT b/ 0.062-0.072
-        case 'L6'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.082;
-        case 'L7'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-        case 'L8'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;   %FLAT n/n 0 - 0.057
-        case 'L9'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; 
-        case 'L10'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.077; % FLAT b/n 0.067-.0.077
-        case 'L11'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.062; % FLAT b/n 0.057-0.067
-        case 'M1'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067; % FLAT between 0.057-0.077
-        case 'M2'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;
-        case 'M3'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.067;  % FLAT from 0 - 0.072
-        case 'M4'
-            residualDefocusUsedToDerivedOpticmalSyntheticRGCModel = 0.0;  % FLAT from 0 to 0.062
-        otherwise
-            error('Must be a residual defocus for cell %s', theSyntheticRGCIDstring)
-    end
+    % Select optimal residual defocus for deriving the synthetic RGC model
+    residualDefocusDioptersForDerivingModel = simulator.optimalResidualDefocusForSingleConeCenterRFmodel(...
+            monkeyID, RGCIDstring);
+    residualDefocusDioptersForDerivingMode = 0.067;
     
+
     % Params used to derive the RGC model
     operationOptions.syntheticRGCmodelParams = struct(...
         'opticsParams', struct(...
             'type', simulator.opticsTypes.diffractionLimited, ...
-            'residualDefocusDiopters', residualDefocusUsedToDerivedOpticmalSyntheticRGCModel), ...
+            'residualDefocusDiopters', residualDefocusDioptersForDerivingMode), ...
         'stimulusParams', struct(...
             'type', simulator.stimTypes.monochromaticAO), ...
         'cMosaicParams', struct(...
