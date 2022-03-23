@@ -50,25 +50,29 @@ function runBatchFit
     % Operation to run
     operation = simulator.operations.fitFluorescenceSTFresponses;
 
-    % Examined RGCs
-    centerConeType = 'L';
-    coneRGCindicesExamined = 1:11;
+    % Get all recorded RGC infos
+    [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
-    % Examined residual defocus values
-    residualDefocusDiopterValuesExamined = [0.00 0.067];
-
-    for iResidualDefocus = 1:numel(residualDefocusDiopterValuesExamined)
-        operationOptions.residualDefocusDiopters = residualDefocusDiopterValuesExamined(iResidualDefocus);
-   
-        for iConeRGCindex = 1:numel(coneRGCindicesExamined)
-            % Select which recording session and which RGC to fit. 
-            operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
-                 'whichSession', 'meanOverSessions', ...
-                 'whichCenterConeType', centerConeType, ...
-                 'whichRGCindex', coneRGCindicesExamined(iConeRGCindex));
+    for iRGCindex = 1:numel(coneRGCindices)    
+        
+         % Select which recording session and which RGC to fit. 
+        operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
+            'whichSession', 'meanOverSessions', ...
+            'whichCenterConeType', centerConeTypes{iRGCindex}, ...
+            'whichRGCindex', coneRGCindices(iRGCindex));
+        
+        % Synthesize RGCID string
+        RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
+        
+        % Select optimal residual defocus for deriving the synthetic RGC model
+        operationOptions.residualDefocusDiopters = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
+            monkeyID, RGCIDstring);
+        
+        % OR a single defocus
+        %operationOptions.residualDefocusDiopters = 0.067;
             
-            simulator.performOperation(operation, operationOptions, monkeyID);
-        end
+        simulator.performOperation(operation, operationOptions, monkeyID);
+        
     end
 
 

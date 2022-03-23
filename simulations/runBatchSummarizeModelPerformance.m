@@ -56,21 +56,16 @@ function runBatchSummarizeModelPerformance
     % Operation to run
     operation = simulator.operations.extractFittedModelPerformance;
 
-    % Examined RGCs (all 11 L-center and 4 M-center)
-    LconeRGCsNum  = 11;
-    MconeRGCsNum = 4;
-    coneTypes(1:LconeRGCsNum) = {'L'};
-    coneTypes(LconeRGCsNum+(1:MconeRGCsNum)) = {'M'};
-    coneRGCindices(1:LconeRGCsNum) = 1:LconeRGCsNum;
-    coneRGCindices(LconeRGCsNum+(1:MconeRGCsNum)) = 1:MconeRGCsNum;
+    % Get all recorded RGC infos
+    [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
+
 
     for iRGCindex = 1:numel(coneRGCindices)
         
-
         % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                  'whichSession', 'meanOverSessions', ...
-                 'whichCenterConeType', coneTypes{iRGCindex}, ...
+                 'whichCenterConeType', centerConeTypes{iRGCindex}, ...
                  'whichRGCindex', coneRGCindices(iRGCindex));
         
         for iResidualDefocus = 1:numel(residualDefocusDiopterValuesExamined)

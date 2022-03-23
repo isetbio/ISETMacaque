@@ -50,32 +50,25 @@ function runBatchVisualize
     % choose between {'weighted', 'unweighted'} RMSE
     operationOptions.rmsSelector = 'unweighted';
 
-
     % Operation to run
     operation = simulator.operations.visualizedFittedModels;
 
-
-    % Examined RGCs (all 11 L-center and 4 M-center)
-    LconeRGCsNum  = 11;
-    MconeRGCsNum = 4;
-    coneTypes(1:LconeRGCsNum) = {'L'};
-    coneTypes(LconeRGCsNum+(1:MconeRGCsNum)) = {'M'};
-    coneRGCindices(1:LconeRGCsNum) = 1:LconeRGCsNum;
-    coneRGCindices(LconeRGCsNum+(1:MconeRGCsNum)) = 1:MconeRGCsNum;
+    % Get all recorded RGC infos
+    [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
     for iRGCindex = 1:numel(coneRGCindices)
         
          % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
             'whichSession', 'meanOverSessions', ...
-            'whichCenterConeType', coneTypes{iRGCindex}, ...
+            'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
         % Synthesize RGCID string
         RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
         
         % Select optimal residual defocus for deriving the synthetic RGC model
-        operationOptions.residualDefocusDiopters = simulator.optimalResidualDefocusForSingleConeCenterRFmodel(...
+        operationOptions.residualDefocusDiopters = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
             monkeyID, RGCIDstring);
         % Go
         simulator.performOperation(operation, operationOptions, monkeyID); 
