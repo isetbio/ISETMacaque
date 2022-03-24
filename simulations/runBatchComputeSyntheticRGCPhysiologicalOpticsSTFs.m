@@ -1,11 +1,12 @@
-function runBatchComputePhysiologicalOpticsSTF()
-% Batch generate all physiological optics STFs
+function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
+% Batch generate synthetic RGC STFs under physiological optics
 %
 % Syntax:
-%   runBatchComputePhysiologicalOpticsSTF()
+%   runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
 %
 % Description:
-%   Batch generate all physiological optics STFs
+%   Batch generate synthetic RGC STFs under physiological optics, fit the
+%   obtained STFs and generate figures with population statistics.
 %
 % Inputs:
 %    none
@@ -20,39 +21,32 @@ function runBatchComputePhysiologicalOpticsSTF()
     % Monkey to analyze
     monkeyID = 'M838';
 
-
-    % Choose which optics scenario to run.
-    % To list the available options, type:
-    %    enumeration simulator.opticsScenarios
-    operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
-    operationOptions.residualDefocusDiopters = 0.067;
-    operationOptions.residualDefocusDiopters = 0.000;
+    % Choose which optics scenario to run. This overrides default
+    % values set in simulator.performOperation().
 
     % M838 optics scenario
     operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
     operationOptions.pupilSizeMM = 2.5;
 
     % Polans subject optics scenario
-    %operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
-    %operationOptions.subjectID = 8; % [2 8 9]
-    %operationOptions.pupilSizeMM = 3.0;
+    operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
+    operationOptions.subjectID = 2; % [2 8 9]
+    operationOptions.pupilSizeMM = 3.0;
     
 
-    % Choose which stimulus type to use.
+    % Choose which stimulus type to use. This overrides default
+    % values set in simulator.performOperation().
     % To list the available options, type:
     %    enumeration simulator.stimTypes
     operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
 
-    % RF center pooling scenarios to examine
-%     operationOptions.rfCenterConePoolingScenariosExamined = ...
-%         {'single-cone', 'multi-cone'};
-
  
-    % Select the spatial sampling within the cone mosaic
+    % Select the location of the synthetic RGCs by sampling cone positions
+    % within the central cone mosaic.
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
     operationOptions.coneMosaicSamplingParams = struct(...
-        'maxEccArcMin', 6, ...
+        'maxEccArcMin', 6, ...     % select cones within the central 6 arc min
         'positionsExamined', 7 ... % select 7 cone positions within the maxEcc region
         );
 
@@ -88,10 +82,11 @@ function runBatchComputePhysiologicalOpticsSTF()
          % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
             'whichSession', 'meanOverSessions', ...
-            'whichCenterConeType', coneTypes{iRGCindex}, ...
+            'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
-        % Params used to derive the RGC model
+        % Params used to derive the (single-cone center)RGC model. 
+        % The important parameter here is the residualDefocus assumed
         operationOptions.syntheticRGCmodelParams = struct(...
             'opticsParams', struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...

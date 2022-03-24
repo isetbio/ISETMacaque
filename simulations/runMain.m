@@ -42,7 +42,7 @@ function runMain()
     % To list the available options, type:
     %    enumeration simulator.stimTypes
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
-    operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+    %operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
 
     % Choose what operation to run.
     % To list the available options, type:
@@ -62,13 +62,13 @@ function runMain()
     % -----------------------------------------------------------------
     % 3. Visualize cone mosaic responses
     % -----------------------------------------------------------------
-    operation = simulator.operations.visualizeConeMosaicSTFresponses;
+    %operation = simulator.operations.visualizeConeMosaicSTFresponses;
     
     
     % -----------------------------------------------------------------
     % 4. Fit fluorescence STF responses for some modeling scenario
     % -----------------------------------------------------------------
-    operation = simulator.operations.fitFluorescenceSTFresponses;
+    %operation = simulator.operations.fitFluorescenceSTFresponses;
 
     % RF center pooling scenarios to examine
     operationOptions.rfCenterConePoolingScenariosExamined = ...
@@ -102,13 +102,13 @@ function runMain()
     % How to select the best cone position
     % choose between {'weighted', 'unweighted'} RMSE
     operationOptions.rmsSelector = 'unweighted';
-    operation = simulator.operations.visualizedFittedModels;
+    %operation = simulator.operations.visualizedFittedModels;
 
 
     % -----------------------------------------------------------------
     % 6. Compute synthesized RGC STF responses
     % -----------------------------------------------------------------
-    operation = simulator.operations.computeSynthesizedRGCSTFresponses;
+    %operation = simulator.operations.computeSynthesizedRGCSTFresponses;
    
     % Synthesize RGCID string
     RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);

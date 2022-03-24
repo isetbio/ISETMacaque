@@ -1,4 +1,4 @@
-function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes] = ...
+function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes, theFittedSTFcenter, theFittedSTFsurround] = ...
     DoGmodelToSTF(sf, theSTF, centerConeCharacteristicRadiusDegs)
 % Fit the DoG model to the computed STF
 %
@@ -17,20 +17,20 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes] = ...
 
     % DoG param initial values and limits: Ks/Kc ratio
     KsToKc = struct(...
-        'low', 1e-3, ...
+        'low', 1e-6, ...
         'high', 1, ...
         'initial', 0.1);
 
     % DoG param initial values and limits: RsToCenterConeRc ratio
     RsToCenterConeRc = struct(...
         'low', 1.5, ...
-        'high', 40, ...
+        'high', 10, ...
         'initial', 5);
 
     % DoG param initial values and limits: RcDegs
     RcDegs = struct(...
         'low', centerConeCharacteristicRadiusDegs, ...
-        'high', centerConeCharacteristicRadiusDegs*20, ...
+        'high', centerConeCharacteristicRadiusDegs*100, ...
         'initial', centerConeCharacteristicRadiusDegs*2);
     
      %                          Kc           kS/kC            RsToCenterConeRc            RcDegs    
@@ -38,7 +38,7 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes] = ...
      DoGparams.lowerBounds   = [Kc.low       KsToKc.low        RsToCenterConeRc.low       RcDegs.low];
      DoGparams.upperBounds   = [Kc.high      KsToKc.high       RsToCenterConeRc.high      RcDegs.high];
      DoGparams.names         = {'Kc',        'kS/kC',         'RsToCenterConeRc',         'RcDegs'};
-
+     DoGparams.scale         = {'log',       'log',           'linear',                   'linear'};
      
      % The DoG model in the frequency domain
      DoGSTF = @(params,sf)(...
@@ -46,6 +46,7 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes] = ...
                     params(1)*params(2) * ( pi * (params(4)*params(3))^2 * exp(-(pi*params(4)*params(3)*sf).^2) ));
         
                 
+     
      % The optimization objective
      objective = @(p) sum((DoGSTF(p, sf) - theSTF).^2);
 
@@ -73,14 +74,14 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes] = ...
           'UseParallel', false);
       
      % Run the multi-start
-     multiStartsNum = 32;
+     multiStartsNum = 128;
      [DoGparams.bestFitValues,errormulti] = run(ms, problem, multiStartsNum);
 
      theFittedSTF = DoGSTF(DoGparams.bestFitValues, sf);
+     theFittedSTFcenter = DoGparams.bestFitValues(1)           * ( pi * DoGparams.bestFitValues(4)^2             * exp(-(pi*DoGparams.bestFitValues(4)*sf).^2) );
+     theFittedSTFsurround = DoGparams.bestFitValues(1)*DoGparams.bestFitValues(2) * ( pi * (DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3))^2 * exp(-(pi*DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3)*sf).^2) );
      
      sfHiRes = logspace(log10(1), log10(100), 64);
      theFittedSTFHiRes = DoGSTF(DoGparams.bestFitValues, sfHiRes);
-                 
-    
 end
 
