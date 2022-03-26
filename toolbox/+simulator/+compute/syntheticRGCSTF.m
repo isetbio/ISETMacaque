@@ -1,5 +1,8 @@
 function dataOut = syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponsesFileName, ...
-    syntheticSTFdataPDFFilename, STFdataToFit, rfCenterConePoolingScenario, residualDefocusDiopters, rmsSelector)
+    syntheticSTFdataPDFFilename, ...
+    syntheticSTFtoFit, syntheticSTFtoFitComponentWeights, ...
+    STFdataToFit, ...
+    rfCenterConePoolingScenario, residualDefocusDiopters, rmsSelector)
 % Compute synthetic RGC responses to stimuli of different SFs
 %
 % Syntax:
@@ -50,7 +53,8 @@ function dataOut = syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponse
     
     thePhysiologicalOpticsSTF = computeSTF(coneMosaicSpatiotemporalActivation, theBestConePositionModel,  ...
         temporalSupportSeconds, spatialFrequenciesExamined, ...
-        centerConeCharacteristicRadiusDegs, RGCIDString);
+        centerConeCharacteristicRadiusDegs, RGCIDString, ...
+        syntheticSTFtoFit, syntheticSTFtoFitComponentWeights);
     
     dataOut.physiologicalOpticsDoGParams = thePhysiologicalOpticsSTF.DoGparams;
     dataOut.AOSLOOpticsDoGparams = theBestConePositionModel.DoGparams;
@@ -88,7 +92,8 @@ end
 
 
 function d = computeSTF(coneMosaicSpatiotemporalActivation, theRetinalRGCmodel, ...
-    temporalSupportSeconds, spatialFrequencySupport, centerConeCharacteristicRadiusDegs, RGCIDString)
+    temporalSupportSeconds, spatialFrequencySupport, centerConeCharacteristicRadiusDegs, ...
+    RGCIDString, syntheticSTFtoFit, syntheticSTFtoFitComponentWeights)
 
     centerConeIndices = theRetinalRGCmodel.fittedRGCRF.centerConeIndices(:);
     centerConeWeights = theRetinalRGCmodel.fittedRGCRF.centerConeWeights(:);
@@ -102,6 +107,8 @@ function d = computeSTF(coneMosaicSpatiotemporalActivation, theRetinalRGCmodel, 
             coneMosaicSpatiotemporalActivation(:,:,surroundConeIndices), ...
             centerConeWeights, surroundConeWeights);  
         
+    temporalSupportSecondsHR = linspace(temporalSupportSeconds(1), temporalSupportSeconds(end),100);
+    
     theRGCSTF = zeros(1, size(RGCresponses,1));
     theRGCcenterSTF = theRGCSTF;
     theRGCsurroundSTF = theRGCSTF;
@@ -109,32 +116,32 @@ function d = computeSTF(coneMosaicSpatiotemporalActivation, theRetinalRGCmodel, 
     for iSF = 1:size(RGCresponses,1)
         
         % Fit a sinusoid to the temporal response of the RGC
-        [~, fittedParams] = ...
+        [theFittedResponse, fittedParams] = ...
             simulator.fit.sinusoidToResponseTimeSeries(...
                 temporalSupportSeconds, ...
                 squeeze(RGCresponses(iSF,:)), ...
                 WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                []); 
+                temporalSupportSecondsHR); 
         % The amplitude of the sinusoid is the STF
         theRGCSTF(iSF) = fittedParams(1);
         
         % Fit a sinusoid to the temporal response of the RGC center
-        [~, fittedParams] = ...
+        [theFittedResponse, fittedParams] = ...
             simulator.fit.sinusoidToResponseTimeSeries(...
                 temporalSupportSeconds, ...
                 squeeze(centerResponses(iSF,:)), ...
                 WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                []);  
+                temporalSupportSecondsHR);  
         % The amplitude of the sinusoid is the STF
-        theRGCcenterSTF(iSF) = fittedParams(1);
+        theRGCcenterSTF(iSF) = fittedParams(1);     
         
         % Fit a sinusoid to the temporal response of the RGC surround
-        [~, fittedParams] = ...
+        [theFittedResponse, fittedParams] = ...
             simulator.fit.sinusoidToResponseTimeSeries(...
                 temporalSupportSeconds, ...
                 squeeze(surroundResponses(iSF,:)), ...
                 WilliamsLabData.constants.temporalStimulationFrequencyHz, ...
-                []);  
+                temporalSupportSecondsHR);  
         % The amplitude of the sinusoid is the STF
         theRGCsurroundSTF(iSF) = fittedParams(1);
     end
@@ -142,51 +149,127 @@ function d = computeSTF(coneMosaicSpatiotemporalActivation, theRetinalRGCmodel, 
     % Save the computed RGCSTF
     d.computedResponses = theRGCSTF;
     d.weightsSurroundToCenterRatio = sum(surroundConeWeights)/sum(centerConeWeights);
+    
+    validSyntheticSTFsToFit = {...
+        'compositeCenterSurroundResponseBased', ...
+        'weightedComponentCenterSurroundResponseBased'};
+    assert(ismember(syntheticSTFtoFit, validSyntheticSTFsToFit), ...
+        sprintf('Invalid ''syntheticSTFtoFit'' option. Must be either ''%s'' or ''%s''.', ...
+                validSyntheticSTFsToFit{1}, validSyntheticSTFsToFit{2}));
+    
+
+    maxSFToFit = 50;
+    idx = find(spatialFrequencySupport<=maxSFToFit);
+    
+    if (strcmp(syntheticSTFtoFit,'compositeCenterSurroundResponseBased'))
+        % Fit the composite center/surround STF (theRGCSTF) with a DoG model
+        [d.DoGparams, d.DoGFit, ...
+         d.DogFitSpatialFrequencySupportHiRes, ...
+         d.DoGFitHiRes, ...
+         d.DoGFitCenter, d.DoGFitSurround] = simulator.fit.DoGmodelToCompositeSTF(...
+            spatialFrequencySupport(idx), theRGCSTF(idx), ...
+            centerConeCharacteristicRadiusDegs);
+    else
      
-    % Fit theRGCSTF with a DoG model
-    [d.DoGparams, d.DoGFit, ...
-     d.DogFitSpatialFrequencySupportHiRes, ...
-     d.DoGFitHiRes, ...
-     d.DoGFitCenter, d.DoGFitSurround] = simulator.fit.DoGmodelToSTF(...
-        spatialFrequencySupport, theRGCSTF, ...
-        centerConeCharacteristicRadiusDegs);
-    
-    hFig = figure();
-    set(hFig, 'Name', RGCIDString, 'Position', [10 10 1200 900]);
-    subplot(2, numel(d.DoGparams.names), [1 2]);
-    plot(spatialFrequencySupport, theRGCSTF, 'ko-', 'MarkerSize', 12); hold on
-    plot(spatialFrequencySupport, theRGCcenterSTF, 'r-', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, theRGCsurroundSTF, 'b-', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFit, 'k--', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFitSurround, 'b--', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFitCenter, 'r--', 'LineWidth', 1.5);
-    set(gca, 'XScale', 'linear', 'XLim', [4 60]);
-    xlabel('spatial frequency (c/deg)')
-    
-    subplot(2, numel(d.DoGparams.names), [3 4]);
-    plot(spatialFrequencySupport, theRGCSTF, 'ko-', 'MarkerSize', 12); hold on
-    plot(spatialFrequencySupport, theRGCcenterSTF, 'r-', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, theRGCsurroundSTF, 'b-', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFit, 'k--', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFitSurround, 'b--', 'LineWidth', 1.5);
-    plot(spatialFrequencySupport, d.DoGFitCenter, 'r--', 'LineWidth', 1.5);
-    set(gca, 'XScale', 'log', 'XLim', [4 60]);
-    xlabel('spatial frequency (c/deg)')
-    
-    for iParam = 1:numel(d.DoGparams.names)
-        subplot(2, numel(d.DoGparams.names), numel(d.DoGparams.names)+iParam);
-        hold 'on'
-        plot([0 0], [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)], 'k-', 'LineWidth', 1.0);
-        plot(0, d.DoGparams.lowerBounds(iParam), 'b^', 'MarkerSize', 16, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.0);
-        plot(0, d.DoGparams.upperBounds(iParam), 'rv', 'MarkerSize', 16, 'MarkerFaceColor', [1 0.5 0.5], 'LineWidth', 1.0);
-        scatter(0, d.DoGparams.bestFitValues(iParam), 16*16, 'filled', ...
-            'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [0.5 1 0.5], 'MarkerEdgeColor', [0 0.5 0], 'LineWidth', 2);
-        set(gca, 'YScale', d.DoGparams.scale{iParam});
-        set(gca, 'XLim', [-1 1], 'YLim', [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)]);
-        title(d.DoGparams.names{iParam});
-        box on
-        set(gca, 'FontSize', 16);
+        % Fit separately the center and surround STFS
+        [d.DoGparams, d.DoGFit, ...
+         d.DogFitSpatialFrequencySupportHiRes, ...
+         d.DoGFitHiRes, ...
+         d.DoGFitCenter, d.DoGFitSurround, ...
+         theFittedCompositeSTFHiResFullField, ...
+         theFittedSTFcenterFullField, theFittedSTFsurroundFullField] = simulator.fit.DoGmodelToComponentsSTF(...
+            spatialFrequencySupport(idx), ...
+            theRGCcenterSTF(idx), theRGCsurroundSTF(idx), theRGCSTF(idx), ...
+            centerConeCharacteristicRadiusDegs, ...
+            syntheticSTFtoFitComponentWeights.center, ...
+            syntheticSTFtoFitComponentWeights.surround, ...
+            syntheticSTFtoFitComponentWeights.composite);
     end
+    
+    retinalDoGmodelSurroundCenterSensitivyRatio = d.DoGparams.bestFitValues (2) * d.DoGparams.bestFitValues (3)^2
+    conePoolingWeightsSurroundCenterRatio = sum(surroundConeWeights)/sum(centerConeWeights)
+    syntheticSTFtoFit
+    
+    theFittedCompositeSTFHiResFullField
+    theFittedSTFcenterFullField
+    theFittedSTFsurroundFullField
     pause
+     
+    if (strcmp(syntheticSTFtoFit,'weightedComponentCenterSurroundResponseBased'))
+        % Visualize center/surround and compositeSTF and fits to them
+        hFig = figure(222); clf;
+        set(hFig, 'Color', [1 1 1], 'Name', RGCIDString, 'Position', [10 10 1700 650]);
+        subplot('Position', [0.04 0.08 0.3 0.85]);
+        yyaxis 'left';
+        plot(spatialFrequencySupport, theRGCSTF, 'ko', 'MarkerSize', 18,  'MarkerFaceColor', [0.8 0.8 0.8], 'LineWidth', 1.0); 
+        hold on
+        plot(spatialFrequencySupport(idx), d.DoGFit(idx), 'k-', 'LineWidth', 2);
+        yyaxis 'right'
+        plot(spatialFrequencySupport, theRGCcenterSTF, 'ro', 'MarkerSize', 14,  'MarkerFaceColor', [1 0.5 0.5], 'LineWidth', 1.0, 'LineWidth', 1.0);
+        hold on
+        plot(spatialFrequencySupport, theRGCsurroundSTF, 'bo', 'MarkerSize', 14,  'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.0, 'LineWidth', 1.0);
+        plot(spatialFrequencySupport(idx), d.DoGFitCenter(idx), 'r-', 'LineWidth', 2);
+        plot(spatialFrequencySupport(idx), d.DoGFitSurround(idx), 'b-', 'LineWidth', 2);
+        set(gca, 'XScale', 'linear', 'XLim', [4 50], 'FontSize', 16);
+        grid on; box off
+        xlabel('spatial frequency (c/deg)')
+        title(sprintf('weights: STFcenter=%2.3f, STFsurround=%2.3f, STF:%2.3f', syntheticSTFtoFitComponentWeights.center, syntheticSTFtoFitComponentWeights.surround, syntheticSTFtoFitComponentWeights.composite));
+
+        subplot('Position', [0.37 0.08 0.3 0.85]);
+        yyaxis 'left'
+        plot(spatialFrequencySupport, theRGCSTF, 'ko', 'MarkerSize', 18, 'MarkerFaceColor', [0.8 0.8 0.8], 'LineWidth', 1.0); hold on
+        plot(spatialFrequencySupport(idx), d.DoGFit(idx), 'k-', 'LineWidth', 2);
+        yyaxis 'right'
+        plot(spatialFrequencySupport, theRGCcenterSTF, 'ro', 'MarkerSize', 14,  'MarkerFaceColor', [1 0.5 0.5], 'LineWidth', 1.0, 'LineWidth', 1.0);
+        hold on
+        plot(spatialFrequencySupport, theRGCsurroundSTF, 'bo', 'MarkerSize', 14,  'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.0, 'LineWidth', 1.0);
+        plot(spatialFrequencySupport(idx), d.DoGFitCenter(idx), 'r-', 'LineWidth', 2);
+        plot(spatialFrequencySupport(idx), d.DoGFitSurround(idx), 'b-', 'LineWidth', 2);
+        set(gca, 'XScale', 'log', 'XLim', [4 50], 'YTick', [], 'XTick', [2 5 10 20 40 60], 'FontSize', 16);
+        xlabel('spatial frequency (c/deg)');
+        title(sprintf('integrated S/C sensitivity: %2.3f', retinalDoGmodelSurroundCenterSensitivyRatio));
+        grid on; box off
+
+
+        for iParam = 1:2
+            subplot('Position', [0.72+(iParam-1)*0.15 0.56 0.12 0.4]);
+            hold 'on'
+            plot([0 0], [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)], 'k-', 'LineWidth', 1.0);
+            plot(0, d.DoGparams.lowerBounds(iParam), 'b.', 'MarkerSize', 16, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.0);
+            plot(0, d.DoGparams.upperBounds(iParam), 'r.', 'MarkerSize', 16, 'MarkerFaceColor', [1 0.5 0.5], 'LineWidth', 1.0);
+            scatter(0, d.DoGparams.bestFitValues(iParam), 16*16, 'filled', ...
+                'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [0.5 1 0.5], 'MarkerEdgeColor', [0 0.5 0], 'LineWidth', 2);
+            if (iParam == 2)
+                set(gca, 'YTick', [0.1 0.3 1]);
+            end
+
+            set(gca, 'YScale', d.DoGparams.scale{iParam});
+            set(gca, 'XLim', [-1 1], 'XTick', [],'YLim', [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)]);
+            title(d.DoGparams.names{iParam});
+            box on
+            set(gca, 'FontSize', 16);
+        end
+
+        for iParam = 3:numel(d.DoGparams.names)
+            subplot('Position',  [0.72+(1-(iParam-3))*0.15 0.08 0.12 0.4]);
+            hold 'on'
+            plot([0 0], [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)], 'k-', 'LineWidth', 1.0);
+            plot(0, d.DoGparams.lowerBounds(iParam), 'b.', 'MarkerSize', 16, 'MarkerFaceColor', [0.5 0.5 1], 'LineWidth', 1.0);
+            plot(0, d.DoGparams.upperBounds(iParam), 'r.', 'MarkerSize', 16, 'MarkerFaceColor', [1 0.5 0.5], 'LineWidth', 1.0);
+            scatter(0, d.DoGparams.bestFitValues(iParam), 16*16, 'filled', ...
+                'MarkerFaceAlpha', 0.5, 'MarkerFaceColor', [0.5 1 0.5], 'MarkerEdgeColor', [0 0.5 0], 'LineWidth', 2);
+            if (iParam == 4)
+                plot([-1 1], centerConeCharacteristicRadiusDegs*[1 1], 'k--');
+            else
+                plot([-1 1], [1 1], 'k--');
+            end
+            set(gca, 'YScale', d.DoGparams.scale{iParam});
+            set(gca, 'XLim', [-1 1], 'XTick', [], 'YLim', [d.DoGparams.lowerBounds(iParam) d.DoGparams.upperBounds(iParam)]);
+            title(d.DoGparams.names{iParam});
+            box on
+            set(gca, 'FontSize', 16);
+        end
+        pause
+    end
     
 end

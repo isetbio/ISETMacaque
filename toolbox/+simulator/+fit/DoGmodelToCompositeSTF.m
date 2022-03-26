@@ -1,13 +1,15 @@
-function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes, theFittedSTFcenter, theFittedSTFsurround] = ...
-    DoGmodelToSTF(sf, theSTF, centerConeCharacteristicRadiusDegs)
-% Fit the DoG model to the computed STF
+function [DoGparams, theFittedCompositeSTF, ...
+         sfHiRes, theFittedCompositeSTFHiRes, ...
+         theFittedSTFcenter, theFittedSTFsurround] = DoGmodelToCompositeSTF(...
+                 sf, theCompositeSTF, centerConeCharacteristicRadiusDegs)
+% Fit the DoG model to the computed composite (center-surround) STF
 %
 % Syntax:
-%   simulator.fit.DoGmodelToSTF(sf, theSTF,
+%   simulator.fit.DoGmodelToCompositeSTF(sf, theCompositeSTF,
 %   centerConeCharacteristicRadiusDeg)
 %
 %
-% Description: Fit the DoG model to the computed STF
+% Description: Fit the DoG model to the computed (center-surround) STF
 
     % DoG param initial values and limits: center gain, kc
     Kc = struct(...    
@@ -21,34 +23,32 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes, theFittedSTFcente
         'high', 1, ...
         'initial', 0.1);
 
-    % DoG param initial values and limits: RsToCenterConeRc ratio
-    RsToCenterConeRc = struct(...
+    % DoG param initial values and limits: RsToRc ratio
+    RsToRc = struct(...
         'low', 1.5, ...
         'high', 10, ...
         'initial', 5);
 
-    % DoG param initial values and limits: RcDegs
-    RcDegs = struct(...
+     % DoG param initial values and limits: RcDegs
+     RcDegs = struct(...
         'low', centerConeCharacteristicRadiusDegs, ...
         'high', centerConeCharacteristicRadiusDegs*100, ...
         'initial', centerConeCharacteristicRadiusDegs*2);
     
-     %                          Kc           kS/kC            RsToCenterConeRc            RcDegs    
-     DoGparams.initialValues = [Kc.initial   KsToKc.initial    RsToCenterConeRc.initial   RcDegs.initial];
-     DoGparams.lowerBounds   = [Kc.low       KsToKc.low        RsToCenterConeRc.low       RcDegs.low];
-     DoGparams.upperBounds   = [Kc.high      KsToKc.high       RsToCenterConeRc.high      RcDegs.high];
-     DoGparams.names         = {'Kc',        'kS/kC',         'RsToCenterConeRc',         'RcDegs'};
-     DoGparams.scale         = {'log',       'log',           'linear',                   'linear'};
+     %                          Kc           kS/kC             RsToRc            RcDegs    
+     DoGparams.initialValues = [Kc.initial   KsToKc.initial    RsToRc.initial    RcDegs.initial];
+     DoGparams.lowerBounds   = [Kc.low       KsToKc.low        RsToRc.low        RcDegs.low];
+     DoGparams.upperBounds   = [Kc.high      KsToKc.high       RsToRc.high       RcDegs.high];
+     DoGparams.names         = {'Kc',        'kS/kC',         'RsToRc',         'RcDegs'};
+     DoGparams.scale         = {'log',       'log',           'linear',         'linear'};
      
      % The DoG model in the frequency domain
      DoGSTF = @(params,sf)(...
                     params(1)           * ( pi * params(4)^2             * exp(-(pi*params(4)*sf).^2) ) - ...
                     params(1)*params(2) * ( pi * (params(4)*params(3))^2 * exp(-(pi*params(4)*params(3)*sf).^2) ));
         
-                
-     
      % The optimization objective
-     objective = @(p) sum((DoGSTF(p, sf) - theSTF).^2);
+     objective = @(p) sum((DoGSTF(p, sf) - theCompositeSTF).^2);
 
      % Ready to fit
      options = optimset(...
@@ -75,13 +75,13 @@ function [DoGparams, theFittedSTF, sfHiRes, theFittedSTFHiRes, theFittedSTFcente
       
      % Run the multi-start
      multiStartsNum = 128;
-     [DoGparams.bestFitValues,errormulti] = run(ms, problem, multiStartsNum);
+     DoGparams.bestFitValues = run(ms, problem, multiStartsNum);
 
-     theFittedSTF = DoGSTF(DoGparams.bestFitValues, sf);
-     theFittedSTFcenter = DoGparams.bestFitValues(1)           * ( pi * DoGparams.bestFitValues(4)^2             * exp(-(pi*DoGparams.bestFitValues(4)*sf).^2) );
+     theFittedCompositeSTF = DoGSTF(DoGparams.bestFitValues, sf);
+     theFittedSTFcenter = DoGparams.bestFitValues(1) * ( pi * DoGparams.bestFitValues(4)^2 * exp(-(pi*DoGparams.bestFitValues(4)*sf).^2) );
      theFittedSTFsurround = DoGparams.bestFitValues(1)*DoGparams.bestFitValues(2) * ( pi * (DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3))^2 * exp(-(pi*DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3)*sf).^2) );
      
      sfHiRes = logspace(log10(1), log10(100), 64);
-     theFittedSTFHiRes = DoGSTF(DoGparams.bestFitValues, sfHiRes);
+     theFittedCompositeSTFHiRes = DoGSTF(DoGparams.bestFitValues, sfHiRes);
 end
 

@@ -57,11 +57,12 @@ function [theFittedResponse, theFittedParams] = sinusoidToResponseTimeSeries(tim
     end
     theFittedParams = [amplitudes(iAmp)*maxAmplitude thePhaseDegs];
     
+    fTime = 2.0*pi*stimulusTemporalFrequencyHz*time;
+    theFittedResponse = theFittedParams(1) * sin(fTime - theFittedParams(2)/180*pi);
+    
     % Generate high-resolution fitted function
     if (~isempty(timeHR))
         fTime = 2.0*pi*stimulusTemporalFrequencyHz*timeHR;
-        theFittedResponse = fittedParams(1) * sin(fTime - fittedParams(2)/180*pi);
-    else
-        theFittedResponse = [];
+        theFittedResponse = theFittedParams(1) * sin(fTime - theFittedParams(2)/180*pi);
     end
 end

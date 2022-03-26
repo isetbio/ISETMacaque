@@ -29,9 +29,9 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     operationOptions.pupilSizeMM = 2.5;
 
     % Polans subject optics scenario
-    operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
-    operationOptions.subjectID = 2; % [2 8 9]
-    operationOptions.pupilSizeMM = 3.0;
+%     operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
+%     operationOptions.subjectID = 2; % [2 8 9]
+%     operationOptions.pupilSizeMM = 3.0;
     
 
     % Choose which stimulus type to use. This overrides default
@@ -63,6 +63,9 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
      % Get all recorded RGC infos
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
+    centerConeTypes = {'L'};
+    coneRGCindices = 11;
+    
     dataOut = cell(1, numel(coneRGCindices));
     for iRGCindex = 1:numel(coneRGCindices)    
         
@@ -79,12 +82,19 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
         residualDefocus = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
             monkeyID, RGCIDstring);
         
-         % Select which recording session and which RGC to fit. 
+        % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
             'whichSession', 'meanOverSessions', ...
             'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
+        operationOptions.syntheticSTFtoFit = 'compositeCenterSurroundResponseBased';
+        operationOptions.syntheticSTFtoFit = 'weightedComponentCenterSurroundResponseBased';
+        operationOptions.syntheticSTFtoFitComponentWeights = struct(...
+            'center', 1, ...
+            'surround', 1, ...
+            'composite', 1);
+            
         % Params used to derive the (single-cone center)RGC model. 
         % The important parameter here is the residualDefocus assumed
         operationOptions.syntheticRGCmodelParams = struct(...
@@ -104,7 +114,7 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     end
     
     % Visualize population Rc/Rs stats
-    simulator.visualize.populationRcRsStats(dataOut);
+%    simulator.visualize.populationRcRsStats(dataOut);
     
     % Visualize population Ks/Kc stats
     simulator.visualize.populationKsKcStats(dataOut);

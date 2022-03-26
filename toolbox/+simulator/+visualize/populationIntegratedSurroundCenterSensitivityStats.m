@@ -19,8 +19,17 @@ function populationIntegratedSurroundCenterSensitivityStats(dataOut)
         d = dataOut{iRGCindex};
         weightsSurroundToCenterRatioAllCells(iRGCindex) = d.weightsSurroundToCenterRatio;
         
+        assert(ismember('RsToRc', d.physiologicalOpticsDoGParams.names), ...
+            sprintf('''RsToRc'' param name not found in physiologicalOpticsDoGParams.names'));
+        
+        assert(ismember('kS/kC', d.physiologicalOpticsDoGParams.names), ...
+            sprintf('''kS/kC'' param name not found in physiologicalOpticsDoGParams.names'));
+        
+        assert(ismember('RcDegs', d.physiologicalOpticsDoGParams.names), ...
+            sprintf('''RcDegs'' param name not found in physiologicalOpticsDoGParams.names'));
+        
         for iParam = 1:numel(d.physiologicalOpticsDoGParams.names)
-            if (strcmp(d.physiologicalOpticsDoGParams.names{iParam}, 'RsToCenterConeRc'))
+            if (strcmp(d.physiologicalOpticsDoGParams.names{iParam}, 'RsToRc'))
                 RsToCenterConeRcPhysiologicalOpticsAllCells(iRGCindex) = d.physiologicalOpticsDoGParams.bestFitValues(iParam);
             end
             
@@ -32,6 +41,13 @@ function populationIntegratedSurroundCenterSensitivityStats(dataOut)
                 RcDegsPhysiologicalOpticsAllCells(iRGCindex) = d.physiologicalOpticsDoGParams.bestFitValues(iParam);
             end
         end
+        
+        
+        assert(ismember('RsToCenterConeRc', d.AOSLOOpticsDoGparams.names), ...
+            sprintf('''RsToCenterConeRc'' param name not found in AOSLOOpticsDoGparams.names'));
+        
+        assert(ismember('kS/kC', d.AOSLOOpticsDoGparams.names), ...
+            sprintf('''kS/kC'' param name not found in AOSLOOpticsDoGparams.names'));
         
         
         for iParam = 1:numel(d.AOSLOOpticsDoGparams.names)

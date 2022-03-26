@@ -40,8 +40,8 @@ function [modelRGCSTF, RGCRFmodel] = STFfromDoGpooledConeMosaicSTFresponses(...
     Ks = Kc * KsToKc;
 
     % The surround characteristic radius in degs
-    RsToCenterConeRc = DoGparams(3);
-    RsDegs = RsToCenterConeRc * modelConstants.centerConeCharacteristicRadiusDegs;
+    RsToRc = DoGparams(3);
+    RsDegs = RsToRc * modelConstants.centerConeCharacteristicRadiusDegs;
 
     % The overall negative dc-offet of the measured STF
     dcOffset = DoGparams(end);
