@@ -83,6 +83,12 @@ function fluorescenceSTFData(STFdataToFit, fitParams, ...)
     % Restore standard warnings on all workers
     pctRunOnAll warning('on','MATLAB:nearlySingularMatrix');
 
+    % Synthesize RGCID string
+    RGCIDstring = sprintf('%s%d', STFdataToFit.whichCenterConeType,  STFdataToFit.whichRGCindex);
+       
+    fprintf('Saving the fitted cone pooling model(s) for cell %s in %s.', ...
+        RGCIDstring, fitResultsFileName);
+
     % Save fitted models
     save(fitResultsFileName, ...
         'STFdataToFit', ...
