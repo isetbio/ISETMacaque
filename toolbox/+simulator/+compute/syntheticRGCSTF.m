@@ -42,7 +42,6 @@ function dataOut = syntheticRGCSTF(syntheticRGCmodelFilename, coneMosaicResponse
     bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(...
             coneMosaicPositionModels, STFdataToFit, rmsSelector);
     theBestConePositionModel = coneMosaicPositionModels{bestConePosIdx};
-    
 
     % Obtain center cone Rc and eccentricity
     bestConeIdx = theBestConePositionModel.fittedRGCRF.centerConeIndices(1);

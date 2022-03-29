@@ -108,7 +108,7 @@ function plotFigure(ax, maxY, showCenterSurroundComponents, measuredSTFdataStruc
             'YLim', [-0.05 maxY+0.002], 'YTick', -0.1:0.1:10);
 
     if (~showCenterSurroundComponents)
-        text(ax, 55, maxY*0.97,titleString, 'FontSize', 30);
+        text(ax, 50, maxY*0.97,titleString, 'FontSize', 30);
     end
     
     

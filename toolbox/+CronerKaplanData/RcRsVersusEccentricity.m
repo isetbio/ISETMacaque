@@ -1,4 +1,4 @@
-function [Rc, Rs, RcRsRatio, axesHandles] = RcRsVersusEccentricity(varargin)
+function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentricity(varargin)
 % Return the Rc and Rs dependence on retinal eccentricity in degrees
 %
 % Syntax:

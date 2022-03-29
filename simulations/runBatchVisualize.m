@@ -56,6 +56,9 @@ function runBatchVisualize
     % Get all recorded RGC infos
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
+    centerConeTypes = {'L'};
+    coneRGCindices = 3;
+
     for iRGCindex = 1:numel(coneRGCindices)
         
          % Select which recording session and which RGC to fit. 
@@ -70,6 +73,7 @@ function runBatchVisualize
         % Select optimal residual defocus for deriving the synthetic RGC model
         operationOptions.residualDefocusDiopters = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
             monkeyID, RGCIDstring);
+
         % Go
         simulator.performOperation(operation, operationOptions, monkeyID); 
     end

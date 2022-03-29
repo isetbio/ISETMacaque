@@ -16,8 +16,6 @@ function filename = coneMosaicSTFresponses(monkeyID, options)
     responseFilename = sprintf('%s', monkeyID);
 
     % Add stimulus descriptor
-    options.stimulusParams
-    options
     switch (options.stimulusParams.type)
         
         case simulator.stimTypes.monochromaticAO
