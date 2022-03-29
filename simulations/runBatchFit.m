@@ -77,9 +77,12 @@ function runBatchFit
         'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
         );
     
-     % Which RGCs to fit
+    % Get all recorded RGC infos
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
+     % Or analyze a specific RGC
+     %centerConeTypes = {'L'};
+     %coneRGCindices = 3;
 
     % Do the fit for each cell
     for iRGCindex = 1:numel(coneRGCindices)    
@@ -98,7 +101,7 @@ function runBatchFit
             monkeyID, RGCIDstring);
         
         % OR a single defocus
-        %operationOptions.residualDefocusDiopters = 0.067;
+        operationOptions.residualDefocusDiopters = 0.067;
             
         % All set, go!
         simulator.performOperation(operation, operationOptions, monkeyID);
