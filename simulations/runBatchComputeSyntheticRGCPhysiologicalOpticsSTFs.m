@@ -60,13 +60,21 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
          );
     
    
-     % Get all recorded RGC infos
+    % Get all recorded RGC info
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
-    % Or fit a specific RGC
-    centerConeTypes = {'L'};
-    coneRGCindices = 4;
-    
+
+    % M838 RGCs with lowpass AOSLO STF
+    excludedRGCIDs = {};
+    if (strcmp(monkeyID, 'M838'))
+        excludedRGCIDs = {'L2', 'L9',  'M3'};
+    end
+
+    % Exclude RGCs with lowpass AOSLO STF
+    [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID, ...
+        'excludedRGCIDs', excludedRGCIDs);
+
+
     dataOut = cell(1, numel(coneRGCindices));
     for iRGCindex = 1:numel(coneRGCindices)    
         
@@ -119,7 +127,7 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     end
     
     % Visualize population Rc/Rs stats
-%    simulator.visualize.populationRcRsStats(dataOut);
+    simulator.visualize.populationRcRsStats(dataOut);
     
     % Visualize population Ks/Kc stats
     simulator.visualize.populationKsKcStats(dataOut);
