@@ -21,12 +21,14 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
 
     p = inputParser;
     p.addParameter('generateFigure', false, @islogical);
+    p.addParameter('computeStatsBetweenDataSets', false, @islogical);
     p.addParameter('extraData1', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraData2', [], @(x)(isempty(x)||(isstruct(x))));
     
     p.parse(varargin{:});
     generateFigure = p.Results.generateFigure;
-    
+    computeStatsBetweenDataSets = p.Results.computeStatsBetweenDataSets;
+
     extraData1 = p.Results.extraData1;
     addExtraData1 = ~(isempty(extraData1));
     
@@ -36,7 +38,28 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
     d = KsKcRatioVsEccentricity();
     KsKcRatio.eccDegs = d(:,1);
     KsKcRatio.ratio = d(:,2);
+
+    if (computeStatsBetweenDataSets)
+        % Run stats between C&K and Physiological optics
+        nullHypothesisData = KsKcRatio.ratio(:);
+        testHypothesisData = extraData1.values(:);
+        [testPassedKsKcCronerVsPhysioOptics, pValKsKcCronerVsPhysioOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
     
+        testHypothesisData = extraData2.values(:);
+        [testPassedKsKcCronerVsAOSLOOptics, pValKsKcCronerVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+    
+        nullHypothesisData = extraData1.values(:);
+        testHypothesisData = extraData2.values(:);
+        [testPassedKsKcPhysioVsAOSLOOptics, pValKsKcPhysioVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+
+        fprintf('Paused to see the computed stats. Hit enter to continue.')
+        pause;
+    end
+
+
     axesHandles = struct();
     
     if (generateFigure) || (addExtraData1) || (addExtraData2)
@@ -96,7 +119,8 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
             'YLim', [1e-4 1], 'YTick', [1e-4 1e-3 1e-2 1e-1 1],  'YTickLabel', {'1e-4', '1e-3', '1e-2', '1e-1', '1'}, ...
             'FontSize', 30);
         grid(ax, 'on');  box(ax, 'off');
-        
+        xtickangle(ax, 0);
+
         lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
             'FontSize', 16);
         lgd.NumColumns = 2;
@@ -111,8 +135,9 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
         legends = {};
         plotHandles = [];
         
-        edges = -4:0.25:0;
+        edges = -4:(1.0/3.0):0;
         [counts,bins] = histcounts(log10(KsKcRatio.ratio), edges);
+        maxY = max(counts);
         p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
         legends{numel(legends)+1} = 'C&K';
         plotHandles(numel(plotHandles)+1) = p;
@@ -120,6 +145,7 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
         if (addExtraData1) && (~isempty(extraData1.eccDegs))
             hold(ax, 'on');
             [counts,bins] = histcounts(log10(extraData1.values), edges);
+            maxY = max([maxY max(counts)]);
             p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', [1 0.8 0.2], 'EdgeColor', [1 0.8 0.2]*0.5);
             legends{numel(legends)+1} = extraData1.legend;
             plotHandles(numel(plotHandles)+1) = p;
@@ -128,19 +154,37 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
         if (addExtraData2) && (~isempty(extraData2.eccDegs))
             hold(ax, 'on');
             [counts,bins] = histcounts(log10(extraData2.values), edges);
+            maxY = max([maxY max(counts)]);
             p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', [1 0.5 0.2], 'EdgeColor', [1 0.5 0.2]*0.5);
             legends{numel(legends)+1} = extraData2.legend;
             plotHandles(numel(plotHandles)+1) = p;
         end
         
+        % Median lines
+        medianKsKcRatio = mean(log10(KsKcRatio.ratio));
+        medianExtraData1 = mean(log10(extraData1.values(:)));
+        medianExtraData2 = mean(log10(extraData2.values(:)));
+        fprintf('Mean KsKc - C&K: %f\n', 10^medianKsKcRatio);
+        fprintf('Mean KsKc - ExtraData1: %f\n', 10^medianExtraData1);
+        fprintf('Mean KsKc - ExtraData2: %f\n', 10^medianExtraData2);
+
+        plot(medianKsKcRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
+
+        plot(medianKsKcRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.8 0.2], 'LineWidth', 3);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.5 0.2],'LineWidth', 3);
+
         lgd = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 16);
         lgd.NumColumns = 2;
         set(lgd,'Box','off');
             
         xlabel(ax,'Ks/Kc ratio');
         ylabel(ax, 'count');
+        xtickangle(ax, 0);
         axis(ax, 'square');
-        set(ax, 'XScale', 'linear', 'YScale', 'linear');
+        set(ax, 'XScale', 'linear', 'YScale', 'linear', 'YLim', [0 maxY+1]);
         dx = bins(2)-bins(1);
         set(ax, 'XLim', [-4-dx/2 0], ...
             'XTick',       -4:0.5:0, ...

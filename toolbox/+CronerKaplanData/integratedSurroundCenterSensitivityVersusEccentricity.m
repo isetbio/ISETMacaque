@@ -22,12 +22,14 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
 
     p = inputParser;
     p.addParameter('generateFigure', false, @islogical);
+    p.addParameter('computeStatsBetweenDataSets', false, @islogical);
     p.addParameter('extraData1', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraData2', [], @(x)(isempty(x)||(isstruct(x))));
     
     p.parse(varargin{:});
     generateFigure = p.Results.generateFigure;
-    
+    computeStatsBetweenDataSets = p.Results.computeStatsBetweenDataSets;
+
     extraData1 = p.Results.extraData1;
     addExtraData1 = ~(isempty(extraData1));
     
@@ -38,6 +40,27 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
     integratedSurroundCenterRatios.eccDegs = d(:,1);
     integratedSurroundCenterRatios.ratios = d(:,2);
     
+    if (computeStatsBetweenDataSets)
+        % Run stats between C&K and Physiological optics
+        nullHypothesisData = integratedSurroundCenterRatios.ratios(:);
+        testHypothesisData = extraData1.values(:);
+        [testPassedIntSurrCenterSensCronerVsPhysioOptics, pValIntSurrCenterSensCronerVsPhysioOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+    
+        testHypothesisData = extraData2.values(:);
+        [testPassedIntSurrCenterSensCronerVsAOSLOOptics, pValIntSurrCenterSensCronerVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+        
+        nullHypothesisData = extraData1.values(:);
+        testHypothesisData = extraData2.values(:);
+        [testPassedIntSurrCenterSensPhysioVsAOSLOOptics, pValIntSurrCenterSensPhysioVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+
+        fprintf('Paused to see the computed stats. Hit enter to continue.')
+        pause;
+    end
+
+
     axesHandles = struct();
     
     if (generateFigure) || (addExtraData1) || (addExtraData2)
@@ -99,7 +122,7 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
             'YLim', [0 4], 'YTick', 0:0.5:4.0,  'YTickLabel', {'0', '', '1', '', '2', '', '3', '', '4'}, ...
             'FontSize', 30);
         grid(ax, 'on');  box(ax, 'off');
-        
+        xtickangle(ax, 0)
         
         lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
             'FontSize', 16);
@@ -117,6 +140,7 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         
         edges = 0:0.25:4;
         [counts,bins] = histcounts(integratedSurroundCenterRatios.ratios, edges);
+        maxY = max(counts);
         p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
         legends{numel(legends)+1} = 'C&K';
         plotHandles(numel(plotHandles)+1) = p;
@@ -124,6 +148,7 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         if (addExtraData1) && (~isempty(extraData1.eccDegs))
             hold(ax, 'on');
             [counts,bins] = histcounts(extraData1.values, edges);
+            maxY = max([maxY max(counts)]);
             p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', [1 0.8 0.2], 'EdgeColor', [1 0.8 0.2]*0.5);
             legends{numel(legends)+1} = extraData1.legend;
             plotHandles(numel(plotHandles)+1) = p;
@@ -132,11 +157,13 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         if (addExtraData2) && (~isempty(extraData2.eccDegs))
             hold(ax, 'on');
             [counts,bins] = histcounts(extraData2.values, edges);
+            maxY = max([maxY max(counts)]);
             p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', [1 0.5 0.2], 'EdgeColor', [1 0.5 0.2]*0.5);
             legends{numel(legends)+1} = extraData2.legend;
             plotHandles(numel(plotHandles)+1) = p;
         end
         
+        xtickangle(ax, 0)
         lgd = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 16);
         lgd.NumColumns = 2;
         set(lgd,'Box','off');
@@ -153,6 +180,23 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
             'FontSize', 30);
         grid(ax, 'on');  box(ax, 'off');
         
+        % Median lines
+        medianIntSurrCenterSensRatio = mean(integratedSurroundCenterRatios.ratios);
+        medianExtraData1 = mean(extraData1.values(:));
+        medianExtraData2 = mean(extraData2.values(:));
+        fprintf('Mean RcRs - C&K: %f\n', medianIntSurrCenterSensRatio);
+        fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
+        fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
+
+        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
+
+        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.8 0.2], 'LineWidth', 3);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.5 0.2],'LineWidth', 3);
+
+
         lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
             'FontSize', 16);
         lgd.NumColumns = 2;

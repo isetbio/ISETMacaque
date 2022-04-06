@@ -21,6 +21,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
     p = inputParser;
     p.addParameter('generateFigure', false, @islogical);
+    p.addParameter('computeStatsBetweenDataSets', false, @islogical);
     p.addParameter('extraRcRsRatioData1', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraRcRsRatioData2', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraRcDegsData', [], @(x)(isempty(x)||(isstruct(x))));
@@ -31,6 +32,8 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
     
     p.parse(varargin{:});
     generateFigure = p.Results.generateFigure;
+    computeStatsBetweenDataSets = p.Results.computeStatsBetweenDataSets;
+
     comboOptics = p.Results.comboOptics;
     
     extraRcRsRatioData1 = p.Results.extraRcRsRatioData1;
@@ -64,6 +67,27 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
     RcRsRatio.eccDegs = d(:,1);
     RcRsRatio.ratio = d(:,2);
     
+    if (computeStatsBetweenDataSets)
+        % Run stats between C&K and Physiological optics
+        nullHypothesisData = RcRsRatio.ratio(:);
+        testHypothesisData = extraData1.values(:);
+        [testPassedRcRsCronerVsPhysioOptics, pValRcRsCronerVsPhysioOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+    
+        testHypothesisData = extraData2.values(:);
+        [testPassedRcRsCronerVsAOSLOOptics, pValRcRsCronerVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+    
+        nullHypothesisData = extraData1.values(:);
+        testHypothesisData = extraData2.values(:);
+        [testPassedRcRsPhysioVsAOSLOOptics, pValRcRsPhysioVsAOSLOOptics] = ttest2(nullHypothesisData, testHypothesisData, ... 
+                    'Vartype', 'unequal')
+
+        fprintf('Paused to see the computed stats. Hit enter to continue.')
+        pause;
+    end
+
+
     axesHandles = struct();
     
     if (generateFigure)
@@ -222,12 +246,13 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             lgd.NumColumns = 2;
             set(lgd,'Box','off');
             
+            xtickangle(ax, 0)
             axis(ax, 'square');
             set(ax, 'XScale', 'log', 'YScale', 'linear');
             set(ax, 'XLim', [0.003 30], ...
                  'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
                  'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'});
-            set(ax, 'YLim', [0 1], 'YTick', 0:0.2:1.0, 'FontSize', 30);
+            set(ax, 'YLim', [0 0.8], 'YTick', 0:0.1:1.0, 'FontSize', 30);
             grid(ax, 'on');  box(ax, 'off');
             
             
@@ -242,6 +267,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
         
             edges = 0:0.1:1;
             [counts,bins] = histcounts(RcRsRatio.ratio, edges);
+            maxY = max(counts);
             p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
             legends{numel(legends)+1} = 'C&K';
             plotHandles(numel(plotHandles)+1) = p;
@@ -249,6 +275,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             if (addExtraData1) && (~isempty(extraData1.eccDegs))
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData1.values, edges);
+                maxY = max([maxY max(counts)]);
                 p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', [1 0.8 0.2], 'EdgeColor', [1 0.8 0.2]*0.5);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
@@ -257,21 +284,40 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             if (addExtraData2) && (~isempty(extraData2.eccDegs))
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData2.values, edges);
+                maxY = max([maxY max(counts)]);
                 p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', [1 0.5 0.2], 'EdgeColor', [1 0.5 0.2]*0.5);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
         
+            % Median lines
+            medianRcRsRatio = mean(RcRsRatio.ratio);
+            medianExtraData1 = mean(extraData1.values(:));
+            medianExtraData2 = mean(extraData2.values(:));
+            fprintf('Mean RcRs - C&K: %f\n', medianRcRsRatio);
+            fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
+            fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
+
+            plot(medianRcRsRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
+
+            plot(medianRcRsRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.8 0.2], 'LineWidth', 3);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.5 0.2],'LineWidth', 3);
+
+     
+
             lgd = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 16);
             lgd.NumColumns = 2;
             set(lgd,'Box','off');
-            
+            xtickangle(ax, 0);
             xlabel(ax,'Rc/Rs ratio');
             ylabel(ax, 'count');
             axis(ax, 'square');
             set(ax, 'XScale', 'linear', 'YScale', 'linear');
             dx = bins(2)-bins(1);
-            set(ax, 'XLim', [0-dx/2 1], ...
+            set(ax, 'XLim', [0-dx/2 0.8], ...
                 'XTick',       0:0.1:1, ...
                 'XTickLabels', {'0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1'}, ...
                 'FontSize', 30);
