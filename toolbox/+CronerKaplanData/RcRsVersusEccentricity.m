@@ -1,4 +1,4 @@
-function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentricity(varargin)
+function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentricity(showPlot, varargin)
 % Return the Rc and Rs dependence on retinal eccentricity in degrees
 %
 % Syntax:
@@ -21,6 +21,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
     p = inputParser;
     p.addParameter('generateFigure', false, @islogical);
+    p.addParameter('axesHandles', [],  @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('computeStatsBetweenDataSets', false, @islogical);
     p.addParameter('extraRcRsRatioData1', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraRcRsRatioData2', [], @(x)(isempty(x)||(isstruct(x))));
@@ -29,9 +30,11 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
     p.addParameter('extraData1', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('extraData2', [], @(x)(isempty(x)||(isstruct(x))));
     p.addParameter('comboOptics', false, @islogical);
-    
     p.parse(varargin{:});
+
     generateFigure = p.Results.generateFigure;
+    axesHandles = p.Results.axesHandles;
+
     computeStatsBetweenDataSets = p.Results.computeStatsBetweenDataSets;
 
     comboOptics = p.Results.comboOptics;
@@ -88,7 +91,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
     end
 
 
-    axesHandles = struct();
+    
     
     if (generateFigure)
         subplotPosVectors = NicePlot.getSubPlotPosVectors(...
@@ -101,117 +104,78 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
            'bottomMargin',   0.12, ...
            'topMargin',      0.02);
    
-        axesHandles.hFig = figure();
-        set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 740]);
-        
+        if (isempty(axesHandles))
+            axesHandles = struct();
+            axesHandles.hFig = figure();
+            clf;
+            set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 840]);
 
-        ax = subplot('Position', subplotPosVectors(1,1).v);
-        axesHandles.ax1 = ax;
+            axesHandles.ax1 = subplot('Position', subplotPosVectors(1,1).v);
+            axesHandles.ax2 = subplot('Position', subplotPosVectors(1,2).v);
+            ax = axesHandles.ax1;
+        else
+            figure(axesHandles.hFig);
+            ax = axesHandles.ax2;
+        end
+
+        
         hold(ax, 'on');
         
         legends = {};
         plotHandles = [];
-        
+
+        centerColor = [1 0.3 0.8];
+        surroundColor = [0.2 1 0.8];
+
         if (~comboOptics)
             
-            if (addExtraData1) && (~isempty(extraData1.eccDegs))
-                hold(ax, 'on');
-                p = plot(ax, extraData1.eccDegs, extraData1.values, 'k.');
+            if (showPlot(1) == 1) && (addExtraData1) && (~isempty(extraData1.eccDegs))
+                p = addLineData(ax, extraData1,[0 0.9 0.8], [0 0.6 1]);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
-            if (addExtraData2) && (~isempty(extraData2.eccDegs))
-                hold(ax, 'on');
-                plot(ax, extraData2.eccDegs, extraData2.values, '-', ...
-                    'Color', [0 0.9 0.8], 'LineWidth', 4); 
-                p = plot(ax, extraData2.eccDegs, extraData2.values, '--', ...
-                    'Color', [0 0.6 1], 'LineWidth', 2); 
+            if (showPlot(2) == 1) && (addExtraData2) && (~isempty(extraData2.eccDegs))
+                p = addScatterData(ax, extraData2, 8*8, '.', [0.3 0.3 0.3]);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
-
-            if (addRcDegsData) && (~isempty(extraRcDegsData.eccDegs))
-                hold(ax, 'on');
-                p = scatter(ax, extraRcDegsData.eccDegs, extraRcDegsData.values, 13*13, ...
-                'filled', 'MarkerEdgeColor', [1 0.8 0.2]*0.5, 'MarkerFaceColor', [1 0.8 0.2], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+            if (showPlot(3) == 1) && (addRcDegsData) && (~isempty(extraRcDegsData.eccDegs))
+                p = addScatterData(ax, extraRcDegsData, 13*13, 'o', centerColor);
                 legends{numel(legends)+1} = extraRcDegsData.legend;
                 plotHandles(numel(plotHandles)+1) = p;
 
             end
 
-            if (addRsDegsData) && (~isempty(extraRsDegsData.eccDegs))
-                hold(ax, 'on');
-                p = scatter(ax, extraRsDegsData.eccDegs, extraRsDegsData.values, 14*14, ...
-                'filled', 's', 'MarkerEdgeColor', [1 0.5 0.2]*0.5, 'MarkerFaceColor', [1 0.5 0.2], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+            if (showPlot(4) == 1) && (addRsDegsData) && (~isempty(extraRsDegsData.eccDegs))
+                p = addScatterData(ax, extraRsDegsData, 16*16, 's', surroundColor);
                 legends{numel(legends)+1} = extraRsDegsData.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
 
-
-
-            % C&K Rc and Rs
-            p = scatter(ax,Rc.eccDegs, Rc.radiusDegs, 13*13, ...
-                'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', [0.8 0.8 0.8], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-            legends{numel(legends)+1} = 'Rc (C&K)';
-            plotHandles(numel(plotHandles)+1) = p;
-
-            p = scatter(ax,Rs.eccDegs, Rs.radiusDegs, 14*14, ...
-                'filled', 's', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', [0.4 0.4 0.4], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-            legends{numel(legends)+1} = 'Rs (C&K)';
-            plotHandles(numel(plotHandles)+1) = p;
-
-            % Add regression lines from C&K paper: 0.2 to 40 degs
-            breakoutEccPoint = 0.15;
-            eccDegsSupport = logspace(log10(breakoutEccPoint), log10(40), 100);
-            CK_regressionLineForRc = RcAlpha*eccDegsSupport.^RcBeta;
-            CK_regressionLineForRs = RsAlpha*eccDegsSupport.^RsBeta;
-
-            % Straight lines below breakoutEccPoint degs
-            eccDegsSupport = [0.003 breakoutEccPoint eccDegsSupport];
-            CK_regressionLineForRc = [CK_regressionLineForRc(1) CK_regressionLineForRc(1)  CK_regressionLineForRc];
-            CK_regressionLineForRs = [CK_regressionLineForRs(1) CK_regressionLineForRs(1) CK_regressionLineForRs];
-
-            plot(eccDegsSupport, CK_regressionLineForRc, '-', 'Color', [1 0.8 0.2]*0.2, 'LineWidth', 4.0);
-            plot(eccDegsSupport, CK_regressionLineForRc, '--', 'Color', [1 0.8 0.2], 'LineWidth', 2.0);
-            plot(eccDegsSupport, CK_regressionLineForRs, '-', 'Color', [1 0.5 0.2]*0.2, 'LineWidth', 4.0);
-            plot(eccDegsSupport, CK_regressionLineForRs, '--', 'Color', [1 0.5 0.2], 'LineWidth', 2.0);
-    %        
-            xlabel(ax,'eccentricity (degs)');
-            ylabel(ax,'characteristic radius (degs)');
-            axis(ax, 'square');
-            set(ax, 'XScale', 'log', 'YScale', 'log');
-            set(ax, 'XLim', [0.003 30], ...
-                'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
-                'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'}, ...
-                'YLim', [0.0025 3], ...
-                'YTick', [0.003 0.01 0.03 0.1 0.3 1 3 10],  ...
-                'YTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10'}, ...
-                'FontSize', 30);
-            grid(ax, 'on');  box(ax, 'off');
-
-
-            lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
-                'FontSize', 16);
-            set(lgd,'Box','off');
-            if (numel(legends)<3)
-                lgd.NumColumns = 1;
-            elseif (numel(legends)<5)
-                lgd.NumColumns = 2;
-            elseif (numel(legends)<7)
-                lgd.NumColumns = 3;
-            else
-                lgd.NumColumns = 4;
+            if (showPlot(5) == 1)
+                % C&K Rc and Rs
+                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, centerColor, surroundColor);
+                legends{numel(legends)+1} = theLegends{1};
+                legends{numel(legends)+1} = theLegends{2};
+                plotHandles(numel(plotHandles)+1) = thePlotHandles(1);
+                plotHandles(numel(plotHandles)+1) = thePlotHandles(2);
             end
+
+            % Regressions lines through C&Kdata
+            % addRegressionLinesToPlot(ax, RcAlpha, RcBeta, RsAlpha, RsBeta, centerColor, surroundColor); 
+
+            % Legends
+            addLegendsToPlot(ax, plotHandles, legends);
+
+            % Set axes limits and scaling, labels etc
+            finalizePlot(ax);
             
         else
             % Combo optics
+
         
             % Rc / Rs ratios
             ax = subplot('Position', subplotPosVectors(1,1).v);
@@ -219,17 +183,20 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             scatter(ax,RcRsRatio.eccDegs, RcRsRatio.ratio, 100, ...
                 'filled', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', [0.8 0.8 0.8], ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+
             if (addExtraData1)
                 hold(ax, 'on');
+                color = [1 0.8 0.2];
                 scatter(ax, extraData1.eccDegs, extraData1.values, 13*13, ...
-                'filled', 'MarkerEdgeColor', [1 0.8 0.2]*0.5, 'MarkerFaceColor', [1 0.8 0.2], ...
+                'filled', 'MarkerEdgeColor', centerColor*0.5, 'MarkerFaceColor', color, ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
             end
             
             if (addExtraData2)
+                color = [1 0.5 0.2];
                 hold(ax, 'on');
                 scatter(ax, extraData2.eccDegs, extraData2.values, 13*13, ...
-                'filled', 'MarkerEdgeColor', [1 0.5 0.2]*0.5, 'MarkerFaceColor', [1 0.5 0.2], ...
+                'filled', 'MarkerEdgeColor', surroundColor*0.5, 'MarkerFaceColor', color, ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
             end
             
@@ -276,7 +243,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData1.values, edges);
                 maxY = max([maxY max(counts)]);
-                p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', [1 0.8 0.2], 'EdgeColor', [1 0.8 0.2]*0.5);
+                p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', centerColor, 'EdgeColor', centerColor*0.5);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
@@ -285,7 +252,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData2.values, edges);
                 maxY = max([maxY max(counts)]);
-                p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', [1 0.5 0.2], 'EdgeColor', [1 0.5 0.2]*0.5);
+                p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', surroundColor, 'EdgeColor', surroundColor*0.5);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
@@ -303,13 +270,17 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
 
             plot(medianRcRsRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.8 0.2], 'LineWidth', 3);
-            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.5 0.2],'LineWidth', 3);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', centerColor, 'LineWidth', 3);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', surroundColor,'LineWidth', 3);
 
      
 
-            lgd = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 16);
+            [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthWest', 'FontSize', 16);
             lgd.NumColumns = 2;
+
+            objhl = findobj(legendHandle, 'type', 'patch');
+            set(objhl, 'Markersize', 14);
+
             set(lgd,'Box','off');
             xtickangle(ax, 0);
             xlabel(ax,'Rc/Rs ratio');
@@ -326,8 +297,88 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
         end  % Combo optics
         
     end
-    
+end
 
+
+function p = addLineData(ax, d, thickLineColor, thinLineColor)
+    hold(ax, 'on');
+    plot(ax, d.eccDegs, d.values, '-', 'Color', thickLineColor, 'LineWidth', 4); 
+    p = plot(ax, d.eccDegs, d.values, '--', 'Color', thinLineColor, 'LineWidth', 2); 
+end
+
+function p = addScatterData(ax, d, markerSize, markerSymbol, markerColor)
+      hold(ax, 'on');
+      p = scatter(ax, d.eccDegs, d.values, markerSize, ...
+         'filled', markerSymbol, 'MarkerEdgeColor', markerColor*0.5, 'MarkerFaceColor', markerColor, ...
+         'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+end
+
+function [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, centerColor, surroundColor)
+    p = scatter(ax,Rc.eccDegs, Rc.radiusDegs, 13*13, ...
+                'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', centerColor*0.5+[0.5 0.5 0.5], ...
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+    theLegends{1} = 'Rc (C&K)';
+    thePlotHandles(1) = p;
+
+    p = scatter(ax,Rs.eccDegs, Rs.radiusDegs, 16*16, ...
+                'filled', 's', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', surroundColor*0.5+[0.5 0.5 0.5], ...
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+    theLegends{2} = 'Rs (C&K)';
+    thePlotHandles(2) = p;
+
+end
+
+function addRegressionLinesToPlot(ax, RcAlpha, RcBeta, RsAlpha, RsBeta, centerColor, surroundColor)
+    % Add regression lines from C&K paper: 0.2 to 40 degs
+    breakoutEccPoint = 0.15;
+    eccDegsSupport = logspace(log10(breakoutEccPoint), log10(40), 100);
+    CK_regressionLineForRc = RcAlpha*eccDegsSupport.^RcBeta;
+    CK_regressionLineForRs = RsAlpha*eccDegsSupport.^RsBeta;
+
+    % Straight lines below breakoutEccPoint degs
+    eccDegsSupport = [0.003 breakoutEccPoint eccDegsSupport];
+    CK_regressionLineForRc = [CK_regressionLineForRc(1) CK_regressionLineForRc(1)  CK_regressionLineForRc];
+    CK_regressionLineForRs = [CK_regressionLineForRs(1) CK_regressionLineForRs(1) CK_regressionLineForRs];
+
+    plot(ax,eccDegsSupport, CK_regressionLineForRc, '-', 'Color', centerColor*0.2, 'LineWidth', 4.0);
+    plot(ax,eccDegsSupport, CK_regressionLineForRc, '--', 'Color', centerColor, 'LineWidth', 2.0);
+    plot(ax,eccDegsSupport, CK_regressionLineForRs, '-', 'Color', surroundColor*0.2, 'LineWidth', 4.0);
+    plot(ax, eccDegsSupport, CK_regressionLineForRs, '--', 'Color', surroundColor, 'LineWidth', 2.0);
+end
+
+function addLegendsToPlot(ax, plotHandles, legends)
+    [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', 'NorthWest', ...
+        'FontSize', 16);
+    set(lgd,'Box','off');
+    if (numel(legends)<4)
+        lgd.NumColumns = 1;
+    elseif (numel(legends)<8)
+        lgd.NumColumns = 2;
+    elseif (numel(legends)<12)
+        lgd.NumColumns = 3;
+    else
+        lgd.NumColumns = 4;
+    end
+    objhl = findobj(legendHandle, 'type', 'patch');
+    set(objhl, 'Markersize', 14);
+end
+
+
+function finalizePlot(ax)
+    xlabel(ax,'eccentricity (degs)');
+    ylabel(ax,'characteristic radius (degs)');
+    axis(ax, 'square');
+    set(ax, 'XScale', 'log', 'YScale', 'log');
+    xtickangle(ax,0);
+    set(ax, 'XLim', [0.006 30], ...
+        'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
+        'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'}, ...
+        'YLim', [0.0025 2], ...
+        'YTick', [0.003 0.01 0.03 0.1 0.3 1 3 10],  ...
+        'YTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10'}, ...
+        'LineWidth', 1.0, 'XColor', [0.2 0.2 0.2], 'YColor', [0.2 0.2 0.2], ...
+        'FontSize', 30);
+     grid(ax, 'on');  box(ax, 'off');
 end
 
 function d = RcRsRatioVsEccentricity()
