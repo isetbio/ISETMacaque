@@ -64,16 +64,13 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
 
-    % M838 RGCs with lowpass AOSLO STF
-    excludedRGCIDs = {};
-    if (strcmp(monkeyID, 'M838'))
-        excludedRGCIDs = {'L2', 'L9',  'M3'};
-    end
-
-    % Exclude RGCs with lowpass AOSLO STF
+    % Run for all non lowpass RGCs
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID, ...
-        'excludedRGCIDs', excludedRGCIDs);
+        'excludedRGCIDs', simulator.animalInfo.lowPassRGCs(monkeyID));
 
+
+    residualDefocusDioptersExamined = -99;     % This will use each cell's optimal residual defocus
+    residualDefocusDioptersExamined = 0.067;
 
     dataOut = cell(1, numel(coneRGCindices));
     for iRGCindex = 1:numel(coneRGCindices)    
@@ -84,15 +81,18 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
             'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
-        % Synthesize RGCID string
-        RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
-        
-        % Select optimal residual defocus for deriving the synthetic RGC model
-        residualDefocus = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
-            monkeyID, RGCIDstring);
+        if (residualDefocusDioptersExamined == -99)
+            % Optimal residual defocus for each cell
+            residualDefocusForModel = ...
+                    simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(monkeyID, ...
+                    sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex));
+        else
+           % Examined residual defocus
+           residualDefocusForModel = residualDefocusDioptersExamined;
+        end
 
-        % Or select a specific value for all cells
-        residualDefocus = 0.067;
+        operationOptions.residualDefocusDiopters = [];
+
 
         % Select which recording session and which RGC to fit. 
         operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
@@ -113,7 +113,7 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
         operationOptions.syntheticRGCmodelParams = struct(...
             'opticsParams', struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
-                'residualDefocusDiopters', residualDefocus), ...
+                'residualDefocusDiopters', residualDefocusForModel), ...
             'stimulusParams', struct(...
                 'type', simulator.stimTypes.monochromaticAO), ...
             'cMosaicParams', struct(...

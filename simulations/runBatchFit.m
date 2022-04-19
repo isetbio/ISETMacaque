@@ -58,6 +58,9 @@ function runBatchFit
     % Choose which optics scenario to run.
     operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
 
+    residualDefocusDiopterExamined = 0.067;
+    %residualDefocusDiopterExamined = -99;  
+
     % RF center pooling scenarios to examine
     operationOptions.rfCenterConePoolingScenariosExamined = ...
         {'single-cone', 'multi-cone'};
@@ -93,16 +96,18 @@ function runBatchFit
             'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
-        % Synthesize RGCID string
-        RGCIDstring = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex);
-        
-        % Select optimal residual defocus for deriving the synthetic RGC model
-        operationOptions.residualDefocusDiopters = simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(...
-            monkeyID, RGCIDstring);
-        
-        % OR a single defocus
-        operationOptions.residualDefocusDiopters = 0.067;
+        if (residualDefocusDiopterExamined == -99)
+           % Optimal residual defocus for each cell
+           operationOptions.residualDefocusDiopters = ...
+                    simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(monkeyID, ...
+                    sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex));
+        else
+           % Examined residual defocus
+            operationOptions.residualDefocusDiopters = residualDefocusDiopterExamined;
+        end
             
+        operationOptions.residualDefocusDiopters
+        pause
         % All set, go!
         simulator.performOperation(operation, operationOptions, monkeyID);
     end

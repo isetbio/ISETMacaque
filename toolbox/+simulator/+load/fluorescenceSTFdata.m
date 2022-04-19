@@ -23,19 +23,19 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
 %    'whichSession'           - either a scalar identifiying a particular session, 
 %                               or 'meanOverSessions' or 'allSessions'
 %    'whichCenterConeType'    - char. Either 'L', or 'M', or 'all'
-%    'deconvolveOTF'          - logical. Whether to deconvolved the baked-in OTF
+%    'undoOTFdeconvolution'   - logical. Whether to undo the baked in deconvolution by the diffr.limited OTF
 
     p = inputParser;
     p.addParameter('whichSession', 'meanOverSessions', @(x)(ischar(x)||isscalar(x)));
     p.addParameter('whichCenterConeType', 'l', @(x)(ismember(lower(x), {'l', 'm'})));
     p.addParameter('whichRGCindex', [1], @isscalar);
-    p.addParameter('deconvolveOTF', true, @islogical);
+    p.addParameter('undoOTFdeconvolution', true, @islogical);
     p.parse(varargin{:});
 
     whichSession = p.Results.whichSession;
     whichCenterConeType = p.Results.whichCenterConeType;
     whichRGCindex = p.Results.whichRGCindex;
-    deconvolvedOTF = p.Results.deconvolveOTF;
+    undoOTFdeconvolution = p.Results.undoOTFdeconvolution;
 
     if (ischar(whichSession))
         assert(ismember(whichSession, {'meanOverSessions', 'allSessions'}), ...
@@ -58,8 +58,8 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
     fileName = fullfile(filepath, sprintf('SpatialFrequencyDataStd_%s_alltrials.mat', monkeyID));
     load(fileName, 'midget_dfF_otf_all_errors');
     
-    % Remove the OTF which is already baked in
-    if (deconvolvedOTF)
+    % Remove the deconvolution by the OTF which is already baked in
+    if (undoOTFdeconvolution)
         midget_dfF_otf_all = bsxfun(@times, midget_dfF_otf_all, otf); 
     end
 
@@ -74,7 +74,7 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
             midget_dfF_otf_all_errors = midget_dfF_otf_all_errors(idx,:,:);
     end
 
-    
+
     if (ischar(whichSession))&&(strcmp(whichSession, 'meanOverSessions'))
         midget_dfF_otf_all = mean(midget_dfF_otf_all,3);
         midget_dfF_otf_all_errors = mean(midget_dfF_otf_all_errors,3);
@@ -87,8 +87,8 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
     stfDataStruct = struct(...
         'whichCenterConeType', whichCenterConeType, ...
         'whichRGCindex', whichRGCindex, ...
-        'responses',   midget_dfF_otf_all(whichRGCindex,:), ...
-        'responseSE' , midget_dfF_otf_all_errors(whichRGCindex,:), ... 
+        'responses',   midget_dfF_otf_all(whichRGCindex,:,:), ...
+        'responseSE' , midget_dfF_otf_all_errors(whichRGCindex,:,:), ... 
         'spatialFrequencySupport', spatialFrequencySupport, ...
         'otf', otf);
 

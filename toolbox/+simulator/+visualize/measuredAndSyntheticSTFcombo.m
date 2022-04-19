@@ -8,8 +8,12 @@ function measuredAndSyntheticSTFcombo(measuredSTFdataStruct, ...
     ax1 = subplot('Position', [0.05 0.10 0.43 0.88]);
     ax2 = subplot('Position', [0.55 0.10 0.43 0.88]);
 
-    
-    maxY = max(modelMeasuredSTFdataStruct.valCenterSTF);
+    if (~isempty(modelMeasuredSTFdataStruct.valCenterSTF))
+        maxY = max(modelMeasuredSTFdataStruct.valCenterSTF);
+    else
+        maxY = max(modelMeasuredSTFdataStruct.val);
+    end
+
 
     if (maxY < 0.4)
         maxY = 0.1+round(10*maxY)/10;
@@ -36,6 +40,7 @@ function measuredAndSyntheticSTFcombo(measuredSTFdataStruct, ...
         modelMeasuredSTFdataStruct, syntheticSTFdataStruct, ...
         modelSyntheticSTFdataStruct, titleString);
 
+    drawnow;
     NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
 
 end
@@ -59,14 +64,22 @@ function plotFigure(ax, maxY, showCenterSurroundComponents, measuredSTFdataStruc
 
     if (showCenterSurroundComponents)
         % The AOSLO model center STF
-        plot(ax, modelMeasuredSTFdataStruct.sf,  modelMeasuredSTFdataStruct.valCenterSTF, 'ko--', ...
-            'MarkerSize', 10, 'MarkerEdgeColor',  [0 0. 0.], ...
-            'MarkerFaceColor', [0.8 0.8 0.8],'LineWidth', 1.5);
+        if (isempty(modelMeasuredSTFdataStruct.valCenterSTF))
+            fprintf(2, 'No model of the measured centerSTF data found. Will not plot.')
+        else
+            plot(ax, modelMeasuredSTFdataStruct.sf,  modelMeasuredSTFdataStruct.valCenterSTF, 'ko--', ...
+                'MarkerSize', 10, 'MarkerEdgeColor',  [0 0. 0.], ...
+                'MarkerFaceColor', [0.8 0.8 0.8],'LineWidth', 1.5);
+        end
     
         % The AOSLO model surround STF
-        plot(ax, modelMeasuredSTFdataStruct.sf,  modelMeasuredSTFdataStruct.valSurroundSTF, 'ks:', ...
-            'MarkerSize', 10, 'MarkerEdgeColor',  [0 0. 0.], ...
-            'MarkerFaceColor', [0.8 0.8 0.8],'LineWidth', 1.5);
+        if (isempty(modelMeasuredSTFdataStruct.valSurroundSTF))
+            fprintf(2, 'No model of the surroundSTF data found. Will not plot.')
+        else
+            plot(ax, modelMeasuredSTFdataStruct.sf,  modelMeasuredSTFdataStruct.valSurroundSTF, 'ks:', ...
+                'MarkerSize', 10, 'MarkerEdgeColor',  [0 0. 0.], ...
+                'MarkerFaceColor', [0.8 0.8 0.8],'LineWidth', 1.5);
+        end
     end
 
 
@@ -75,12 +88,20 @@ function plotFigure(ax, maxY, showCenterSurroundComponents, measuredSTFdataStruc
         'MarkerSize', 20,  'MarkerEdgeColor',  [1.0 0. 0.], 'MarkerFaceColor',  [1.0 0.5 0.5],'LineWidth', 1.5);
     
     if (showCenterSurroundComponents)
-        % The physiological optics derived center STF
-        plot(ax, syntheticSTFdataStruct.sf,  syntheticSTFdataStruct.valCenterSTF, 'ro--', ...
-            'MarkerSize', 10,  'MarkerEdgeColor',  [1.0 0. 0.], 'MarkerFaceColor',  [1.0 0.5 0.5],'LineWidth', 1.5);
+        if (isempty(syntheticSTFdataStruct.valCenterSTF))
+            fprintf(2, 'No synthetic centerSTF data found. Skip plotting');
+        else
+            % The physiological optics derived center STF
+            plot(ax, syntheticSTFdataStruct.sf,  syntheticSTFdataStruct.valCenterSTF, 'ro--', ...
+                'MarkerSize', 10,  'MarkerEdgeColor',  [1.0 0. 0.], 'MarkerFaceColor',  [1.0 0.5 0.5],'LineWidth', 1.5);
+        end
         % The physiological optics derived surround STF
-        plot(ax, syntheticSTFdataStruct.sf,  syntheticSTFdataStruct.valSurroundSTF, 'rs:', ...
-            'MarkerSize', 10,  'MarkerEdgeColor',  [1.0 0. 0.], 'MarkerFaceColor',  [1.0 0.5 0.5],'LineWidth', 1.5);
+        if (isempty(syntheticSTFdataStruct.valSurroundSTF))
+            fprintf(2, 'No synthetic sorroundrSTF data found. Skip plotting.');
+        else
+            plot(ax, syntheticSTFdataStruct.sf,  syntheticSTFdataStruct.valSurroundSTF, 'rs:', ...
+                'MarkerSize', 10,  'MarkerEdgeColor',  [1.0 0. 0.], 'MarkerFaceColor',  [1.0 0.5 0.5],'LineWidth', 1.5);
+        end
     end
 
     % The physiological optics derived STFs DoG model fit

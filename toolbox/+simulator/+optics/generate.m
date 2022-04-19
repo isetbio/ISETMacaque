@@ -18,7 +18,7 @@ function [theOI, thePSFdata] = generate(monkeyID, opticsParams)
                 opticsParams.type, sprintf('\t%s\n',(enumeration('simulator.opticsTypes')))));
             
     % Generate the optics
-    rotatePSF90degs = (opticsParams.type == simulator.opticsTypes.M838)
+    rotatePSF90degs = false; % (opticsParams.type == simulator.opticsTypes.M838)
     
     switch (opticsParams.type)
         case simulator.opticsTypes.diffractionLimited
