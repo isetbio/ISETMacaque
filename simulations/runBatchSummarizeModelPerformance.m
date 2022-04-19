@@ -32,7 +32,9 @@ function runBatchSummarizeModelPerformance
 
     % Examined residual defocus values
     residualDefocusDiopterValuesExamined = [0 0.042 0.057 0.062 0.067 0.072 0.077 0.082];
-    
+    %residualDefocusDiopterValuesExamined = 0.067;
+    %residualDefocusDiopterValuesExamined = -99;     % This will use each cell's optimal residual defocus
+
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea"
@@ -70,7 +72,16 @@ function runBatchSummarizeModelPerformance
         
         for iResidualDefocus = 1:numel(residualDefocusDiopterValuesExamined)
 
-            operationOptions.residualDefocusDiopters = residualDefocusDiopterValuesExamined(iResidualDefocus);
+            if (residualDefocusDiopterValuesExamined(iResidualDefocus) == -99)
+                % Optimal residual defocus for each cell
+                operationOptions.residualDefocusDiopters = ...
+                    simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(monkeyID, ...
+                    sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex));
+            else
+                % Examined residual defocus
+                operationOptions.residualDefocusDiopters = residualDefocusDiopterValuesExamined(iResidualDefocus);
+            end
+
             fprintf('Extracting performance for cell %d (defocus:%2.3fD)\n', iRGCindex, operationOptions.residualDefocusDiopters);
             
             % Get model performance at best cone position
@@ -84,18 +95,25 @@ function runBatchSummarizeModelPerformance
         end
     end
 
+     % Cells in group 2 have a best single-cone center fit with residual defocus around 0.067, and
+    % there is a continuous decrease in the single-cone center model fit as
+    % residual defocus increases or decreases towards 0.0D or0.1D
     group1cells = [3 4 6 9 10 11 12 5];
+
+    % Cells in group 2 have a best single-cone center fit with 0 residual defocus, and
+    % there is a continuous decrease in the single-cone center model fit as
+    % residual defocus increases from 0.0D towards 0.1D
     group2cells = [14 15 2 1 7 8 13 ];
 
     
     generateGroupedCellsFigure(group1cells, residualDefocusDiopterValuesExamined, ...
         singleConeModelPerformance, multiConeModelPerformance, ...
-        coneTypes, coneRGCindices, ...
+        centerConeTypes, coneRGCindices, ...
         'summaryModelPerformanceDependenceOnResidualDefocusGroup1.pdf');
 
     generateGroupedCellsFigure(group2cells, residualDefocusDiopterValuesExamined, ...
         singleConeModelPerformance, multiConeModelPerformance, ...
-        coneTypes, coneRGCindices, ...
+        centerConeTypes, coneRGCindices, ...
         'summaryModelPerformanceDependenceOnResidualDefocusGroup2.pdf');
 end
 
