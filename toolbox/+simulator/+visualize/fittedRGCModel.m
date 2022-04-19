@@ -3,7 +3,7 @@ function fittedRGCModel(fittedModelFileName, operationOptions, ...
 % Visualize a fitted RGC model 
 %
 % Syntax:
-%   simulator.visualize.fittedModel(fittedModelFileName, operationOptions,
+%   simulator.visualize.fittedRGCModel(fittedModelFileName, operationOptions,
 %       fittedModelFilenameAllPositionsPDF, fittedModelFilenameBestPositionPDF)
 %
 % Description:
