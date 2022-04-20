@@ -1,5 +1,6 @@
 function plotFittedSTFs()
-
+    % Plot the single-cone RF center / 0.067D residual defocus model fit
+    % for all the cells STFs
     % Monkey to employ
     monkeyID = 'M838';
 

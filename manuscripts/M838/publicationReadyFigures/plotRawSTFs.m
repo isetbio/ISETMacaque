@@ -1,4 +1,5 @@
 function plotRawSTFs()
+    % Plot the STFs (single sessions and averaged) for all the cells
 
     % Monkey to employ
     monkeyID = 'M838';
