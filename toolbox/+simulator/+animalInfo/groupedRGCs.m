@@ -1,15 +1,19 @@
 % simulator.animalInfo.groupedRGCs(monkeyID)
+% Group cells in reducing bandpassiness
 function [centerConeTypes, coneRGCindices] = groupedRGCs(monkeyID)
 
     switch (monkeyID)
         case 'M838'
             centerConeTypes = {'L', 'L', 'L', 'L', 'L', ...
-                               'L', 'L', 'L', 'L', 'L', ...
-                               'L', 'M', 'M', 'M', 'M'};
+                               'L', 'L', 'L', 'M', 'M', ...
+                               'M', 'M', 'L', 'L', 'L'};
+            
             coneRGCindices = [
-                1  3  4  5 2 ...
-                6  7  8 10 9 ...
-                11 1  2  4 3];
+                4   7  3   1 9 ...
+                11  6  8   2 3 ...
+                4  1  10  5 2];
+
+
         otherwise
             error('No data for monkey ''%s''.', monkeyID);
     end
