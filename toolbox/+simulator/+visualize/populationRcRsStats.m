@@ -55,14 +55,24 @@ function populationRcRsStats(dataOut)
     % AOSLO-optics figure
     % Gradual building up
     plotsToShow = [...
-        1 0 0 0 0; ...
-        1 1 0 0 0; ...
-        1 1 1 0 0; ...
-        1 1 1 1 0; ...
-        1 1 1 1 1];
+        1 0 0 0 0 0; ...  % Curcio
+        1 1 0 0 0 0; ...  % Mosaic Rc
+        1 1 1 0 0 0; ...  % Rc
+        1 1 1 1 0 0; ...  % Rs
+        1 1 1 1 1 0; ...  % C&K Rc
+        1 1 1 1 1 1 ...   % C&K Rs
+        ];
     
+    plotsToShow = [...
+        1 0 0 0 0 0; ...  % Curcio
+        1 0 1 0 0 0; ...  % Rc
+        1 0 1 0 1 0; ...  % C&K Rc
+        1 0 1 1 1 0; ...   % Rs
+        1 0 1 1 1 1 ... % C&K Rs
+        ];
+
     % One-shot bulding up
-    plotsToShow = [1 1 1 1 1];
+    %plotsToShow = [1 1 1 1 1 1];
 
     for gradualFigureBuildUpStep = 1:size(plotsToShow,1)
     

@@ -130,18 +130,22 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
         if (~comboOptics)
             
             if (showPlot(1) == 1) && (addExtraData1) && (~isempty(extraData1.eccDegs))
+                % Curcio data
+                fprintf('Plotting Curcio data\n');
                 p = addLineData(ax, extraData1,[0 0.9 0.8], [0 0.6 1]);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
             if (showPlot(2) == 1) && (addExtraData2) && (~isempty(extraData2.eccDegs))
+                fprintf('Plotting cone mosaic Rc data\n');
                 p = addScatterData(ax, extraData2, 8*8, '.', [0.3 0.3 0.3]);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
             if (showPlot(3) == 1) && (addRcDegsData) && (~isempty(extraRcDegsData.eccDegs))
+                fprintf('Plotting Rc data\n');
                 p = addScatterData(ax, extraRcDegsData, 13*13, 'o', centerColor);
                 legends{numel(legends)+1} = extraRcDegsData.legend;
                 plotHandles(numel(plotHandles)+1) = p;
@@ -149,6 +153,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             end
 
             if (showPlot(4) == 1) && (addRsDegsData) && (~isempty(extraRsDegsData.eccDegs))
+                fprintf('Plotting Rs data\n');
                 p = addScatterData(ax, extraRsDegsData, 16*16, 's', surroundColor);
                 legends{numel(legends)+1} = extraRsDegsData.legend;
                 plotHandles(numel(plotHandles)+1) = p;
@@ -156,13 +161,30 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
 
             if (showPlot(5) == 1)
-                % C&K Rc and Rs
-                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, centerColor, surroundColor);
+                fprintf('Plotting C&K Rc data\n');
+                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, [], centerColor, surroundColor);
                 legends{numel(legends)+1} = theLegends{1};
-                legends{numel(legends)+1} = theLegends{2};
                 plotHandles(numel(plotHandles)+1) = thePlotHandles(1);
-                plotHandles(numel(plotHandles)+1) = thePlotHandles(2);
+                if (numel(theLegends) == 2)
+                    legends{numel(legends)+1} = theLegends{2};
+                    plotHandles(numel(plotHandles)+1) = thePlotHandles(2);
+                end
+                
+                
             end
+
+            if (showPlot(6) == 1)
+                fprintf('Plotting C&K Rs data\n');
+                % C&K Rc and Rs
+                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,[], Rs, centerColor, surroundColor);
+                legends{numel(legends)+1} = theLegends{1};
+                plotHandles(numel(plotHandles)+1) = thePlotHandles(1);
+                if (numel(theLegends) == 2)
+                    legends{numel(legends)+1} = theLegends{2};
+                    plotHandles(numel(plotHandles)+1) = thePlotHandles(2);
+                end
+            end
+
 
             % Regressions lines through C&Kdata
             % addRegressionLinesToPlot(ax, RcAlpha, RcBeta, RsAlpha, RsBeta, centerColor, surroundColor); 
@@ -314,17 +336,26 @@ function p = addScatterData(ax, d, markerSize, markerSymbol, markerColor)
 end
 
 function [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, centerColor, surroundColor)
-    p = scatter(ax,Rc.eccDegs, Rc.radiusDegs, 13*13, ...
-                'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', centerColor*0.5+[0.5 0.5 0.5], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-    theLegends{1} = 'Rc (C&K)';
-    thePlotHandles(1) = p;
 
-    p = scatter(ax,Rs.eccDegs, Rs.radiusDegs, 16*16, ...
+    theLegends = {};
+    thePlotHandles = [];
+
+    if (~isempty(Rc))
+        p = scatter(ax,Rc.eccDegs, Rc.radiusDegs, 13*13, ...
+                    'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', centerColor*0.5+[0.5 0.5 0.5], ...
+                    'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+        theLegends{numel(theLegends)+1} = 'Rc (C&K)';
+        thePlotHandles(numel(thePlotHandles)+1) = p;
+    end
+
+
+    if (~isempty(Rs))
+        p = scatter(ax,Rs.eccDegs, Rs.radiusDegs, 16*16, ...
                 'filled', 's', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', surroundColor*0.5+[0.5 0.5 0.5], ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-    theLegends{2} = 'Rs (C&K)';
-    thePlotHandles(2) = p;
+        theLegends{numel(theLegends)+1}  = 'Rs (C&K)';
+        thePlotHandles(numel(thePlotHandles)+1) = p;
+    end
 
 end
 
