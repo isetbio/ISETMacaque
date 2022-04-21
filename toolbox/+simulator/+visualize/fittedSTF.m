@@ -1,11 +1,11 @@
 function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
-    fittedSTF, fittedRMSE, isBestPosition, noXLabel, noYLabel, cellIDstring)
+    fittedSTF, fittedRMSE, isBestPosition, cellIDstring, varargin)
 % Visualize a fitted STF
 %
 % Syntax:
 %   simulator.visualize.fittedSTF(hFig, ax, sfSupport, ...
 %         measuredSTF, measuredSTFSE, fittedSTF, fittedRMSE, ...
-%         isBestPosition, noXLabel, noYLabel, cellIDstring)
+%         isBestPosition, cellIDstring, varargin)
 %
 % Description:
 %   Visualize a fitted STF
@@ -23,6 +23,16 @@ function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
 %
 % Optional key/value pairs:
 %    none
+
+    p = inputParser;
+    p.addParameter('noXLabel', false, @islogical);
+    p.addParameter('noYLabel', false, @islogical);
+    p.addParameter('yAxisScaling', 'linear', @(x)((ischar(x))&&(ismember(x,{'linear', 'log'}))));
+
+    p.parse(varargin{:});
+    noXLabel = p.Results.noXLabel;
+    noYLabel = p.Results.noYLabel;
+    yAxisScaling = p.Results.yAxisScaling;
 
     hold(ax, 'on')
     % Plot the standard errors
@@ -80,7 +90,12 @@ function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
     set(ax, 'XScale', 'log', 'XLim', [4 60], ...
             'XTick', [4 6 10 20 40 60], 'YLim', [-0.1 0.8], 'YTick', -0.2:0.2:1.0, ...
             'FontSize', 18);
-    
+    set(ax, 'YScale', yAxisScaling);
+
+    if (strcmp(yAxisScaling, 'log'))
+        set(ax,'yLim', [0.02 0.8], 'YTick', [0.02 0.05 0.1 0.2 0.4 0.8]);
+    end
+
     if (~isempty(fittedRMSE))
         title(ax, sprintf('rmsE:%.3f', fittedRMSE), ...
             'FontWeight', 'Normal', 'FontSize', 18, 'Color', titleColor);

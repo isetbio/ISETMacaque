@@ -7,7 +7,7 @@ function plotSynthesizedSTFs()
     simulatedCondition = 'CRT';
 
     % Simulated condition to use - AOSO optics with various residual defocus, monochromatic stimuli
-    simulatedCondition = 'AOSLO';
+    %simulatedCondition = 'AOSLO';
     simulatedCondition = 'AOSLOresidualDefocus0067'
     %simulatedCondition = 'AOSLOresidualDefocusOptimal'
 
@@ -35,6 +35,9 @@ function plotSynthesizedSTFs()
             % M838 physiological optics with 2.5 mm pupil
             operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
             operationOptions.pupilSizeMM = 2.5;
+
+            % Residual defocus for the employed model
+            residualDefocusDioptersExamined = 0.067;
     end
 
 
@@ -146,25 +149,31 @@ function plotSynthesizedSTFs()
 
             %cellIDString = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType, operationOptions.STFdataToFit.whichRGCindex);
             cellIDString = sprintf('RGC %d', iRGCindex);
-
+            cellIDString = '';
             
             simulator.visualize.fittedSTF(hFigAllCells, axSTF, ...
                 operationOptions.STFdataToFit.spatialFrequencySupport, synthesizedResponses, [],...
                 modelResponses, [],  ...
-                false, noXLabel, noYLabel, cellIDString);
+                false, cellIDString, ...
+                'noXLabel', noXLabel, ...
+                'noYLabel', noYLabel, ...
+                'yAxisScaling', 'log');
 
             if (strcmp(simulatedCondition, 'CRT'))
                 % Change the y-scale
-                set(axSTF, 'YLim', [0 0.2], 'YTick', 0:0.05:0.2);
+                set(axSTF, 'YLim', [0.02 0.2]);
                 % And the y-label, no more fluorescence
-                ylabel(axSTF, 'modulation');
+                if (col == 1)
+                    ylabel(axSTF, 'modulation');
+                end
             end
 
             drawnow;
 
             % Now each cell in separate figure
             hFigSeparate = figure(100+iRGCindex); clf;
-            set(hFigSeparate, 'Color', [1 1 1], 'Position', [10 10 300 300]);
+            set(hFigSeparate, 'Color', [1 1 1], 'Position', [10 10 300 300], ...
+                'Name', sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType, operationOptions.STFdataToFit.whichRGCindex));
             axSTFseparate = subplot('Position', [0.23 0.20 0.78*0.7 0.83*0.7]);
 
             noXLabel = false;
@@ -173,11 +182,14 @@ function plotSynthesizedSTFs()
             simulator.visualize.fittedSTF(hFigSeparate, axSTFseparate, ...
                 operationOptions.STFdataToFit.spatialFrequencySupport, synthesizedResponses, [],...
                 modelResponses, [],  ...
-                false, noXLabel, noYLabel, cellIDString);
+                false, cellIDString, ...
+                'noXLabel', noXLabel, ...
+                'noYLabel', noYLabel, ...
+                'yAxisScaling', 'log');
 
             if (strcmp(simulatedCondition, 'CRT'))
                 % Change the y-scale
-                set(axSTFseparate, 'YLim', [0 0.2], 'YTick', 0:0.05:0.2);
+                set(axSTFseparate, 'YLim', [0.02 0.2]);
                 % And the y-label, no more fluorescence
                 ylabel(axSTFseparate, 'modulation');
             end
