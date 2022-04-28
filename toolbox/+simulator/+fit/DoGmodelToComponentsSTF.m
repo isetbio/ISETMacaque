@@ -1,11 +1,12 @@
 function [DoGparams, theFittedCompositeSTF, ...
          sfHiRes, theFittedCompositeSTFHiRes, ...
          theFittedSTFcenter, theFittedSTFsurround, ...
+         theFittedSTFcenterHiRes, theFittedSTFsurroundHiRes, ...
          theFittedCompositeSTFHiResFullField, ...
          theFittedSTFcenterFullField, theFittedSTFsurroundFullField] = DoGmodelToComponentsSTF(...
                  sf, theCenterSTF, theSurroundSTF, theCompositeSTF, ...
                  centerConeCharacteristicRadiusDegs, ...
-                 centerFitWeight, surroundFitWeight, compositeFitWeight)
+                 centerFitWeight, surroundFitWeight, compositeFitWeight, spatialFrequencyWeights)
 % Fit the DoG model to the computed components center & surround STFs
 %
 % Syntax:
@@ -15,12 +16,12 @@ function [DoGparams, theFittedCompositeSTF, ...
 %
 % Description: Fit the DoG model to the computed computed components center & surround STFs
 
-    deconvolveStimulus = false;
+    deconvolveStimulus = ~true;
     if (deconvolveStimulus)
+        fprintf('Deconvolving stimulus OTF\n');
         % Compute the stimulusOTF
         theStimulusOTF = simulator.analyze.stimulusOTF(sf);
-        theStimulusOTF = theStimulusOTF * 0 + 1;
-
+        %theStimulusOTF = theStimulusOTF * 0 + 1;
 
         % Before fitting the measured STFs, deconvolved them with the
         % stimulusOTF
@@ -44,31 +45,31 @@ function [DoGparams, theFittedCompositeSTF, ...
           'StartPointsToRun','bounds-ineqs', ...  % run only initial points that are feasible with respect to bounds and inequality constraints.
           'UseParallel', false);
       
-    multiStartsNum = 128;
+    multiStartsNum = 256;
          
       
     % DoG param initial values and limits: center gain, kc
     Kc = struct(...    
         'low', 1e-4, ...
-        'high', 1e4, ...
+        'high', 1e7, ...
         'initial', 1);
 
     % DoG param initial values and limits: Ks/Kc ratio
     KsToKc = struct(...
-        'low', 1e-1, ...
-        'high', 2, ...
+        'low', 1e-3, ...
+        'high', 1.0, ...
         'initial', 0.1);
 
     % DoG param initial values and limits: RsToRc ratio
     RsToRc = struct(...
-        'low', 0.0, ...
-        'high', 7, ...
+        'low', 1.0, ...
+        'high', 10, ...
         'initial', 2);
 
     % DoG param initial values and limits: RcDegs
     RcDegs = struct(...
         'low', centerConeCharacteristicRadiusDegs*0, ...
-        'high', centerConeCharacteristicRadiusDegs*10, ...
+        'high', centerConeCharacteristicRadiusDegs*60, ...
         'initial', centerConeCharacteristicRadiusDegs*2);
     
      %                          Kc           kS/kC             RsToRc            RcDegs    
@@ -78,27 +79,28 @@ function [DoGparams, theFittedCompositeSTF, ...
      DoGparams.names         = {'Kc',        'kS/kC',         'RsToRc',         'RcDegs'};
      DoGparams.scale         = {'log',       'log',           'linear',         'linear'};
      
-     % The DoG model in the frequency domain
-     DoGSTF = @(params,sf)(...
-                    params(1)           * ( pi * params(4)^2             * exp(-(pi*params(4)*sf).^2) ) - ...
-                    params(1)*params(2) * ( pi * (params(4)*params(3))^2 * exp(-(pi*params(4)*params(3)*sf).^2) ));
-        
      % Center STF model
      gaussianCenterSTF = @(params,sf)(params(1) * ( pi * params(4)^2 * exp(-(pi*params(4)*sf).^2)));
      
      % Surround STF model
      gaussianSurroundSTF = @(params,sf)(params(1)*params(2) * ( pi * (params(4)*params(3))^2 * exp(-(pi*params(4)*params(3)*sf).^2)));
      
+     % The DoG model in the frequency domain
+     DoGSTF = @(params,sf)(abs(gaussianCenterSTF(params,sf) - gaussianSurroundSTF(params,sf)));
+        
+   
      
-     % Normalize weights with STF power
-     centerFitWeight = centerFitWeight / sum(theCenterSTF.^2);
-     surroundFitWeight = surroundFitWeight / sum(theSurroundSTF.^2);
-     compositeFitWeight = compositeFitWeight / sum(theCompositeSTF.^2);
+     % Normalize weights with STF power so that if the center/surround
+     % responses are huge and the center-surround is small we do not
+     % completely ignore the center-surround
+     centerFitWeight = centerFitWeight / max(abs(theCenterSTF(:)));
+     surroundFitWeight = surroundFitWeight / max(abs(theSurroundSTF(:)));
+     compositeFitWeight = compositeFitWeight / max(abs(theCompositeSTF(:)));
      
      comboObjective = @(p) ( ...
-         centerFitWeight * sum((gaussianCenterSTF(p, sf) - theCenterSTF).^2) + ...
-         surroundFitWeight * sum((gaussianSurroundSTF(p, sf) - theSurroundSTF).^2) + ...
-         compositeFitWeight * sum((DoGSTF(p, sf) - theCompositeSTF).^2) ...
+         centerFitWeight * sum(spatialFrequencyWeights.*(gaussianCenterSTF(p, sf) - theCenterSTF).^2) + ...
+         surroundFitWeight * sum(spatialFrequencyWeights.*(gaussianSurroundSTF(p, sf) - theSurroundSTF).^2) + ...
+         compositeFitWeight * sum(spatialFrequencyWeights.*(DoGSTF(p, sf) - theCompositeSTF).^2) ...
          );
      
      % Multi-start
@@ -115,21 +117,31 @@ function [DoGparams, theFittedCompositeSTF, ...
      
     % Compute the fitted STFs
     theFittedCompositeSTF = DoGSTF(DoGparams.bestFitValues, sf);
-    theFittedSTFcenter    = DoGparams.bestFitValues(1) * ( pi * DoGparams.bestFitValues(4)^2 * exp(-(pi*DoGparams.bestFitValues(4)*sf).^2) );
-    theFittedSTFsurround  = DoGparams.bestFitValues(1)*DoGparams.bestFitValues(2) * ( pi * (DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3))^2 * exp(-(pi*DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3)*sf).^2) );
+    theFittedSTFcenter    = gaussianCenterSTF(DoGparams.bestFitValues, sf);
+    theFittedSTFsurround  = gaussianSurroundSTF(DoGparams.bestFitValues, sf);
     
-    sf = 0;
-    theFittedCompositeSTFHiResFullField = DoGSTF(DoGparams.bestFitValues, sf);
-    theFittedSTFcenterFullField = DoGparams.bestFitValues(1) * ( pi * DoGparams.bestFitValues(4)^2 * exp(-(pi*DoGparams.bestFitValues(4)*sf).^2) );
-    theFittedSTFsurroundFullField = DoGparams.bestFitValues(1)*DoGparams.bestFitValues(2) * ( pi * (DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3))^2 * exp(-(pi*DoGparams.bestFitValues(4)*DoGparams.bestFitValues(3)*sf).^2) );
+    % Compute the hires fitted STFs
+    sfHiRes = linspace(sf(1), sf(end), 256);
+    theFittedCompositeSTFHiRes = DoGSTF(DoGparams.bestFitValues, sfHiRes);
+    theFittedSTFcenterHiRes = gaussianCenterSTF(DoGparams.bestFitValues, sfHiRes);
+    theFittedSTFsurroundHiRes = gaussianSurroundSTF(DoGparams.bestFitValues, sfHiRes);
+
+    % Compute the value at 0
+    theFittedCompositeSTFHiResFullField = DoGSTF(DoGparams.bestFitValues, 0);
+    theFittedSTFcenterFullField = gaussianCenterSTF(DoGparams.bestFitValues, 0);
+    theFittedSTFsurroundFullField = gaussianSurroundSTF(DoGparams.bestFitValues, 0);
      
     % Put back the stimulusOTF
     if (deconvolveStimulus)
         theFittedSTFcenter = theFittedSTFcenter .* theStimulusOTF;
         theFittedSTFsurround = theFittedSTFsurround .* theStimulusOTF;
         theFittedCompositeSTF = theFittedCompositeSTF .* theStimulusOTF;
+
+        theStimulusOTFHiRes = interp1(sf, theStimulusOTF, sfHiRes);
+        theFittedCompositeSTFHiRes = theFittedCompositeSTFHiRes .* theStimulusOTFHiRes;
+        theFittedSTFcenterHiRes = theFittedSTFcenterHiRes .* theStimulusOTFHiRes;
+        theFittedSTFsurroundHiRes = theFittedSTFsurroundHiRes.* theStimulusOTFHiRes;
     end
     
-    sfHiRes = logspace(log10(1), log10(100), 64);
-    theFittedCompositeSTFHiRes = DoGSTF(DoGparams.bestFitValues, sfHiRes);
+    
 end

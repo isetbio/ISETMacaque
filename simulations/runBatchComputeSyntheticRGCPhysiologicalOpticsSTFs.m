@@ -29,20 +29,59 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     % Choose what operation to run.
     operation = simulator.operations.computeSynthesizedRGCSTFresponses;
 
-    % Here we are using an achromatic stimulus, matching a typical achromatic STF experiment
-    operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+    %conditionToSimulate = 'AOSLO_residualDefocus';
+    conditionToSimulate = 'CRT_M838optics';
+    %conditionToSimulate = 'CRT_Polans';
 
-    % Choose which optics scenario to run. 
-    % M838 physiological optics with 2.5 mm pupil
-    operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
-    operationOptions.pupilSizeMM = 2.5;
+    switch (conditionToSimulate)
+        case 'AOSLO_residualDefocus'
+            % Here we are using the monochromati AOSLO stimulus
+            operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
+            %with diffraction limited optics
+            operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
+            operationOptions.residualDefocusDiopters = 0.067; %0.067;
+            opticsParamsForBackingOutConeRc = struct(...
+                'monkeyID', monkeyID, ...
+                'wavelengthSupport', WilliamsLabData.constants.imagingPeakWavelengthNM, ...
+                'opticsType', simulator.opticsTypes.diffractionLimited, ....
+                'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
+                'residualDefocusDiopters', operationOptions.residualDefocusDiopters, ...
+                'PolansSubjectID', []);
 
-    % Or choose Polans subject physiological optics
-%     operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
-%     operationOptions.subjectID = 2; % [2 8 9]
-%     operationOptions.pupilSizeMM = 3.0;
-    
- 
+
+
+        case 'CRT_M838optics'
+            % Here we are using an achromatic stimulus, matching a typical achromatic STF experiment
+            operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+
+            % with M838 physiological optics with 2.5 mm pupil
+            operationOptions.opticsScenario = simulator.opticsScenarios.M838Optics;
+            operationOptions.pupilSizeMM = 2.5;
+            opticsParamsForBackingOutConeRc = struct(...
+                'monkeyID', monkeyID, ...
+                'wavelengthSupport', WilliamsLabData.constants.imagingPeakWavelengthNM, ...
+                'opticsType', simulator.opticsTypes.M838, ...
+                'pupilSizeMM', operationOptions.pupilSizeMM, ...
+                'residualDefocusDiopters', [], ...
+                'PolansSubjectID', []);
+
+          
+        case 'CRT_Polans'
+            % Here we are using an achromatic stimulus, matching a typical achromatic STF experiment
+            operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
+            % with Polans subject physiological optics
+            operationOptions.opticsScenario = simulator.opticsScenarios.PolansOptics;
+            operationOptions.subjectID = 8; % [2 8 9]
+            operationOptions.pupilSizeMM = 3.0;
+            opticsParamsForBackingOutConeRc = struct(...
+                'monkeyID', monkeyID, ...
+                'wavelengthSupport', WilliamsLabData.constants.imagingPeakWavelengthNM, ...
+                'opticsType', simulator.opticsTypes.Polans, ...
+                'pupilSizeMM', operationOptions.pupilSizeMM, ...
+                'residualDefocusDiopters', [], ...
+                'PolansSubjectID', operationOptions.subjectID);
+    end
+
     % Select the spatial sampling within the cone mosaic
     % From 2022 ARVO abstract: "RGCs whose centers were driven by cones in
     % the central 6 arcmin of the fovea". This must match what was
@@ -59,7 +98,22 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
          'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
          );
     
-   
+    % Weights to apply to the fit the component STFs (centerSTF,
+    % surroundSTF) and the composite STF (center-surround)
+    operationOptions.syntheticSTFtoFitComponentWeights = struct(...
+            'center', 0, ...
+            'surround', 0, ...
+            'composite', 1);
+
+
+    % Select whether to fit the compositeSTF or the componentSTFs
+    operationOptions.syntheticSTFtoFit = 'compositeCenterSurroundResponseBased';
+    %operationOptions.syntheticSTFtoFit = 'weightedComponentCenterSurroundResponseBased';
+
+    residualDefocusForModel = -99;     % This will use each cell's optimal residual defocus
+    %residualDefocusForModel = 0.067;
+
+
     % Get all recorded RGC info
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
 
@@ -68,52 +122,34 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID, ...
         'excludedRGCIDs', simulator.animalInfo.lowPassRGCs(monkeyID));
 
-
-    residualDefocusDioptersExamined = -99;     % This will use each cell's optimal residual defocus
-    residualDefocusDioptersExamined = 0.067;
-
+   
     dataOut = cell(1, numel(coneRGCindices));
-    for iRGCindex = 1:numel(coneRGCindices)    
+    parfor iRGCindex = 1:numel(coneRGCindices)    
         
+        theOperationOptions = operationOptions;
+
         % Select which recording session and which RGC to fit. 
-        operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
+        theOperationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
             'whichSession', 'meanOverSessions', ...
             'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
         
-        if (residualDefocusDioptersExamined == -99)
+        if (residualDefocusForModel == -99)
             % Optimal residual defocus for each cell
-            residualDefocusForModel = ...
+            theResidualDefocusForModel = ...
                     simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(monkeyID, ...
-                    sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex));
+                    sprintf('%s%d', theOperationOptions.STFdataToFit.whichCenterConeType, theOperationOptions.STFdataToFit.whichRGCindex));
         else
-           % Examined residual defocus
-           residualDefocusForModel = residualDefocusDioptersExamined;
+            theResidualDefocusForModel = residualDefocusForModel;
         end
+       
 
-        operationOptions.residualDefocusDiopters = [];
-
-
-        % Select which recording session and which RGC to fit. 
-        operationOptions.STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
-            'whichSession', 'meanOverSessions', ...
-            'whichCenterConeType', centerConeTypes{iRGCindex}, ...
-            'whichRGCindex', coneRGCindices(iRGCindex));
-        
-        operationOptions.syntheticSTFtoFit = 'compositeCenterSurroundResponseBased';
-        %operationOptions.syntheticSTFtoFit = 'weightedComponentCenterSurroundResponseBased';
-
-        operationOptions.syntheticSTFtoFitComponentWeights = struct(...
-            'center', 0, ...
-            'surround', 0, ...
-            'composite', 1);
-            
         % Params used to derive the (single-cone center)RGC model. 
         % The important parameter here is the residualDefocus assumed
-        operationOptions.syntheticRGCmodelParams = struct(...
+        theOperationOptions.syntheticRGCmodelParams = struct(...
             'opticsParams', struct(...
                 'type', simulator.opticsTypes.diffractionLimited, ...
-                'residualDefocusDiopters', residualDefocusForModel), ...
+                'residualDefocusDiopters', theResidualDefocusForModel), ...
             'stimulusParams', struct(...
                 'type', simulator.stimTypes.monochromaticAO), ...
             'cMosaicParams', struct(...
@@ -123,11 +159,11 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
           );
     
         % Go !
-        dataOut{iRGCindex} = simulator.performOperation(operation, operationOptions, monkeyID);
+        dataOut{iRGCindex} = simulator.performOperation(operation, theOperationOptions, monkeyID);
     end
     
     % Visualize population Rc/Rs stats
-    simulator.visualize.populationRcRsStats(dataOut);
+    simulator.visualize.populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc);
     
     % Visualize population Ks/Kc stats
     simulator.visualize.populationKsKcStats(dataOut);

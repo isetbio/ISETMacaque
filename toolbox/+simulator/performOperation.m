@@ -202,9 +202,10 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
             [theOI, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
     
             % Visualize mosaic and PSF
-            visualizedDomainRangeMicrons = 40;
+            visualizedDomainRangeMicrons = 30;
             simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
-                WilliamsLabData.constants.imagingPeakWavelengthNM);
+                WilliamsLabData.constants.imagingPeakWavelengthNM, ...
+                'displayXYslices', false);
         
             % Compute cone mosaic responses for the stimuli used to measure
             % the RGC spatial transfer functions (STFs)

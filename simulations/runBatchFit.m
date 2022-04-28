@@ -85,7 +85,7 @@ function runBatchFit
 
      % Or analyze a specific RGC
      %centerConeTypes = {'L'};
-     %coneRGCindices = 3;
+     %coneRGCindices = 4;
 
     % Do the fit for each cell
     for iRGCindex = 1:numel(coneRGCindices)    
@@ -106,8 +106,6 @@ function runBatchFit
             operationOptions.residualDefocusDiopters = residualDefocusDiopterExamined;
         end
             
-        operationOptions.residualDefocusDiopters
-        pause
         % All set, go!
         simulator.performOperation(operation, operationOptions, monkeyID);
     end

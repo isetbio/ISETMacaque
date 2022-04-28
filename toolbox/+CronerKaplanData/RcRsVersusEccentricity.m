@@ -99,7 +99,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
            'rowsNum', 1, ...
            'heightMargin',  0.03, ...
            'widthMargin',    0.16, ...
-           'leftMargin',     0.07, ...
+           'leftMargin',     0.08, ...
            'rightMargin',    0.01, ...
            'bottomMargin',   0.12, ...
            'topMargin',      0.02);
@@ -129,22 +129,22 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
         if (~comboOptics)
             
-            if (showPlot(1) == 1) && (addExtraData1) && (~isempty(extraData1.eccDegs))
+            if (showPlot(1)) && (addExtraData1) && (~isempty(extraData1.eccDegs))
                 % Curcio data
-                fprintf('Plotting Curcio data\n');
+                fprintf('Plotting anatomical cone Rc data\n');
                 p = addLineData(ax, extraData1,[0 0.9 0.8], [0 0.6 1]);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
-            if (showPlot(2) == 1) && (addExtraData2) && (~isempty(extraData2.eccDegs))
+            if (showPlot(2)) && (addExtraData2) && (~isempty(extraData2.eccDegs))
                 fprintf('Plotting cone mosaic Rc data\n');
-                p = addScatterData(ax, extraData2, 8*8, '.', [0.3 0.3 0.3]);
+                p = addScatterData2(ax, extraData2, 4*4, 'o', [0.1 0.2 0.9]);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
 
-            if (showPlot(3) == 1) && (addRcDegsData) && (~isempty(extraRcDegsData.eccDegs))
+            if (showPlot(3)) && (addRcDegsData) && (~isempty(extraRcDegsData.eccDegs))
                 fprintf('Plotting Rc data\n');
                 p = addScatterData(ax, extraRcDegsData, 13*13, 'o', centerColor);
                 legends{numel(legends)+1} = extraRcDegsData.legend;
@@ -152,7 +152,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
             end
 
-            if (showPlot(4) == 1) && (addRsDegsData) && (~isempty(extraRsDegsData.eccDegs))
+            if (showPlot(4)) && (addRsDegsData) && (~isempty(extraRsDegsData.eccDegs))
                 fprintf('Plotting Rs data\n');
                 p = addScatterData(ax, extraRsDegsData, 16*16, 's', surroundColor);
                 legends{numel(legends)+1} = extraRsDegsData.legend;
@@ -160,7 +160,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             end
 
 
-            if (showPlot(5) == 1)
+            if (showPlot(5))
                 fprintf('Plotting C&K Rc data\n');
                 [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, [], centerColor, surroundColor);
                 legends{numel(legends)+1} = theLegends{1};
@@ -173,7 +173,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
                 
             end
 
-            if (showPlot(6) == 1)
+            if (showPlot(6))
                 fprintf('Plotting C&K Rs data\n');
                 % C&K Rc and Rs
                 [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,[], Rs, centerColor, surroundColor);
@@ -226,10 +226,10 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             xlabel(ax,'eccentricity (degs)');
             ylabel(ax,'Rc/Rs ratio');
             if (addExtraData1)
-                lgd = legend(ax, {'C&K', extraData1.legend, extraData2.legend}, 'Location', 'NorthOutside', ...
+                lgd = legend(ax, {'Croner&Kaplan ''95', extraData1.legend, extraData2.legend}, 'Location', 'NorthOutside', ...
                     'FontSize', 16);
             else
-                lgd = legend(ax, 'C&K', 'Location', 'NorthOutside');
+                lgd = legend(ax, 'Croner&Kaplan ''95', 'Location', 'NorthOutside');
             end
             
             lgd.NumColumns = 2;
@@ -335,6 +335,13 @@ function p = addScatterData(ax, d, markerSize, markerSymbol, markerColor)
          'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
 end
 
+function p = addScatterData2(ax, d, markerSize, markerSymbol, markerColor)
+      hold(ax, 'on');
+      p = scatter(ax, d.eccDegs, d.values, markerSize, ...
+         'filled', markerSymbol, 'MarkerEdgeColor', markerColor, 'MarkerFaceColor', markerColor, ...
+         'MarkerFaceAlpha', 0.0, 'MarkerEdgeAlpha', 0.3, 'LineWidth', 0.75);
+end
+
 function [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, centerColor, surroundColor)
 
     theLegends = {};
@@ -344,7 +351,7 @@ function [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, cente
         p = scatter(ax,Rc.eccDegs, Rc.radiusDegs, 13*13, ...
                     'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', centerColor*0.5+[0.5 0.5 0.5], ...
                     'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-        theLegends{numel(theLegends)+1} = 'Rc (C&K)';
+        theLegends{numel(theLegends)+1} = 'Rc (Croner & Kaplan ''95)';
         thePlotHandles(numel(thePlotHandles)+1) = p;
     end
 
@@ -353,7 +360,7 @@ function [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, Rs, cente
         p = scatter(ax,Rs.eccDegs, Rs.radiusDegs, 16*16, ...
                 'filled', 's', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', surroundColor*0.5+[0.5 0.5 0.5], ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-        theLegends{numel(theLegends)+1}  = 'Rs (C&K)';
+        theLegends{numel(theLegends)+1}  = 'Rs (Croner & Kaplan ''95)';
         thePlotHandles(numel(thePlotHandles)+1) = p;
     end
 
@@ -404,11 +411,12 @@ function finalizePlot(ax)
     set(ax, 'XLim', [0.006 30], ...
         'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
         'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'}, ...
-        'YLim', [0.0025 2], ...
-        'YTick', [0.003 0.01 0.03 0.1 0.3 1 3 10],  ...
-        'YTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10'}, ...
-        'LineWidth', 1.0, 'XColor', [0.2 0.2 0.2], 'YColor', [0.2 0.2 0.2], ...
+        'YLim', [0.0015 2], ...
+        'YTick', [0.001 0.003 0.01 0.03 0.1 0.3 1 3 10],  ...
+        'YTickLabels', {'.001' '.003', '.01', '.03', '.1', '.3', '1', '3', '10'}, ...
+        'LineWidth', 1.5, 'XColor', [0.2 0.2 0.2], 'YColor', [0.2 0.2 0.2], ...
         'FontSize', 30);
+     set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/8);
      grid(ax, 'on');  box(ax, 'off');
 end
 

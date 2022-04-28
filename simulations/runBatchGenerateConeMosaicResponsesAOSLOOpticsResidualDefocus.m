@@ -48,6 +48,7 @@ function runBatchGenerateConeMosaicResponsesAOSLOOpticsResidualDefocus()
 
     % Residual defocus values for which to compute model cone mosaic responses
     examinedResidualDefocusDiopters = [0.00 0.025 0.042 0.057 0.062 0.067 0.072 0.077 0.082 0.1];
+    examinedResidualDefocusDiopters = 0.067;
     
     % Repeat computation for all examined residual defocus values
     for iResidualDefocus = 1:numel(examinedResidualDefocusDiopters)

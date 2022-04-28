@@ -25,11 +25,14 @@ function hFig = mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMi
     p.addParameter('figureHandle', [], @(x)(isempty(x)||isa(x, 'handle')));
     p.addParameter('axesHandle', [], @(x)(isempty(x)||isa(x, 'handle')));
     p.addParameter('noConeMosaic', false, @islogical);
+    p.addParameter('displayXYslices', true, @islogical);
+
     p.parse(varargin{:});
     
     axesHandle = p.Results.axesHandle;
     figureHandle = p.Results.figureHandle;
     noConeMosaic = p.Results.noConeMosaic;
+    displayXYslices = p.Results.displayXYslices;
 
     if (isempty(axesHandle))
         hFig = figure(2000); clf;
@@ -67,30 +70,33 @@ function hFig = mosaicAndPSF(theConeMosaic,  thePSFdata, visualizedDomainRangeMi
     visualizedPSF = visualizedPSF / max(visualizedPSF(:));
     cMosaic.semiTransparentContourPlot(ax, psfSupportMicronsX, psfSupportMicronsY, visualizedPSF, [0.03:0.15:0.95], cmap, alpha, contourLineColor);
 
-    % Add horizontal slice through the PSF
-    m = (size(visualizedPSF,1)-1)/2+1;
-    visualizedPSFslice = squeeze(visualizedPSF(m,:));
-    idx = find(abs(visualizedPSFslice) >= 0.01);
-    visualizedPSFslice = visualizedPSFslice(idx);
+    if (displayXYslices)
+        % Add horizontal slice through the PSF
+        m = (size(visualizedPSF,1)-1)/2+1;
+        visualizedPSFslice = squeeze(visualizedPSF(m,:));
+        idx = find(abs(visualizedPSFslice) >= 0.01);
+        visualizedPSFslice = visualizedPSFslice(idx);
+        
+        xx = psfSupportMicronsX(idx);
+        yy = -visualizedDomainRangeMicrons*0.5*0.95 + visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
     
-    xx = psfSupportMicronsX(idx);
-    yy = -visualizedDomainRangeMicrons*0.5*0.95 + visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
+        hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
+        hL.Color = [1,1,0.8,0.7];
+        plot(ax,xx, yy, 'k-', 'LineWidth', 2);
+        
+        % Add vertical slice through the PSF
+        visualizedPSFslice = squeeze(visualizedPSF(:,m));
+        idx = find(abs(visualizedPSFslice) >= 0.01);
+        visualizedPSFslice = visualizedPSFslice(idx);
+        xx = visualizedDomainRangeMicrons*0.5*0.95 - visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
+        yy = psfSupportMicronsY(idx);
+    
+        
+        hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
+        hL.Color = [1,1,0.8,0.7];
+        plot(ax,xx, yy, 'k-', 'LineWidth', 2);
+    end
 
-    hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
-    hL.Color = [1,1,0.8,0.7];
-    plot(ax,xx, yy, 'k-', 'LineWidth', 2);
-    
-    % Add vertical slice through the PSF
-    visualizedPSFslice = squeeze(visualizedPSF(:,m));
-    idx = find(abs(visualizedPSFslice) >= 0.01);
-    visualizedPSFslice = visualizedPSFslice(idx);
-    xx = visualizedDomainRangeMicrons*0.5*0.95 - visualizedPSFslice*visualizedDomainRangeMicrons*0.5*0.9;
-    yy = psfSupportMicronsY(idx);
-
-    
-    hL = plot(ax,xx, yy, '-', 'LineWidth', 4.0);
-    hL.Color = [1,1,0.8,0.7];
-    plot(ax,xx, yy, 'k-', 'LineWidth', 2);
     drawnow;
 
 end
