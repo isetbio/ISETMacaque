@@ -64,33 +64,28 @@ function [KsKcRatio, axesHandles] = KsKcVersusEccentricity(varargin)
     
     if (generateFigure) || (addExtraData1) || (addExtraData2)
         
-   
+         colorExtraData1 = [1 0.8 0.2];
+         colorExtraData2 = [0.2 0.8 0.9];
 
-        if (addExtraData1)
-            axesHandles = plotRatios(extraData1, KsKcRatio);
-            axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHandles);
-        end
         
-
-        if (addExtraData2)
-            axesHandles = plotRatios(extraData2, KsKcRatio);
-            axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHandles);
+        if (addExtraData1) && (addExtraData2)
+            axesHandles = plotRatios(extraData1, extraData2, KsKcRatio, colorExtraData1, colorExtraData2);
+            axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, colorExtraData1, colorExtraData2, axesHandles);
         end
-
     end
     
         
 end
 
 
-function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHandles)
+function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, colorExtraData1, colorExtraData2, axesHandles)
 
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
            'colsNum', 2, ...
            'rowsNum', 1, ...
            'heightMargin',  0.03, ...
            'widthMargin',    0.16, ...
-           'leftMargin',     0.07, ...
+           'leftMargin',     0.08, ...
            'rightMargin',    0.01, ...
            'bottomMargin',   0.12, ...
            'topMargin',      0.02);
@@ -107,24 +102,23 @@ function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHan
     [counts,bins] = histcounts(log10(KsKcRatio.ratio), edges);
     maxY = max(counts);
     p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
-    legends{numel(legends)+1} = 'C&K';
+    legends{numel(legends)+1} = 'Croner & Kaplan ''95';
     plotHandles(numel(plotHandles)+1) = p;
         
 
-    color1 = [1 0.7 0.5];
-    color2 = [0.1 0.9 0.3];
-        
+   
+
     hold(ax, 'on');
     [counts,bins] = histcounts(log10(extraData1.values), edges);
     maxY = max([maxY max(counts)]);
-    p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', color1, 'EdgeColor', color1*0.5);
+    p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', colorExtraData1, 'EdgeColor', colorExtraData1*0.5);
     legends{numel(legends)+1} = extraData1.legend;
     plotHandles(numel(plotHandles)+1) = p;
 
     hold(ax, 'on');
     [counts,bins] = histcounts(log10(extraData2.values), edges);
     maxY = max([maxY max(counts)]);
-    p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', color2, 'EdgeColor', color2*0.5);
+    p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', colorExtraData2, 'EdgeColor', colorExtraData2*0.5);
     legends{numel(legends)+1} = extraData2.legend;
     plotHandles(numel(plotHandles)+1) = p;
         
@@ -142,11 +136,15 @@ function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHan
     plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 4);
 
     plot(medianKsKcRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-    plot(medianExtraData1*[1 1], [0 maxY+1], '--', 'Color', color1, 'LineWidth', 3);
-    plot(medianExtraData2*[1 1], [0 maxY+1], '--', 'Color', color2,'LineWidth', 3);
+    plot(medianExtraData1*[1 1], [0 maxY+1], '--', 'Color', colorExtraData1, 'LineWidth', 3);
+    plot(medianExtraData2*[1 1], [0 maxY+1], '--', 'Color', colorExtraData2,'LineWidth', 3);
 
-    lgd = legend(ax, legends, 'Location', 'NorthWest', 'FontSize', 16);
-    lgd.NumColumns = 2;
+    [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);
+    lgd.NumColumns = 1;
+
+    objhl = findobj(legendHandle, 'type', 'patch');
+    set(objhl, 'Markersize', 14);
+
     set(lgd,'Box','off');
         
     xlabel(ax,'Ks/Kc ratio');
@@ -163,20 +161,20 @@ function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, axesHan
 end
 
 
-function axesHandles = plotRatios(extraData, KsKcRatio)
+function axesHandles = plotRatios(extraData1, extraData2, KsKcRatio, colorExtraData1, colorExtraData2)
         
         subplotPosVectors = NicePlot.getSubPlotPosVectors(...
            'colsNum', 2, ...
            'rowsNum', 1, ...
            'heightMargin',  0.03, ...
            'widthMargin',    0.16, ...
-           'leftMargin',     0.07, ...
+           'leftMargin',     0.08, ...
            'rightMargin',    0.01, ...
            'bottomMargin',   0.12, ...
            'topMargin',      0.02);
 
         axesHandles.hFig = figure();
-        set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 740]);
+        set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 840]);
         
         ax = subplot('Position', subplotPosVectors(1,1).v);
         axesHandles.ax1 = ax;
@@ -185,25 +183,31 @@ function axesHandles = plotRatios(extraData, KsKcRatio)
         legends = {};
         plotHandles = [];
 
-        color = [1 0.3 0.8];
-        
-       
-        hold(ax, 'on');
-        p = scatter(ax, extraData.eccDegs, extraData.values,13*13, ...
-            'filled', 'MarkerEdgeColor', color*0.5, 'MarkerFaceColor', color, ...
-            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-        legends{numel(legends)+1} = extraData.legend;
+
+        % C&K ratios
+        p = scatter(ax,KsKcRatio.eccDegs, KsKcRatio.ratio, 17*17, ...
+            'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', [0.8 0.8 0.8], ...
+            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
+        legends{numel(legends)+1} = 'Cronner & Kaplan ''95';
+        plotHandles(numel(plotHandles)+1) = p;
+
+        p = scatter(ax, extraData1.eccDegs, extraData1.values,17*17, ...
+            'filled', 'MarkerEdgeColor', colorExtraData1*0.5, 'MarkerFaceColor', colorExtraData1, ...
+            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
+        legends{numel(legends)+1} = extraData1.legend;
         plotHandles(numel(plotHandles)+1) = p;
         
-        
+        if (~isempty(extraData2))
+            p = scatter(ax, extraData2.eccDegs, extraData2.values,17*17, ...
+                'filled', 'MarkerEdgeColor', colorExtraData2*0.5, 'MarkerFaceColor', colorExtraData2, ...
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
+            legends{numel(legends)+1} = extraData2.legend;
+            plotHandles(numel(plotHandles)+1) = p;
+        end
+
             
  
-        % C&K ratios
-        p = scatter(ax,KsKcRatio.eccDegs, KsKcRatio.ratio, 13*13, ...
-            'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', [0.8 0.8 0.8], ...
-            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-        legends{numel(legends)+1} = 'C&K';
-        plotHandles(numel(plotHandles)+1) = p;
+        
           
         xlabel(ax,'eccentricity (degs)');
         ylabel(ax, sprintf('Ks/Kc ratio'));
@@ -217,15 +221,46 @@ function axesHandles = plotRatios(extraData, KsKcRatio)
         grid(ax, 'on');  box(ax, 'off');
         xtickangle(ax, 0);
 
-        [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', 'NorthEast', ...
-            'FontSize', 16);
-        lgd.NumColumns = 1;
-        objhl = findobj(legendHandle, 'type', 'patch');
-        set(objhl, 'Markersize', 14);
+        addLegendsToPlot(ax, plotHandles, legends, 'NorthOutside', 24)
 
-        set(lgd,'Box','off');
 end
 
+
+function addLegendsToPlot(ax, plotHandles, legends, location, fontSize)
+    [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', location, ...
+        'FontSize', fontSize);
+    set(lgd,'Box','off');
+    if (numel(legends)<4)
+        lgd.NumColumns = 1;
+    elseif (numel(legends)<8)
+        lgd.NumColumns = 2;
+    elseif (numel(legends)<12)
+        lgd.NumColumns = 3;
+    else
+        lgd.NumColumns = 4;
+    end
+    objhl = findobj(legendHandle, 'type', 'patch');
+    set(objhl, 'Markersize', 14);
+end
+
+
+function finalizePlot(ax)
+    xlabel(ax,'eccentricity (degs)');
+    ylabel(ax,'characteristic radius (degs)');
+    axis(ax, 'square');
+    set(ax, 'XScale', 'log', 'YScale', 'log');
+    xtickangle(ax,0);
+    set(ax, 'XLim', [0.006 30], ...
+        'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
+        'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'}, ...
+        'YLim', [0.0015 2], ...
+        'YTick', [0.001 0.003 0.01 0.03 0.1 0.3 1 3 10],  ...
+        'YTickLabels', {'.001' '.003', '.01', '.03', '.1', '.3', '1', '3', '10'}, ...
+        'LineWidth', 1.5, 'XColor', [0.2 0.2 0.2], 'YColor', [0.2 0.2 0.2], ...
+        'FontSize', 30);
+     set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/8);
+     grid(ax, 'on');  box(ax, 'off');
+end
 
 function d = KsKcRatioVsEccentricity()
     d = [ ...

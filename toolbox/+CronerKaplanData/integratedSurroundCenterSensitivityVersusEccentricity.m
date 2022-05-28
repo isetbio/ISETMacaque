@@ -63,21 +63,24 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
 
     axesHandles = struct();
     
+    colorExtraData1 = [1 0.8 0.2];
+    colorExtraData2 = [0.2 0.8 0.9];
+
     if (generateFigure) || (addExtraData1) || (addExtraData2)
         subplotPosVectors = NicePlot.getSubPlotPosVectors(...
            'colsNum', 2, ...
            'rowsNum', 1, ...
            'heightMargin',  0.03, ...
            'widthMargin',    0.16, ...
-           'leftMargin',     0.07, ...
+           'leftMargin',     0.08, ...
            'rightMargin',    0.01, ...
            'bottomMargin',   0.12, ...
            'topMargin',      0.02);
    
         axesHandles.hFig = figure();
-        set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 740]);
+        set(axesHandles.hFig, 'Color', [1 1 1], 'Position', [10 10 1560 840]);
         
-
+        
         ax = subplot('Position', subplotPosVectors(1,1).v);
         axesHandles.ax1 = ax;
         hold(ax, 'on');
@@ -85,10 +88,17 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         legends = {};
         plotHandles = [];
         
+         % C&K ratios
+        p = scatter(ax,integratedSurroundCenterRatios.eccDegs, integratedSurroundCenterRatios.ratios, 17*17, ...
+            'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', [0.8 0.8 0.8], ...
+            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
+        legends{numel(legends)+1} = 'Croner & Kaplan ''95';
+        plotHandles(numel(plotHandles)+1) = p;
+
         if (addExtraData1) && (~isempty(extraData1.eccDegs))
             hold(ax, 'on');
-            p = scatter(ax, extraData1.eccDegs, extraData1.values,13*13, ...
-                'filled', 'MarkerEdgeColor', [1 0.8 0.2]*0.5, 'MarkerFaceColor', [1 0.8 0.2], ...
+            p = scatter(ax, extraData1.eccDegs, extraData1.values,17*17, ...
+                'filled', 'MarkerEdgeColor', colorExtraData1*0.5, 'MarkerFaceColor', colorExtraData1, ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
             legends{numel(legends)+1} = extraData1.legend;
             plotHandles(numel(plotHandles)+1) = p;
@@ -96,20 +106,15 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         
         if (addExtraData2) && (~isempty(extraData2.eccDegs))
             hold(ax, 'on');
-            p = scatter(ax, extraData2.eccDegs, extraData2.values,13*13, ...
-                'filled', 'MarkerEdgeColor', [1 0.5 0.2]*0.5, 'MarkerFaceColor', [1 0.5 0.2], ...
+            p = scatter(ax, extraData2.eccDegs, extraData2.values,17*17, ...
+                'filled', 'MarkerEdgeColor', colorExtraData2*0.5, 'MarkerFaceColor', colorExtraData2, ...
                 'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
             legends{numel(legends)+1} = extraData2.legend;
             plotHandles(numel(plotHandles)+1) = p;
         end
             
  
-        % C&K ratios
-        p = scatter(ax,integratedSurroundCenterRatios.eccDegs, integratedSurroundCenterRatios.ratios, 13*13, ...
-            'filled', 'MarkerEdgeColor', [0.3 0.3 0.3], 'MarkerFaceColor', [0.8 0.8 0.8], ...
-            'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
-        legends{numel(legends)+1} = 'C&K';
-        plotHandles(numel(plotHandles)+1) = p;
+       
        
 %        
         xlabel(ax,'eccentricity (degs)');
@@ -119,15 +124,13 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         set(ax, 'XLim', [0.003 30], ...
             'XTick',       [0.003   0.01   0.03   0.1   0.3    1    3    10    30   100], ...
             'XTickLabels', {'.003', '.01', '.03', '.1', '.3', '1', '3', '10', '30', '100'}, ...
-            'YLim', [0 4], 'YTick', 0:0.5:4.0,  'YTickLabel', {'0', '', '1', '', '2', '', '3', '', '4'}, ...
+            'YLim', [0 7], 'YTick', 0:0.5:7.0, ...
+            'YTickLabel', {'0', '', '1', '', '2', '', '3', '', '4', '', '5', '', '6', '', '7'}, ...
             'FontSize', 30);
         grid(ax, 'on');  box(ax, 'off');
         xtickangle(ax, 0)
         
-        lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
-            'FontSize', 16);
-        lgd.NumColumns = 2;
-        set(lgd,'Box','off');
+        addLegendsToPlot(ax, plotHandles, legends, 'NorthOutside', 24);
         
         
         % Histograms
@@ -138,18 +141,18 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         legends = {};
         plotHandles = [];
         
-        edges = 0:0.25:4;
+        edges = 0:0.25:8;
         [counts,bins] = histcounts(integratedSurroundCenterRatios.ratios, edges);
         maxY = max(counts);
-        p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
-        legends{numel(legends)+1} = 'C&K';
+        p = bar(ax,bins(2:end), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
+        legends{numel(legends)+1} = 'Croner & Kaplan ''95';
         plotHandles(numel(plotHandles)+1) = p;
         
         if (addExtraData1) && (~isempty(extraData1.eccDegs))
             hold(ax, 'on');
             [counts,bins] = histcounts(extraData1.values, edges);
             maxY = max([maxY max(counts)]);
-            p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', [1 0.8 0.2], 'EdgeColor', [1 0.8 0.2]*0.5);
+            p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', colorExtraData1, 'EdgeColor', colorExtraData1*0.5);
             legends{numel(legends)+1} = extraData1.legend;
             plotHandles(numel(plotHandles)+1) = p;
         end
@@ -158,15 +161,15 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
             hold(ax, 'on');
             [counts,bins] = histcounts(extraData2.values, edges);
             maxY = max([maxY max(counts)]);
-            p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', [1 0.5 0.2], 'EdgeColor', [1 0.5 0.2]*0.5);
+            p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', colorExtraData2, 'EdgeColor', colorExtraData2*0.5);
             legends{numel(legends)+1} = extraData2.legend;
             plotHandles(numel(plotHandles)+1) = p;
         end
         
         xtickangle(ax, 0)
-        lgd = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 16);
-        lgd.NumColumns = 2;
-        set(lgd,'Box','off');
+        
+        
+
 
         
         xlabel(ax,'integrated surround/center sensitivity ratio');
@@ -174,16 +177,16 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         axis(ax, 'square');
         set(ax, 'XScale', 'linear', 'YScale', 'linear');
         dx = bins(2)-bins(1);
-        set(ax, 'XLim', [0-dx/2 4], ...
-            'XTick',       0:0.5:4, ...
+        set(ax, 'XLim', [0 7], ...
+            'XTick',       0:0.5:7, ...
             'XTickLabels', {'0', '', '1', '', '2', '', '3', '', '4'}, ...
             'FontSize', 30);
         grid(ax, 'on');  box(ax, 'off');
         
         % Median lines
-        medianIntSurrCenterSensRatio = mean(integratedSurroundCenterRatios.ratios);
-        medianExtraData1 = mean(extraData1.values(:));
-        medianExtraData2 = mean(extraData2.values(:));
+        medianIntSurrCenterSensRatio = median(integratedSurroundCenterRatios.ratios);
+        medianExtraData1 = median(extraData1.values(:));
+        medianExtraData2 = median(extraData2.values(:));
         fprintf('Mean RcRs - C&K: %f\n', medianIntSurrCenterSensRatio);
         fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
         fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
@@ -193,18 +196,40 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
 
         plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.8 0.2], 'LineWidth', 3);
-        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', [1 0.5 0.2],'LineWidth', 3);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 3);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 3);
 
 
-        lgd = legend(ax,plotHandles, legends, 'Location', 'NorthOutside', ...
-            'FontSize', 16);
-        lgd.NumColumns = 2;
+        [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);
+        lgd.NumColumns = 1;
+
+        objhl = findobj(legendHandle, 'type', 'patch');
+        set(objhl, 'Markersize', 14);
+
         set(lgd,'Box','off');
         
     end
     
         
+end
+
+
+
+function addLegendsToPlot(ax, plotHandles, legends, location, fontSize)
+    [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', location, ...
+        'FontSize', fontSize);
+    set(lgd,'Box','off');
+    if (numel(legends)<4)
+        lgd.NumColumns = 1;
+    elseif (numel(legends)<8)
+        lgd.NumColumns = 2;
+    elseif (numel(legends)<12)
+        lgd.NumColumns = 3;
+    else
+        lgd.NumColumns = 4;
+    end
+    objhl = findobj(legendHandle, 'type', 'patch');
+    set(objhl, 'Markersize', 14);
 end
 
 function d = integratedSurroundCenterSensitivityVsEccentricity()

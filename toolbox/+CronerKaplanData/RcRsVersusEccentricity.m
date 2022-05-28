@@ -127,6 +127,9 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
         centerColor = [1 0.3 0.8];
         surroundColor = [0.2 1 0.8];
 
+        centerColorGray = [0.8 0.8 0.8];
+        surroundColorGray = [0.4 0.4 0.4];
+
         if (~comboOptics)
             
             if (showPlot(1)) && (addExtraData1) && (~isempty(extraData1.eccDegs))
@@ -162,7 +165,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
 
             if (showPlot(5))
                 fprintf('Plotting C&K Rc data\n');
-                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, [], centerColor, surroundColor);
+                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,Rc, [], centerColorGray, surroundColorGray);
                 legends{numel(legends)+1} = theLegends{1};
                 plotHandles(numel(plotHandles)+1) = thePlotHandles(1);
                 if (numel(theLegends) == 2)
@@ -176,7 +179,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             if (showPlot(6))
                 fprintf('Plotting C&K Rs data\n');
                 % C&K Rc and Rs
-                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,[], Rs, centerColor, surroundColor);
+                [theLegends, thePlotHandles] = addCronerKaplanRcRsData(ax,[], Rs, centerColorGray, surroundColorGray);
                 legends{numel(legends)+1} = theLegends{1};
                 plotHandles(numel(plotHandles)+1) = thePlotHandles(1);
                 if (numel(theLegends) == 2)
@@ -190,7 +193,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             % addRegressionLinesToPlot(ax, RcAlpha, RcBeta, RsAlpha, RsBeta, centerColor, surroundColor); 
 
             % Legends
-            addLegendsToPlot(ax, plotHandles, legends);
+            addLegendsToPlot(ax, plotHandles, legends, 'NorthWest', 16);
 
             % Set axes limits and scaling, labels etc
             finalizePlot(ax);
@@ -202,38 +205,34 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             % Rc / Rs ratios
             ax = subplot('Position', subplotPosVectors(1,1).v);
             axesHandles.ax2 = ax;
-            scatter(ax,RcRsRatio.eccDegs, RcRsRatio.ratio, 100, ...
+            pHandles(1) = scatter(ax,RcRsRatio.eccDegs, RcRsRatio.ratio, 17*17, ...
                 'filled', 'MarkerEdgeColor', [0.2 0.2 0.2], 'MarkerFaceColor', [0.8 0.8 0.8], ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
 
             if (addExtraData1)
                 hold(ax, 'on');
-                color = [1 0.8 0.2];
-                scatter(ax, extraData1.eccDegs, extraData1.values, 13*13, ...
-                'filled', 'MarkerEdgeColor', centerColor*0.5, 'MarkerFaceColor', color, ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+                colorExtraData1 = [1 0.8 0.2];
+                pHandles(numel(pHandles)+1) = scatter(ax, extraData1.eccDegs, extraData1.values, 17*17, ...
+                'filled', 'MarkerEdgeColor', colorExtraData1*0.5, 'MarkerFaceColor', colorExtraData1, ...
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
             end
             
             if (addExtraData2)
-                color = [1 0.5 0.2];
+                colorExtraData2 = [0.2 0.8 0.9];
                 hold(ax, 'on');
-                scatter(ax, extraData2.eccDegs, extraData2.values, 13*13, ...
-                'filled', 'MarkerEdgeColor', surroundColor*0.5, 'MarkerFaceColor', color, ...
-                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.0);
+                pHandles(numel(pHandles)+1) = scatter(ax, extraData2.eccDegs, extraData2.values, 17*17, ...
+                'filled', 'MarkerEdgeColor', colorExtraData2*0.5, 'MarkerFaceColor', colorExtraData2, ...
+                'MarkerFaceAlpha', 0.5, 'LineWidth', 1.5);
             end
             
 
             xlabel(ax,'eccentricity (degs)');
             ylabel(ax,'Rc/Rs ratio');
             if (addExtraData1)
-                lgd = legend(ax, {'Croner&Kaplan ''95', extraData1.legend, extraData2.legend}, 'Location', 'NorthOutside', ...
-                    'FontSize', 16);
+                addLegendsToPlot(ax, pHandles, {'Croner&Kaplan ''95', extraData1.legend, extraData2.legend}, 'NorthOutside', 24)
             else
-                lgd = legend(ax, 'Croner&Kaplan ''95', 'Location', 'NorthOutside');
+                addLegendsToPlot(ax, pHandles, {'Croner&Kaplan ''95'}, 'NorthOutside', 24)
             end
-            
-            lgd.NumColumns = 2;
-            set(lgd,'Box','off');
             
             xtickangle(ax, 0)
             axis(ax, 'square');
@@ -258,14 +257,14 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             [counts,bins] = histcounts(RcRsRatio.ratio, edges);
             maxY = max(counts);
             p = bar(ax,bins(1:end-1), counts, 1, 'FaceColor', [0.8 0.8 0.8], 'EdgeColor', [0.3 0.3 0.3]);
-            legends{numel(legends)+1} = 'C&K';
+            legends{numel(legends)+1} = 'Croner & Kaplan ''95';
             plotHandles(numel(plotHandles)+1) = p;
         
             if (addExtraData1) && (~isempty(extraData1.eccDegs))
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData1.values, edges);
                 maxY = max([maxY max(counts)]);
-                p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', centerColor, 'EdgeColor', centerColor*0.5);
+                p = bar(ax,bins(1:end-1), counts, 0.8, 'FaceColor', colorExtraData1, 'EdgeColor', colorExtraData1*0.5);
                 legends{numel(legends)+1} = extraData1.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
@@ -274,7 +273,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
                 hold(ax, 'on');
                 [counts,bins] = histcounts(extraData2.values, edges);
                 maxY = max([maxY max(counts)]);
-                p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', surroundColor, 'EdgeColor', surroundColor*0.5);
+                p = bar(ax,bins(1:end-1), counts, 0.4, 'FaceColor', colorExtraData2, 'EdgeColor', colorExtraData2*0.5);
                 legends{numel(legends)+1} = extraData2.legend;
                 plotHandles(numel(plotHandles)+1) = p;
             end
@@ -283,7 +282,7 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             medianRcRsRatio = mean(RcRsRatio.ratio);
             medianExtraData1 = mean(extraData1.values(:));
             medianExtraData2 = mean(extraData2.values(:));
-            fprintf('Mean RcRs - C&K: %f\n', medianRcRsRatio);
+            fprintf('Mean RcRs - Croner & Kaplan ''95: %f\n', medianRcRsRatio);
             fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
             fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
 
@@ -292,13 +291,12 @@ function [Rc, Rs, RcRsRatio, axesHandles, RcAlpha, RcBeta] = RcRsVersusEccentric
             plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
 
             plot(medianRcRsRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', centerColor, 'LineWidth', 3);
-            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', surroundColor,'LineWidth', 3);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 3);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 3);
 
      
-
-            [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthWest', 'FontSize', 16);
-            lgd.NumColumns = 2;
+            [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);
+            lgd.NumColumns = 1;
 
             objhl = findobj(legendHandle, 'type', 'patch');
             set(objhl, 'Markersize', 14);
@@ -384,9 +382,9 @@ function addRegressionLinesToPlot(ax, RcAlpha, RcBeta, RsAlpha, RsBeta, centerCo
     plot(ax, eccDegsSupport, CK_regressionLineForRs, '--', 'Color', surroundColor, 'LineWidth', 2.0);
 end
 
-function addLegendsToPlot(ax, plotHandles, legends)
-    [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', 'NorthWest', ...
-        'FontSize', 16);
+function addLegendsToPlot(ax, plotHandles, legends, location, fontSize)
+    [lgd, legendHandle] = legend(ax,plotHandles, legends, 'Location', location, ...
+        'FontSize', fontSize);
     set(lgd,'Box','off');
     if (numel(legends)<4)
         lgd.NumColumns = 1;

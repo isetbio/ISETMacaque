@@ -44,7 +44,7 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
     allMosaicConesEcc = allMosaicConesEcc(idx);
     allMosaicConesRc = allMosaicConesRc(idx);
     
-    anatomicalConeStudy = 'Curcio';
+    %anatomicalConeStudy = 'Curcio';
     anatomicalConeStudy = 'Packer ''89';
 
     switch (anatomicalConeStudy)
@@ -96,7 +96,7 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
 
 
     % One-shot bulding up
-    %plotsToShow = [1 1 1 1 1 1];
+    plotsToShow = [1 1 1 1 1 1];
 
     for gradualFigureBuildUpStep = 1:size(plotsToShow,1)
     
