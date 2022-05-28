@@ -164,10 +164,10 @@ function hFig = plotFittedModelAtAllPositions(visualizedModelFits, STFdataToFit,
     end
 
     % Video setup
-        videoOBJ = VideoWriter('FitAnimation2', 'MPEG-4');
-        videoOBJ.FrameRate = 10;
-        videoOBJ.Quality = 100;
-        videoOBJ.open();
+    videoOBJ = VideoWriter('FitAnimation2', 'MPEG-4');
+    videoOBJ.FrameRate = 10;
+    videoOBJ.Quality = 100;
+    videoOBJ.open();
 
     
 
