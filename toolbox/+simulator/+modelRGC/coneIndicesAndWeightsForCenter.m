@@ -54,7 +54,10 @@ function  [coneIndices, coneWeights, conesFractionalNum, centroidPosition] = ...
 
     % Find the weights for the weighted centroid
     centroidWeights(1:floor(conesFractionalNum)) = 1;
-    centroidWeights(ceil(conesFractionalNum)) = ceil(conesFractionalNum)-conesFractionalNum;
+    if (conesFractionalNum > floor(conesFractionalNum))
+        centroidWeights(floor(conesFractionalNum)+1) = conesFractionalNum - floor(conesFractionalNum);
+    end
+    
 
     % Compute weighted centroid position
     for k = 1:numel(centroidWeights)
@@ -70,13 +73,15 @@ function  [coneIndices, coneWeights, conesFractionalNum, centroidPosition] = ...
     % Gaussian cone weights with cone distance from centroid
     d = sqrt(sum((bsxfun(@minus, allConePositions(sortedConeIndices,:), centroidPosition)).^2,2));
     coneWeights = exp(-(d/RcDegs).^2);
-
-    minSensitivity = 1/100;
+    
+    minSensitivity = 0.0001/100;
     idx = find(coneWeights >= minSensitivity);
 
     % Return indices and connection weights of the center cones
     coneIndices = sortedConeIndices(idx);
     coneWeights = coneWeights(idx);
+    coneWeights = coneWeights / sum(coneWeights(:));
+    
     coneIndices = reshape(coneIndices, [1 numel(coneIndices)]);
     coneWeights = reshape(coneWeights, [1 numel(coneIndices)]);
 end
