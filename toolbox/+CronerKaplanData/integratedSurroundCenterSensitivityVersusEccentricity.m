@@ -191,13 +191,13 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
         fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
 
-        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
-        plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 3);
-        plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 3);
+        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 6);
 
-        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 3);
-        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 3);
+        plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 6);
+        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 6);
+        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 6);
 
 
         [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);

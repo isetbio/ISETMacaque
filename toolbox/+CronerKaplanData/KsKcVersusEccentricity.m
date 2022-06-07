@@ -131,13 +131,13 @@ function axesHandles = plotHistograms(extraData1, extraData2, KsKcRatio, colorEx
     fprintf('Mean KsKc - ExtraData1: %f\n', 10^medianExtraData1);
     fprintf('Mean KsKc - ExtraData2: %f\n', 10^medianExtraData2);
 
-    plot(medianKsKcRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 4);
-    plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 4);
-    plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 4);
+    plot(medianKsKcRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
+    plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
+    plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 6);
 
-    plot(medianKsKcRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 3);
-    plot(medianExtraData1*[1 1], [0 maxY+1], '--', 'Color', colorExtraData1, 'LineWidth', 3);
-    plot(medianExtraData2*[1 1], [0 maxY+1], '--', 'Color', colorExtraData2,'LineWidth', 3);
+    plot(medianKsKcRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 6);
+    plot(medianExtraData1*[1 1], [0 maxY+1], '--', 'Color', colorExtraData1, 'LineWidth', 6);
+    plot(medianExtraData2*[1 1], [0 maxY+1], '--', 'Color', colorExtraData2,'LineWidth', 6);
 
     [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);
     lgd.NumColumns = 1;
