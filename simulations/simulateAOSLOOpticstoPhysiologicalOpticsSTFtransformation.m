@@ -7,7 +7,9 @@ function simulateAOSLOOpticstoPhysiologicalOpticsSTFtransformation
 
     % Compute expected RcDegs for an eccentricity of 0.2 degs
     eccDegsSupport = 0.1;
-    [~, ~, ~, ~, RcAlpha, RcBeta] = CronerKaplanData.RcRsVersusEccentricity('generateFigure', false);
+    [~, ~, ~, ~, RcAlpha, RcBeta] = CronerKaplanData.RcRsVersusEccentricity(...
+        false, ...
+        'generateFigure', false);
     retinalMRGC.DoGparams.RcDegs = RcAlpha * eccDegsSupport.^RcBeta;
 
     % From AOSLO fit

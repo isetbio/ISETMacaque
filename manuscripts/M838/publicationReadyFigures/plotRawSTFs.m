@@ -4,11 +4,16 @@ function plotRawSTFs()
     % Monkey to employ
     monkeyID = 'M838';
 
-    % Get all recorded RGC infos
-    %[centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
+    useOriginalCellLabeling = true;
 
-    % Group RGCs, so that low-pass ones appear in 5th column
-    [centerConeTypes, coneRGCindices] = simulator.animalInfo.groupedRGCs(monkeyID);
+   
+    if (useOriginalCellLabeling)
+         % Get all recorded RGC infos
+        [centerConeTypes, coneRGCindices] = simulator.animalInfo.allRecordedRGCs(monkeyID);
+    else
+        % Group RGCs, so that low-pass ones appear in 5th column
+        [centerConeTypes, coneRGCindices] = simulator.animalInfo.groupedRGCs(monkeyID);
+    end
 
     % All cells in same figure
     hFig = figure(1); clf;
@@ -49,9 +54,13 @@ function plotRawSTFs()
                 noYLabel = false;
             end
 
-            cellIDString = sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex);
-            cellIDString = sprintf('RGC %d', iRGCindex);
+            if (useOriginalCellLabeling)
+                cellIDString = sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex);
+            else
+                cellIDString = sprintf('RGC %d', iRGCindex);
+            end
 
+            yAxisScaling = 'linear';  % choose between {'linear' and 'log'}
             simulator.visualize.fittedSTF(hFig, axSTF, ...
                 STFdataToFit.spatialFrequencySupport, ...
                 STFdataToFit.responses, ...
@@ -60,7 +69,7 @@ function plotRawSTFs()
                 cellIDString, ...
                 'noXLabel', noXLabel, ...
                 'noYLabel', noYLabel, ...
-                'yAxisScaling', 'log');
+                'yAxisScaling', 'linear');
             drawnow;
     end
 
