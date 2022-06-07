@@ -1,6 +1,7 @@
 function plotFittedSTFs()
-    % Plot the single-cone RF center / 0.067D residual defocus model fit
-    % for all the cells STFs
+% Plot the single-cone RF center / 0.067D residual defocus model fit
+% for all the cells STFs
+
     % Monkey to employ
     monkeyID = 'M838';
 
@@ -16,9 +17,16 @@ function plotFittedSTFs()
     % Optimal residual defocus for each cell
     %residualDefocusDioptersExamined = -99;
 
+    % RF center scenario : choose between 'single-cone' and 'multi-cone'
+    theRFcenterConePoolingScenario = 'multi-cone';
+
     % Monochromatic stimulus
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
     options.stimulusParams = simulator.params.AOSLOStimulus();
+
+    visualizedComponent = 'STF';
+    visualizedComponent = 'RFprofile';
+
 
     dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
     options.stimulusParams.STFspatialFrequencySupport = dStruct.spatialFrequencySupport;
@@ -48,8 +56,7 @@ function plotFittedSTFs()
        'bottomMargin',   0.1, ...
        'topMargin',      0.0);
 
-    visualizedComponent = 'STF';
-    visualizedComponent = 'RFprofile';
+
 
     % Plot raw data for each cell
     for iRGCindex = 1:numel(coneRGCindices) 
@@ -116,7 +123,8 @@ function plotFittedSTFs()
                 operationOptions.STFdataToFit);
 
             load(fittedModelFileName, 'STFdataToFit', 'theConeMosaic', 'fittedModels');
-            theRFcenterConePoolingScenario = 'single-cone';
+            
+
             visualizedModelFits = fittedModels(theRFcenterConePoolingScenario);
             bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, operationOptions.STFdataToFit, operationOptions.rmsSelector);
 

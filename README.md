@@ -4,7 +4,8 @@ Code to use ISETBio to characterize the eye of the macaque monkey
 
 
 Under: /Volumes/SSDdisk/MATLAB/projects/ISETMacaque/manuscripts/M838/publicationReadyFigures
-- 
+- plotRawSTFs()
+% Plot the STF or RF profile of different fitted modeling scenarios for all the cells
 
 - runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
 % Batch generate STFs by applying synthetic RGC cone pooling models (derived 

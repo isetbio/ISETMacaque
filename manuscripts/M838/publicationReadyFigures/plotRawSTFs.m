@@ -4,7 +4,7 @@ function plotRawSTFs()
     % Monkey to employ
     monkeyID = 'M838';
 
-    useOriginalCellLabeling = true;
+    useOriginalCellLabeling = ~true;
 
    
     if (useOriginalCellLabeling)
