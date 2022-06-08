@@ -5,8 +5,10 @@ classdef operations
       computeConeMosaicSTFresponses
       visualizeConeMosaicSTFresponses
       fitFluorescenceSTFresponses
-      visualizedFittedModels
       extractFittedModelPerformance
+      visualizedFittedModels
+      fitAndCrossValidateFluorescenceSTFresponses
+      visualizeCrossValidatedModels
       computeSynthesizedRGCSTFresponses
    end
 end

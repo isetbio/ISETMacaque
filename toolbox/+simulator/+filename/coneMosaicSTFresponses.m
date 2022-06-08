@@ -61,5 +61,4 @@ function filename = coneMosaicSTFresponses(monkeyID, options)
     % Finalize responses full filename
     filename = fullfile(p.generatedDataDir, 'responses', sprintf('%s.mat',responseFilename));
 
-
 end

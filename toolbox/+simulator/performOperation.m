@@ -35,45 +35,22 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
     end
 
     % Set optics params based on selected opticsScenario enumeration
-    switch (operationOptions.opticsScenario)
-        case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
-
-            % Diffraction-limited optics with defocus-based residual blur
-            options.opticsParams = struct(...
-                'type', simulator.opticsTypes.diffractionLimited, ...
-                'residualDefocusDiopters', operationOptions.residualDefocusDiopters, ...
-                'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
-                'wavelengthSupport', options.stimulusParams.wavelengthSupport);
-
-        case simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur
-            % Diffraction-limited optics with Gaussian-based residual blur 
-            error('Optic scenario ''%s'' is not implemented yet', simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur);
-
-        case simulator.opticsScenarios.M838Optics
-            % M838 optics
-            options.opticsParams = struct(...
-                'type', simulator.opticsTypes.M838, ...
-                'pupilSizeMM', operationOptions.pupilSizeMM, ...
-                'wavelengthSupport', options.stimulusParams.wavelengthSupport);
-
-        case simulator.opticsScenarios.PolansOptics
-            % Polans optics
-            options.opticsParams = struct(...
-                'type', simulator.opticsTypes.Polans, ...
-                'subjectID', operationOptions.subjectID, ...
-                'pupilSizeMM', operationOptions.pupilSizeMM, ...
-                'wavelengthSupport', options.stimulusParams.wavelengthSupport);
-
-
-        otherwise
-            error('Unknown optics scenario: ''%s''.', operationOptions.opticsScenario);
+    if (operation == simulator.operations.fitAndCrossValidateFluorescenceSTFresponses)
+        crossValidatedModelsNum = numel(operationOptions.opticsScenario);
+        for iCrossValidationModelIndex = 1:crossValidatedModelsNum
+            options.opticsParams{iCrossValidationModelIndex} = opticsParamsForScenario(...
+                    operationOptions.opticsScenario(iCrossValidationModelIndex), operationOptions, options.stimulusParams, iCrossValidationModelIndex);
+        end
+    else
+        options.opticsParams = opticsParamsForScenario(...
+             operationOptions.opticsScenario, operationOptions, options.stimulusParams, 1);
     end
-
     
     % Set spatial frequency support for the STF measurements
     dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
     options.stimulusParams.STFspatialFrequencySupport = dStruct.spatialFrequencySupport;
-    
+    clear 'dStruct'
+
     % Set the cone mosaic params
     options.cMosaicParams = struct(...
         'coneCouplingLambda', 0, ...
@@ -121,6 +98,61 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
             % Also return the cone mosaic responses filename
             dataOut.coneMosaicResponsesFileName = coneMosaicResponsesFileName;
             
+            
+        case simulator.operations.fitAndCrossValidateFluorescenceSTFresponses
+            
+            % Train each of the cross-validated models to data from each  session
+            sessionsNum = size(operationOptions.STFdataToFit.responses,3);
+
+            for iCrossValidationModelIndex = 1:crossValidatedModelsNum
+                % Update optipcsParams options for this cross-validated model
+                optionsForCrossValidationModel = options;
+                optionsForCrossValidationModel.opticsParams = options.opticsParams{iCrossValidationModelIndex};
+                
+                % Update center cone composition for this cross-validated model
+                operationOptionsForCrossValidationModel = operationOptions;
+                operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined = ...
+                    {operationOptions.rfCenterConePoolingScenariosExamined{iCrossValidationModelIndex}};
+
+                % Generate corresponding cone responses filename
+                coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, optionsForCrossValidationModel);
+            
+
+                % Fit each cross-validation model separately for each session
+                for iSession = 1:sessionsNum
+
+                    fprintf('Fitting cross-validation model #%d (''%s'', %2.3fD residual defocus) on data from session %d / %d\n', ...
+                        iCrossValidationModelIndex, ...
+                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
+                        optionsForCrossValidationModel.opticsParams.residualDefocusDiopters, ...
+                        iSession, sessionsNum);
+
+                    % Get session to fit
+                    singleSessionSTFdataToFit = operationOptionsForCrossValidationModel.STFdataToFit;
+                    singleSessionSTFdataToFit.responses = operationOptionsForCrossValidationModel.STFdataToFit.responses(:,:,iSession);
+                    singleSessionSTFdataToFit.responseSE = operationOptionsForCrossValidationModel.STFdataToFit.responseSE(:,:,iSession);
+
+                    % Synthesize filename for the cross-validated RGCmodel trained on this session
+                    fittedCrossValidationSingleSessionModelFileName = simulator.filename.fittedCrossValidationSingleSessionTrainRGCmodel(monkeyID, ...
+                        optionsForCrossValidationModel, ...
+                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
+                        operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
+                        operationOptionsForCrossValidationModel.fitParams, ...
+                        singleSessionSTFdataToFit, iSession);
+                
+                    % Fit the model
+                    simulator.fit.fluorescenceSTFData(...
+                        singleSessionSTFdataToFit, ...
+                        operationOptionsForCrossValidationModel.fitParams, ...
+                        operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
+                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined, ...
+                        coneMosaicResponsesFileName, ...
+                        fittedCrossValidationSingleSessionModelFileName);
+
+                end % iSession
+
+            end
+
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
             coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, options);
@@ -219,4 +251,43 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
 
     end
 
+end
+
+
+
+function opticsParams = opticsParamsForScenario(opticsScenario, operationOptions, stimulusParams, residualDefocusIndex)
+         
+    switch (opticsScenario)
+        case simulator.opticsScenarios.diffrLimitedOptics_residualDefocus
+
+            % Diffraction-limited optics with defocus-based residual blur
+            opticsParams = struct(...
+                'type', simulator.opticsTypes.diffractionLimited, ...
+                'residualDefocusDiopters', operationOptions.residualDefocusDiopters(residualDefocusIndex), ...
+                'pupilSizeMM', WilliamsLabData.constants.pupilDiameterMM, ...
+                'wavelengthSupport', stimulusParams.wavelengthSupport);
+
+        case simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur
+            % Diffraction-limited optics with Gaussian-based residual blur 
+            error('Optic scenario ''%s'' is not implemented yet', simulator.opticsScenarios.diffrLimitedOptics_GaussianBlur);
+
+        case simulator.opticsScenarios.M838Optics
+            % M838 optics
+            opticsParams = struct(...
+                'type', simulator.opticsTypes.M838, ...
+                'pupilSizeMM', operationOptions.pupilSizeMM, ...
+                'wavelengthSupport', stimulusParams.wavelengthSupport);
+
+        case simulator.opticsScenarios.PolansOptics
+            % Polans optics
+            opticsParams = struct(...
+                'type', simulator.opticsTypes.Polans, ...
+                'subjectID', operationOptions.subjectID, ...
+                'pupilSizeMM', operationOptions.pupilSizeMM, ...
+                'wavelengthSupport', stimulusParams.wavelengthSupport);
+
+
+        otherwise
+            error('Unknown optics scenario: ''%s''.', opticsScenario);
+    end
 end
