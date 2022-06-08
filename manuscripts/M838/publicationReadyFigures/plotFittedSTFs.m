@@ -15,16 +15,22 @@ function plotFittedSTFs()
     residualDefocusDioptersExamined = 0.067;
 
     % Optimal residual defocus for each cell
-    %residualDefocusDioptersExamined = -99;
+    residualDefocusDioptersExamined = -99;
 
     % RF center scenario : choose between 'single-cone' and 'multi-cone'
-    theRFcenterConePoolingScenario = 'multi-cone';
+    theRFcenterConePoolingScenario = 'single-cone';
 
     % Monochromatic stimulus
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
     options.stimulusParams = simulator.params.AOSLOStimulus();
 
+    % The STF as measured
     visualizedComponent = 'STF';
+
+    % The STF of the neuron (no optics)
+    %visualizedComponent = 'NeuralSTF';
+
+    % The neuron's RF profile
     visualizedComponent = 'RFprofile';
 
 
@@ -123,7 +129,6 @@ function plotFittedSTFs()
                 operationOptions.STFdataToFit);
 
             load(fittedModelFileName, 'STFdataToFit', 'theConeMosaic', 'fittedModels');
-            
 
             visualizedModelFits = fittedModels(theRFcenterConePoolingScenario);
             bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, operationOptions.STFdataToFit, operationOptions.rmsSelector);
@@ -139,6 +144,31 @@ function plotFittedSTFs()
                         cellIDString, ...
                         'noXLabel', noXLabel, ...
                         'noYLabel', noYLabel);
+
+                case 'NeuralSTF'
+                    coneRcDegs = sqrt(2) * 0.204 * min(theConeMosaic.coneRFspacingsDegs);
+                    spatialSupport = linspace(0, 40*coneRcDegs, 128);
+                    spatialSupport = spatialSupport - mean(spatialSupport);
+                    rfParams = visualizedModelFits{bestConePosIdx}.fittedRGCRF;
+                    [centerProfile, surroundProfile, spatialSupportX, ...
+                     centerSTF, surroundSTF, sfSupport] = generateRFprofiles(theConeMosaic, rfParams, spatialSupport);
+
+                    fittedNeuralSTFcomponents.sfSupport = sfSupport;
+                    fittedNeuralSTFcomponents.center =   centerSTF;
+                    fittedNeuralSTFcomponents.surround = surroundSTF;
+                    fittedNeuralSTFcomponents.responses = abs(fittedNeuralSTFcomponents.center - fittedNeuralSTFcomponents.surround);
+                 
+                    simulator.visualize.fittedSTF(hFig, axSTF, ...
+                        STFdataToFit.spatialFrequencySupport, ...
+                        STFdataToFit.responses, ...
+                        [], ...
+                        visualizedModelFits{bestConePosIdx}.fittedSTF, ...
+                        [], false, ...
+                        cellIDString, ...
+                        'fittedNeuralSTFcomponents', fittedNeuralSTFcomponents, ...
+                        'noXLabel', noXLabel, ...
+                        'noYLabel', noYLabel);
+
 
                 case 'RFprofile'
                     noXLabel = true;
@@ -186,5 +216,64 @@ function plotFittedSTFs()
             
     end
     
+end
+
+function [centerProfile, surroundProfile, spatialSupportX, ...
+          centerSTF, surroundSTF, frequencySupport] = generateRFprofiles(theConeMosaic, rfParams, spatialSupport)
+
+    spatialSupportX = spatialSupport + theConeMosaic.coneRFpositionsDegs(rfParams.centerConeIndices(1),1);
+    spatialSupportY = spatialSupport + theConeMosaic.coneRFpositionsDegs(rfParams.centerConeIndices(1),2);
+    [X,Y] = meshgrid(spatialSupportX,spatialSupportY);
+
+    centerConesNum = numel(rfParams.centerConeIndices);
+    surroundConesNum = numel(rfParams.surroundConeIndices);
+    
+    centerRF = []; 
+    for iCenterCone = 1:centerConesNum
+        theConeWeight = rfParams.centerConeWeights(iCenterCone);
+        theConeIndex = rfParams.centerConeIndices(iCenterCone);
+        coneRcDegs = sqrt(2) * 0.204 * theConeMosaic.coneRFspacingsDegs(theConeIndex);
+        xo = theConeMosaic.coneRFpositionsDegs(theConeIndex,1);
+        yo = theConeMosaic.coneRFpositionsDegs(theConeIndex,2);
+        g =  theConeWeight * exp(-((X-xo)/coneRcDegs).^2) .* exp(-((Y-yo)/coneRcDegs).^2);
+        if (isempty(centerRF))
+            centerRF = g;
+        else
+            centerRF = centerRF + g;
+        end
+    end
+
+    surroundRF = [];
+    for iSurroundCone = 1:surroundConesNum
+        theConeWeight = rfParams.surroundConeWeights(iSurroundCone);
+        theConeIndex = rfParams.surroundConeIndices(iSurroundCone);
+        coneRcDegs = sqrt(2) * 0.204 * theConeMosaic.coneRFspacingsDegs(theConeIndex);
+        xo = theConeMosaic.coneRFpositionsDegs(theConeIndex,1);
+        yo = theConeMosaic.coneRFpositionsDegs(theConeIndex,2);
+        g =  theConeWeight * exp(-((X-xo)/coneRcDegs).^2) .* exp(-((Y-yo)/coneRcDegs).^2);
+        if (isempty(surroundRF))
+            surroundRF = g;
+        else
+            surroundRF = surroundRF + g;
+        end
+    end
+
+    centerProfile = sum(centerRF, 1);
+    surroundProfile = sum(surroundRF, 1);
+
+    nFFT = 1024;
+    fMax = 1/(2*(spatialSupportX(2)-spatialSupportX(1)));
+    deltaF = fMax / (nFFT/2);
+    frequencySupport = (-fMax+deltaF):deltaF:fMax;
+
+    centerSTF = abs(fftshift(fft(centerProfile,nFFT))) / length(centerProfile);
+    surroundSTF = abs(fftshift(fft(surroundProfile,nFFT))) / length(surroundProfile);
+
+    % Only keep positive frequencies
+    idx = find(frequencySupport>=0);
+    centerSTF = centerSTF(idx);
+    surroundSTF = surroundSTF(idx);
+    frequencySupport = frequencySupport(idx);
+
 end
 

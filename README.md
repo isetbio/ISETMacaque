@@ -7,6 +7,13 @@ Under: /Volumes/SSDdisk/MATLAB/projects/ISETMacaque/manuscripts/M838/publication
 - plotRawSTFs()
 % Plot the STF or RF profile of different fitted modeling scenarios for all the cells
 
+- plotFittedSTFs()
+% Plot the STF or RF profile of different fitted modeling scenarios for all the cells 
+
+- plotSynthesizedSTFs()
+% Compute synthesized STFs for different optics and visual stimulation scenarios (AO, monochromatic vs CRT, achromatic, physiological optics)
+
+
 - runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
 % Batch generate STFs by applying synthetic RGC cone pooling models (derived 
 %   by fitting center/surround pooled  weighted cone mosaic responses to 
