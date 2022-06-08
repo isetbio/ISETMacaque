@@ -1,4 +1,6 @@
 function plotSynthesizedSTFs()
+% Compute synthesized STFs for different optics and visual stimulation scenarios (AO, monochromatic vs CRT, achromatic, physiological optics)
+
 
     % Monkey to employ
     monkeyID = 'M838';
