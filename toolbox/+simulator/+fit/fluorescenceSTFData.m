@@ -75,8 +75,7 @@ function fluorescenceSTFData(STFdataToFit, fitParams, ...)
             fprintf('Performed %d multi-starts within %2.2f minutes\n', fitParams.multiStartsNum , toc/60);
         end
 
-        % Choose the model with best performance across all center cone positions
-        % Or return fits for all examined positions
+        % Return fits for all examined positions
         fittedModels(rfCenterConePoolingScenario) = fitsAtExaminedMosaicPositions;
     end
 

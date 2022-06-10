@@ -35,7 +35,8 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
     end
 
     % Set optics params based on selected opticsScenario enumeration
-    if (operation == simulator.operations.fitAndCrossValidateFluorescenceSTFresponses)
+    if (ismember(operation, [simulator.operations.fitCrossValidationModelsToFluorescenceSTFresponses, ...
+                             simulator.operations.testCrossValidationModelsToFluoresceneSTFresponses]))
         crossValidatedModelsNum = numel(operationOptions.opticsScenario);
         for iCrossValidationModelIndex = 1:crossValidatedModelsNum
             options.opticsParams{iCrossValidationModelIndex} = opticsParamsForScenario(...
@@ -98,14 +99,15 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
             % Also return the cone mosaic responses filename
             dataOut.coneMosaicResponsesFileName = coneMosaicResponsesFileName;
             
-            
-        case simulator.operations.fitAndCrossValidateFluorescenceSTFresponses
+        
+        case { simulator.operations.fitCrossValidationModelsToFluorescenceSTFresponses, ...
+               simulator.operations.testCrossValidationModelsToFluoresceneSTFresponses }
             
             % Train each of the cross-validated models to data from each  session
             sessionsNum = size(operationOptions.STFdataToFit.responses,3);
 
             for iCrossValidationModelIndex = 1:crossValidatedModelsNum
-                % Update optipcsParams options for this cross-validated model
+                % Update opticsParams options for this cross-validated model
                 optionsForCrossValidationModel = options;
                 optionsForCrossValidationModel.opticsParams = options.opticsParams{iCrossValidationModelIndex};
                 
@@ -114,44 +116,111 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
                 operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined = ...
                     {operationOptions.rfCenterConePoolingScenariosExamined{iCrossValidationModelIndex}};
 
-                % Generate corresponding cone responses filename
+                % Generate corresponding cone mosaic responses filename
                 coneMosaicResponsesFileName = simulator.filename.coneMosaicSTFresponses(monkeyID, optionsForCrossValidationModel);
-            
 
-                % Fit each cross-validation model separately for each session
-                for iSession = 1:sessionsNum
+                crossValidationModelDescriptor = sprintf('''%s'', %2.3fD residual defocus', ...
+                    operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
+                    optionsForCrossValidationModel.opticsParams.residualDefocusDiopters);
 
-                    fprintf('Fitting cross-validation model #%d (''%s'', %2.3fD residual defocus) on data from session %d / %d\n', ...
-                        iCrossValidationModelIndex, ...
-                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
-                        optionsForCrossValidationModel.opticsParams.residualDefocusDiopters, ...
-                        iSession, sessionsNum);
+                if (operation == simulator.operations.fitCrossValidationModelsToFluorescenceSTFresponses)
 
-                    % Get session to fit
-                    singleSessionSTFdataToFit = operationOptionsForCrossValidationModel.STFdataToFit;
-                    singleSessionSTFdataToFit.responses = operationOptionsForCrossValidationModel.STFdataToFit.responses(:,:,iSession);
-                    singleSessionSTFdataToFit.responseSE = operationOptionsForCrossValidationModel.STFdataToFit.responseSE(:,:,iSession);
+                    % Fit cross-validation model separately for each session
+                    for iSession = 1:sessionsNum
+                        fprintf('Fitting cross-validation model #%d (%s) on data from session %d / %d\n', ...
+                            iCrossValidationModelIndex, ...
+                            crossValidationModelDescriptor, ...
+                            iSession, sessionsNum);
+    
+                        % Get session to fit
+                        singleSessionSTFdataToFit = operationOptionsForCrossValidationModel.STFdataToFit;
+                        singleSessionSTFdataToFit.responses = operationOptionsForCrossValidationModel.STFdataToFit.responses(:,:,iSession);
+                        singleSessionSTFdataToFit.responseSE = operationOptionsForCrossValidationModel.STFdataToFit.responseSE(:,:,iSession);
+    
+                        % Synthesize filename for the cross-validated RGCmodel trained on this session
+                        fittedCrossValidationSingleSessionModelFileName = simulator.filename.fittedCrossValidationSingleSessionTrainRGCmodel(monkeyID, ...
+                            optionsForCrossValidationModel, ...
+                            operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
+                            operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
+                            operationOptionsForCrossValidationModel.fitParams, ...
+                            singleSessionSTFdataToFit, iSession);
+                    
+                        % Fit the model
+                        simulator.fit.fluorescenceSTFData(...
+                            singleSessionSTFdataToFit, ...
+                            operationOptionsForCrossValidationModel.fitParams, ...
+                            operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
+                            operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined, ...
+                            coneMosaicResponsesFileName, ...
+                            fittedCrossValidationSingleSessionModelFileName);
+                    end % iSession
 
-                    % Synthesize filename for the cross-validated RGCmodel trained on this session
-                    fittedCrossValidationSingleSessionModelFileName = simulator.filename.fittedCrossValidationSingleSessionTrainRGCmodel(monkeyID, ...
-                        optionsForCrossValidationModel, ...
-                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
-                        operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
-                        operationOptionsForCrossValidationModel.fitParams, ...
-                        singleSessionSTFdataToFit, iSession);
-                
-                    % Fit the model
-                    simulator.fit.fluorescenceSTFData(...
-                        singleSessionSTFdataToFit, ...
-                        operationOptionsForCrossValidationModel.fitParams, ...
-                        operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
-                        operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined, ...
-                        coneMosaicResponsesFileName, ...
-                        fittedCrossValidationSingleSessionModelFileName);
+                else
+                    % Test cross-validation model trained on one session
+                    % to data from the remaining sessions, allowing for
+                    % scaling only
 
-                end % iSession
+                    inSampleErrors = zeros(sessionsNum,1);
+                    outOfSampleErrors = zeros(sessionsNum, sessionsNum-1);
 
-            end
+                    for iTrainSession = 1:sessionsNum
+
+                        fprintf('Testing cross-validation model #%d (%s) trained on session %d / %d\n', ...
+                            iCrossValidationModelIndex, ...
+                            crossValidationModelDescriptor, ...
+                            iTrainSession, sessionsNum);
+
+                        % Get session to fit
+                        singleSessionSTFdataToFit = operationOptionsForCrossValidationModel.STFdataToFit;
+                        singleSessionSTFdataToFit.responses = operationOptionsForCrossValidationModel.STFdataToFit.responses(:,:,iTrainSession);
+                        singleSessionSTFdataToFit.responseSE = operationOptionsForCrossValidationModel.STFdataToFit.responseSE(:,:,iTrainSession);
+                        
+                        % Synthesize filename for the cross-validated RGCmodel trained on this session
+                        fittedCrossValidationSingleSessionModelFileName = simulator.filename.fittedCrossValidationSingleSessionTrainRGCmodel(monkeyID, ...
+                            optionsForCrossValidationModel, ...
+                            operationOptionsForCrossValidationModel.rfCenterConePoolingScenariosExamined{1}, ...
+                            operationOptionsForCrossValidationModel.coneMosaicSamplingParams, ...
+                            operationOptionsForCrossValidationModel.fitParams, ...
+                            singleSessionSTFdataToFit, iTrainSession);
+
+                        % Load the trained cross-validation model
+                        load(fittedCrossValidationSingleSessionModelFileName, ...
+                                'STFdataToFit', 'theConeMosaic', 'fittedModels');
+
+                        theKeys = keys(fittedModels);
+                        if (numel(theKeys)>1)
+                            error('There should have been just 1 model here');
+                        end
+                        theTrainedCrossValidationModel = fittedModels(theKeys{1});
+                        theSTFdataUsedToTrainTheCrossValidationModel = STFdataToFit;
+
+                        % Test sessions
+                        testSessions = setdiff(1:sessionsNum, iTrainSession);
+                        for iTestSession = 1:numel(testSessions)
+                            % Get session to fit
+                            validationSession = testSessions(iTestSession);
+                            singleSessionSTFdataToFit = operationOptionsForCrossValidationModel.STFdataToFit;
+                            singleSessionSTFdataToFit.responses = operationOptionsForCrossValidationModel.STFdataToFit.responses(:,:,validationSession);
+                            singleSessionSTFdataToFit.responseSE = operationOptionsForCrossValidationModel.STFdataToFit.responseSE(:,:,validationSession);
+                            singleSessionSTFdataToFit.fitParams = operationOptionsForCrossValidationModel.fitParams;
+                        
+                            [inSampleErrors(iTrainSession), outOfSampleErrors(iTrainSession,iTestSession)] = ...
+                            simulator.fit.fluorescenceSTFDataUsingCrossValidationModel(...
+                                 singleSessionSTFdataToFit, ...
+                                 theTrainedCrossValidationModel, ...
+                                 theSTFdataUsedToTrainTheCrossValidationModel, ...
+                                 iTrainSession, validationSession);
+                        end % iTestSession
+                    end % iTrainSession
+
+                    % Evaluate net cross-validation performance here
+                    dataOut.crossValidationModelDesriptor{iCrossValidationModelIndex} = crossValidationModelDescriptor;
+                    dataOut.inSampleErrors(iCrossValidationModelIndex,:) = ...
+                        inSampleErrors(:);
+                    dataOut.outOfSampleErrors(iCrossValidationModelIndex,:) = ...
+                        outOfSampleErrors(:);
+                end
+            end % iCrossValidationModelIndex
 
         case simulator.operations.fitFluorescenceSTFresponses
             % Synthesize cone mosaic responses filename
