@@ -7,7 +7,8 @@ classdef operations
       fitFluorescenceSTFresponses
       extractFittedModelPerformance
       visualizedFittedModels
-      fitAndCrossValidateFluorescenceSTFresponses
+      fitCrossValidationModelsToFluorescenceSTFresponses
+      testCrossValidationModelsToFluoresceneSTFresponses
       visualizeCrossValidatedModels
       computeSynthesizedRGCSTFresponses
    end
