@@ -29,6 +29,8 @@ else
             generatedDataDir = '/Volumes/SSDdisk/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData'; 
         case 'Ithaka'
             generatedDataDir = '/Volumes/SSDdisk/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
+        case 'Crete'
+            generatedDataDir = '/Volumes/Dropbox/Dropbox (Aguirre-Brainard Lab)/ISETMacaqueSimulations/generatedData';
     end
     setpref(projectName, 'computerName', computerInfo.localHostName);
 end
