@@ -82,18 +82,14 @@ function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
 
     else
         % The neural STF
-        max(fittedNeuralSTFcomponents.center)
-        max(fittedNeuralSTFcomponents.surround)
         maxY = max([...
             max(fittedNeuralSTFcomponents.center(:)) ...
             max(fittedNeuralSTFcomponents.surround(:)) ...
-            ])
+            ]);
 
         fittedNeuralSTFcomponents.center = fittedNeuralSTFcomponents.center / maxY;
         fittedNeuralSTFcomponents.surround = fittedNeuralSTFcomponents.surround / maxY;
-        compositeNeuralSTF = abs(fittedNeuralSTFcomponents.center - fittedNeuralSTFcomponents.surround);
-        
-        
+        compositeNeuralSTF = abs(fittedNeuralSTFcomponents.center - fittedNeuralSTFcomponents.surround);  
 
         plot(ax,fittedNeuralSTFcomponents.sfSupport, compositeNeuralSTF, 'k--',  'LineWidth', 2);
         plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.center, 'r',  'LineWidth', 1.5);

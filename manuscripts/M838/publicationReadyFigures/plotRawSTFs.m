@@ -1,5 +1,5 @@
 function plotRawSTFs()
-    % Plot the STFs (single sessions and averaged) for all the cells
+% Plot the STFs (single sessions and averaged) for all the cells
 
     % Monkey to employ
     monkeyID = 'M838';
@@ -32,45 +32,45 @@ function plotRawSTFs()
 
     % Plot raw data for each cell
     for iRGCindex = 1:numel(coneRGCindices) 
-            STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
-                'whichSession', 'allSessions', ...
-                'undoOTFdeconvolution', true, ...     % remove the baked-in deconvolution by the diffr.limited OTF
-                'whichCenterConeType', centerConeTypes{iRGCindex}, ...
-                'whichRGCindex', coneRGCindices(iRGCindex));
+        STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
+            'whichSession', 'allSessions', ...
+            'undoOTFdeconvolution', true, ...     % remove the baked-in deconvolution by the diffr.limited OTF
+            'whichCenterConeType', centerConeTypes{iRGCindex}, ...
+            'whichRGCindex', coneRGCindices(iRGCindex));
 
-            row = floor((iRGCindex-1)/5)+1;
-            col = mod(iRGCindex-1,5)+1;
-            axSTF = subplot('Position', subplotPosVectors(row,col).v);
+        row = floor((iRGCindex-1)/5)+1;
+        col = mod(iRGCindex-1,5)+1;
+        axSTF = subplot('Position', subplotPosVectors(row,col).v);
 
-            if (row < 3)
-                noXLabel = true;
-            else
-                noXLabel = false;
-            end
+        if (row < 3)
+            noXLabel = true;
+        else
+            noXLabel = false;
+        end
 
-            if (col > 1)
-                noYLabel = true;
-            else
-                noYLabel = false;
-            end
+        if (col > 1)
+            noYLabel = true;
+        else
+            noYLabel = false;
+        end
 
-            if (useOriginalCellLabeling)
-                cellIDString = sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex);
-            else
-                cellIDString = sprintf('RGC %d', iRGCindex);
-            end
+        if (useOriginalCellLabeling)
+            cellIDString = sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex);
+        else
+            cellIDString = sprintf('RGC %d', iRGCindex);
+        end
 
-            yAxisScaling = 'linear';  % choose between {'linear' and 'log'}
-            simulator.visualize.fittedSTF(hFig, axSTF, ...
-                STFdataToFit.spatialFrequencySupport, ...
-                STFdataToFit.responses, ...
-                [], ...
-                [], [], false, ...
-                cellIDString, ...
-                'noXLabel', noXLabel, ...
-                'noYLabel', noYLabel, ...
-                'yAxisScaling', 'linear');
-            drawnow;
+        yAxisScaling = 'linear';  % choose between {'linear' and 'log'}
+        simulator.visualize.fittedSTF(hFig, axSTF, ...
+            STFdataToFit.spatialFrequencySupport, ...
+            STFdataToFit.responses, ...
+            [], ...
+            [], [], false, ...
+            cellIDString, ...
+            'noXLabel', noXLabel, ...
+            'noYLabel', noYLabel, ...
+            'yAxisScaling', 'linear');
+        drawnow;
     end
 
 

@@ -23,6 +23,7 @@ function stfDataStruct = fluorescenceSTFdata(monkeyID, varargin)
 %    'whichSession'           - either a scalar identifiying a particular session, 
 %                               or 'meanOverSessions' or 'allSessions'
 %    'whichCenterConeType'    - char. Either 'L', or 'M', or 'all'
+%    'whichRGCindex'          - scalar. which cell index
 %    'undoOTFdeconvolution'   - logical. Whether to undo the baked in deconvolution by the diffr.limited OTF
 
     p = inputParser;
