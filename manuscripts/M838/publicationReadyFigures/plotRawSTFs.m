@@ -30,10 +30,13 @@ function plotRawSTFs()
        'bottomMargin',   0.1, ...
        'topMargin',      0.0);
 
+    whichSession =  'meanOverSessions';
+    %whichSession = 1;
+
     % Plot raw data for each cell
     for iRGCindex = 1:numel(coneRGCindices) 
         STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
-            'whichSession', 'allSessions', ...
+            'whichSession', whichSession, ...
             'undoOTFdeconvolution', true, ...     % remove the baked-in deconvolution by the diffr.limited OTF
             'whichCenterConeType', centerConeTypes{iRGCindex}, ...
             'whichRGCindex', coneRGCindices(iRGCindex));
@@ -69,14 +72,26 @@ function plotRawSTFs()
             cellIDString, ...
             'noXLabel', noXLabel, ...
             'noYLabel', noYLabel, ...
-            'yAxisScaling', 'linear');
+            'yAxisScaling', yAxisScaling);
         drawnow;
     end
 
+    % Export figure
+    p = getpref('ISETMacaque');
+    populationPDFsDir = sprintf('%s/exports/populationPDFs',p.generatedDataDir);
+    if (strcmp(whichSession,'meanOverSessions'))
+        pdfFileName = sprintf('%s/rawSTFs/meanOverSessionsRawSTFs.pdf', populationPDFsDir);
+    else
+        pdfFileName = sprintf('%s/rawSTFs/session%dRawSTFs.pdf', populationPDFsDir, whichSession);
+    end
 
-    % Each cell in separate figure
-    for iRGCindex = 1:numel(coneRGCindices) 
-            STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
+    NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
+
+
+    if (1==2)
+        % Each cell in separate figure
+        for iRGCindex = 1:numel(coneRGCindices) 
+                STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                 'whichSession', 'allSessions', ...
                 'undoOTFdeconvolution', true, ...     % remove the baked-in deconvolution by the diffr.limited OTF
                 'whichCenterConeType', centerConeTypes{iRGCindex}, ...
@@ -103,7 +118,9 @@ function plotRawSTFs()
                 'yAxisScaling', 'log');
             drawnow;
             
+        end
     end
-    
+
+
 end
 

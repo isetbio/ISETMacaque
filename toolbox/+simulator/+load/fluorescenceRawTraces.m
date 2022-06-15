@@ -74,7 +74,7 @@ function [temporalSupportSeconds, responseTrace, spatialFrequency] = fluorescenc
 
     % Finally, extract exact time stamps for this spatial frequency and
     % this session
-    frameTimeStampsBaseDir = '/Volumes/SSDdisk/MATLAB/projects/ISETMacaque/animals/WilliamsLab/M838FrameLengthData';
+    frameTimeStampsBaseDir = sprintf('%s/animals/WilliamsLab/M838FrameLengthData', ISETmacaqueRootPath);
     expDir = sprintf('Expt %d', whichSession);
     if (spatialFrequency == 0)
         % arbitrarily choose the 4 c/deg

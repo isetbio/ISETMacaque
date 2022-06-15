@@ -1,4 +1,4 @@
-function plotRawFluorescenceTimeCourses
+function plotRawFluorescenceTimeCourses()
 % Plot the STFs (single sessions and averaged) for all the cells
 
     % Monkey to employ
@@ -14,9 +14,47 @@ function plotRawFluorescenceTimeCourses
         [centerConeTypes, coneRGCindices] = simulator.animalInfo.groupedRGCs(monkeyID);
     end
 
+    stfDataStruct = simulator.load.fluorescenceSTFdata(monkeyID, ...
+        'whichSession', 'allSessions');
+
+    sessionsNum = size(stfDataStruct.responses, 3);
+    spatialFrequencySupport = stfDataStruct.spatialFrequencySupport;
+
+    p = getpref('ISETMacaque');
+    populationPDFsDir = sprintf('%s/exports/populationPDFs',p.generatedDataDir);
+
+    videoOBJ = VideoWriter(sprintf('%s/rawFluorescenceTraces/videoOverTime', populationPDFsDir), 'MPEG-4');
+    videoOBJ.FrameRate = 30;
+    videoOBJ.Quality = 100;
+    videoOBJ.open();
+
+    [~,iFreq] = min(abs(spatialFrequencySupport-25));
+    spatialFrequencyCyclesPerDegree = spatialFrequencySupport(iFreq);
+    for iTime = 1:(57*4)
+        maxTimeSeconds = iTime/4;
+        hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, 1, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, maxTimeSeconds);
+        videoOBJ.writeVideo(getframe(hFig));
+    end
+
+    videoOBJ.close();
+
+
+    for whichSession = 1:sessionsNum
+        for iSF = 1:numel(spatialFrequencySupport)
+            spatialFrequencyCyclesPerDegree = spatialFrequencySupport(iSF);
+            hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, whichSession, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, []);
+            pdfFileName = sprintf('%s/rawFluorescenceTraces/session%d_sf%2.0f.pdf', populationPDFsDir, whichSession, round(spatialFrequencyCyclesPerDegree));
+            NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
+        end
+    end
+end
+
+function hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, whichSession, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, maxTimeSeconds)
+
+
     % All cells in same figure
     hFig = figure(1); clf;
-    set(hFig, 'Color', [1 1 1], 'Position', [10 10 1100 660]);  
+    set(hFig, 'Color', [0 0 0], 'Position', [10 10 1100 660]);  
 
     % Set-up figure
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
@@ -30,12 +68,6 @@ function plotRawFluorescenceTimeCourses
        'topMargin',      0.0);
 
 
-    % Select a single session
-    whichSession = 2;
-
-    
-    spatialFrequencyCyclesPerDegree = 30;
-
     % Plot raw data for each cell
     for iRGCindex = 1:numel(coneRGCindices) 
 
@@ -47,28 +79,39 @@ function plotRawFluorescenceTimeCourses
                 'whichRGCindex', coneRGCindices(iRGCindex), ...
                 'whichSpatialFrequency', spatialFrequencyCyclesPerDegree);
        
-
-        idx = find((temporalSupportSeconds>= 12) & (temporalSupportSeconds <= 19));
-        mu = mean(theResponseTrace(idx))
-        sigma = std(theResponseTrace(idx),0,2)
-        figure(111);
-        subplot(3,1,1);
-        plot(temporalSupportSeconds, theResponseTrace, 'k-')
-        subplot(3,1,2);
-        plot(temporalSupportSeconds, theResponseTrace-mu, 'k-');
-        subplot(3,1,3);
-        plot(temporalSupportSeconds, (theResponseTrace-mu)/sigma, 'k-');
-        pause
+        
 
         doPowerAnalysis = ~true;
         if (doPowerAnalysis)
             targetTemporalFrequency = 6.0;
-            [temporalSupportSeconds, theResponseTrace, theActualTemporalFrequency] = ...
+            [temporalSupportSecondsProcessed, theResponseTraceProcessed, theActualTemporalFrequency] = ...
                 powerTimeSeriesAtFrequency(...
                     temporalSupportSeconds, theResponseTrace, targetTemporalFrequency);
+            yLims = [0 10];
             yLabelString = sprintf('power @%2.1f Hz', theActualTemporalFrequency);
         else
-             yLabelString = 'fluorescence';
+            % Moving window averaging with a 2 second length
+            windowLengthSeconds = 2;
+            dt = temporalSupportSeconds(2)-temporalSupportSeconds(1);
+            windowLengthSamples = round(windowLengthSeconds/dt);
+            theResponseTraceProcessed = movmean(theResponseTrace, [windowLengthSamples 0], 'EndPoints', 'fill');
+            temporalSupportSecondsProcessed = temporalSupportSeconds;
+            yLabelString = 'fluorescence';
+            yLims = [0 10];
+        end
+
+
+        if (~isempty(maxTimeSeconds))
+            idx = find(temporalSupportSeconds<=maxTimeSeconds);
+            maxTimeBin = idx(end);
+            
+            temporalSupportSeconds = temporalSupportSeconds(1:maxTimeBin); 
+            theResponseTrace = theResponseTrace(1:maxTimeBin);
+
+            idx = find(temporalSupportSecondsProcessed<=maxTimeSeconds);
+            maxTimeBin = idx(end);
+            temporalSupportSecondsProcessed = temporalSupportSecondsProcessed(1:maxTimeBin); 
+            theResponseTraceProcessed = theResponseTraceProcessed(1:maxTimeBin);
         end
 
         row = floor((iRGCindex-1)/5)+1;
@@ -86,6 +129,7 @@ function plotRawFluorescenceTimeCourses
         else
             noYLabel = false;
         end
+        
 
         if (useOriginalCellLabeling)
             cellIDString = sprintf('%s%d', STFdataToFit.whichCenterConeType, STFdataToFit.whichRGCindex);
@@ -95,13 +139,14 @@ function plotRawFluorescenceTimeCourses
 
         simulator.visualize.rawFluorescenceTraces(hFig, axTrace, ...
             temporalSupportSeconds, theResponseTrace, ...
+            temporalSupportSecondsProcessed, theResponseTraceProcessed, ...
             cellIDString, ...
             theSpatialFrequency, ...
-            'xLims', [temporalSupportSeconds(1) temporalSupportSeconds(end)], ...
+            'xLims', [0 60], ...
             'xTicks', 0:10:100, ....
             'xLabel', 'time (seconds)', ...
             'yLabel', yLabelString, ...
-            'yLims', [], ...
+            'yLims', yLims, ...
             'noXLabel', noXLabel, ...
             'noYLabel', noYLabel);
         drawnow;
@@ -117,10 +162,6 @@ function [temporalSupport, powerTimeSeries, theTemporalFrequency] = powerTimeSer
     [~, iFreq] = min(abs(spectrogramStruct.frequencySupportHz-targetTemporalFrequency));
 
     
-%    meanPower = spectrogramStruct.power;
-%    time = spectrogramStruct.temporalSupportSeconds;
-
-    figure(100);clf;
     for k = 1:50
         t1 = 0+k;
         t2 = t1+8;
@@ -131,6 +172,13 @@ function [temporalSupport, powerTimeSeries, theTemporalFrequency] = powerTimeSer
         time(k) = (t1+t2)/2;
     end
 
+
+    theTemporalFrequency = spectrogramStruct.frequencySupportHz(iFreq);
+    temporalSupport = time;
+    powerTimeSeries = meanPower(iFreq,:)*100;
+
+
+    if (1==2)
     subplot(2,3,1)
     imagesc(time,spectrogramStruct.frequencySupportHz, meanPower)
     hold on;
@@ -218,7 +266,7 @@ function [temporalSupport, powerTimeSeries, theTemporalFrequency] = powerTimeSer
     temporalSupport = spectrogramStruct.temporalSupportSeconds;
     powerTimeSeries = spectrogramStruct.power(iFreq,:);
 
-
+    end
 end
 
 % 

@@ -1,5 +1,6 @@
-function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, ...
-    theResponseTrace, cellIDstring, spatialFrequency, varargin)
+function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, theResponseTrace, ...
+    temporalSupportSecondsMovingAverage, theResponseTraceMovingAverage, ...
+    cellIDstring, spatialFrequency, varargin)
 % Visualize a fitted STF
 %
 % Syntax:
@@ -40,12 +41,18 @@ function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, ...
     
    
     plot(ax,temporalSupportSeconds, theResponseTrace, '-', ...
-                    'Color', [0.8 0.8 0.8], 'LineWidth', 1.0);
-    
-    xtickangle(ax, 0);
-    set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/4);
+                    'Color', [0 1 0], 'LineWidth', 1.0);
+    hold(ax, 'on');
+    plot(ax,temporalSupportSecondsMovingAverage, theResponseTraceMovingAverage, ...
+        'Color', [0 0 0], 'LineWidth', 4.0);
+    plot(ax,temporalSupportSecondsMovingAverage, theResponseTraceMovingAverage, ...
+        'Color', [1 0 0], 'LineWidth', 2.0);
 
-    set(ax, 'LineWidth', 1.0, 'XColor', [0.3 0.3 0.3], 'YColor', [0.3 0.3 0.3], 'FontSize', 18);
+
+    xtickangle(ax, 0);
+    set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/8);
+
+    set(ax, 'LineWidth', 1.0, 'XColor', [0.5 0.5 0.5], 'YTick', 0:2:10,  'YColor', [0.5 0.5 0.5], 'Color', [0 0 0], 'FontSize', 18);
 
     if (~isempty(xLims))
         set(ax, 'XLim', xLims);
@@ -74,7 +81,7 @@ function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, ...
     end
 
     if (~isempty(cellIDstring))
-       text(ax, 4.5, -0.05, cellIDstring, 'FontSize', 12);
+       text(ax, 1, 9, cellIDstring, 'FontSize', 12, 'Color', [0 1 0]);
     end
 end
 

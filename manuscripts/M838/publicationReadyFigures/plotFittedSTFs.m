@@ -28,10 +28,10 @@ function plotFittedSTFs()
     visualizedComponent = 'STF';
 
     % The STF of the neuron (no optics)
-    %visualizedComponent = 'NeuralSTF';
+    visualizedComponent = 'NeuralSTF';
 
     % The neuron's RF profile
-    visualizedComponent = 'RFprofile';
+    %visualizedComponent = 'RFprofile';
 
 
     dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
@@ -184,10 +184,23 @@ function plotFittedSTFs()
 
             drawnow;
     end
+    
+    % Export figure
+    p = getpref('ISETMacaque');
+    populationPDFsDir = sprintf('%s/exports/populationPDFs',p.generatedDataDir);
+    if (residualDefocusDioptersExamined == -99)
+        residualDefocusDescriptor = 'CellSpecificResidualDefocus';
+    else
+        residualDefocusDescriptor = sprintf('%2.3fDResidualDefocus', residualDefocusDioptersExamined);
+    end
+
+    pdfFileName = sprintf('%s/fittedSTFs/%s_%s_%s.pdf', populationPDFsDir, visualizedComponent, theRFcenterConePoolingScenario, residualDefocusDescriptor);
+    NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
 
 
-    % Each cell in separate figure
-    for iRGCindex = 4 % %1:numel(coneRGCindices) 
+    if (1==2)
+        % Each cell in separate figure
+        for iRGCindex = 4 % %1:numel(coneRGCindices) 
             STFdataToFit = simulator.load.fluorescenceSTFdata(monkeyID, ...
                 'whichSession', 'allSessions', ...
                 'undoOTFdeconvolution', true, ...     % remove the baked-in deconvolution by the diffr.limited OTF
@@ -214,7 +227,10 @@ function plotFittedSTFs()
                 'noYLabel', noYLabel);
             drawnow;
             
+        end
+
     end
+
     
 end
 
