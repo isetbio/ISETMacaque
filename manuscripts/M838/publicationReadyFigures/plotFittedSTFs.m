@@ -15,7 +15,10 @@ function plotFittedSTFs()
     residualDefocusDioptersExamined = 0.067;
 
     % Optimal residual defocus for each cell
-    residualDefocusDioptersExamined = -99;
+    %residualDefocusDioptersExamined = 0;
+
+    % Optimal residual defocus for each cell
+    %residualDefocusDioptersExamined = -99;
 
     % RF center scenario : choose between 'single-cone' and 'multi-cone'
     theRFcenterConePoolingScenario = 'single-cone';
@@ -24,18 +27,20 @@ function plotFittedSTFs()
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
     options.stimulusParams = simulator.params.AOSLOStimulus();
 
+    % Load spatial frequencies examined
+    dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
+    options.stimulusParams.STFspatialFrequencySupport = dStruct.spatialFrequencySupport;
+
+
     % The STF as measured
     visualizedComponent = 'STF';
 
     % The STF of the neuron (no optics)
-    visualizedComponent = 'NeuralSTF';
+    %visualizedComponent = 'NeuralSTF';
 
     % The neuron's RF profile
     %visualizedComponent = 'RFprofile';
 
-
-    dStruct = simulator.load.fluorescenceSTFdata(monkeyID);
-    options.stimulusParams.STFspatialFrequencySupport = dStruct.spatialFrequencySupport;
 
 
     % Set the cone mosaic params
@@ -75,8 +80,9 @@ function plotFittedSTFs()
             if (residualDefocusDioptersExamined == -99)
                 % Optimal residual defocus for each cell
                 operationOptions.residualDefocusDiopters = ...
-                        simulator.animalInfo.optimalResidualDefocusForSingleConeCenterRFmodel(monkeyID, ...
-                        sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex));
+                        simulator.animalInfo.optimalResidualDefocus(monkeyID, ...
+                        sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType,  operationOptions.STFdataToFit.whichRGCindex), ...
+                        theRFcenterConePoolingScenario);
             else
                % Examined residual defocus
                operationOptions.residualDefocusDiopters = residualDefocusDioptersExamined;
@@ -104,6 +110,18 @@ function plotFittedSTFs()
                 'spatialFrequencyBias', simulator.spatialFrequencyWeightings.boostHighEnd ...
                 );
 
+            % Load fitted models
+            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
+                operationOptions.coneMosaicSamplingParams, ...
+                operationOptions.fitParams, ...
+                operationOptions.STFdataToFit);
+
+            load(fittedModelFileName, 'STFdataToFit', 'theConeMosaic', 'fittedModels');
+
+            visualizedModelFits = fittedModels(theRFcenterConePoolingScenario);
+            bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, operationOptions.STFdataToFit, operationOptions.rmsSelector);
+
+
             row = floor((iRGCindex-1)/5)+1;
             col = mod(iRGCindex-1,5)+1;
             axSTF = subplot('Position', subplotPosVectors(row,col).v);
@@ -123,15 +141,6 @@ function plotFittedSTFs()
             cellIDString = sprintf('%s%d', operationOptions.STFdataToFit.whichCenterConeType, operationOptions.STFdataToFit.whichRGCindex);
             cellIDString = sprintf('RGC %d', iRGCindex);
 
-            fittedModelFileName = simulator.filename.fittedRGCmodel(monkeyID, options, ...
-                operationOptions.coneMosaicSamplingParams, ...
-                operationOptions.fitParams, ...
-                operationOptions.STFdataToFit);
-
-            load(fittedModelFileName, 'STFdataToFit', 'theConeMosaic', 'fittedModels');
-
-            visualizedModelFits = fittedModels(theRFcenterConePoolingScenario);
-            bestConePosIdx = simulator.analyze.bestConePositionAcrossMosaic(visualizedModelFits, operationOptions.STFdataToFit, operationOptions.rmsSelector);
 
             switch (visualizedComponent)
                 case 'STF'
@@ -172,13 +181,18 @@ function plotFittedSTFs()
 
                 case 'RFprofile'
                     noXLabel = true;
+                    noYLabel = true;
                     if (row == 3)
                         noXLabel = false;
+                    end
+                    if (col == 1)
+                        noYLabel = false;
                     end
                     
                     simulator.visualize.fittedRGCRF(hFig, [], [], axSTF, ...
                         theConeMosaic, visualizedModelFits{bestConePosIdx}.fittedRGCRF, ...
-                        false, noXLabel);
+                        cellIDString, ...
+                        noXLabel, noYLabel, false);
 
             end% switch
 
