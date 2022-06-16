@@ -91,9 +91,16 @@ function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
         fittedNeuralSTFcomponents.surround = fittedNeuralSTFcomponents.surround / maxY;
         compositeNeuralSTF = abs(fittedNeuralSTFcomponents.center - fittedNeuralSTFcomponents.surround);  
 
-        plot(ax,fittedNeuralSTFcomponents.sfSupport, compositeNeuralSTF, 'k--',  'LineWidth', 2);
-        plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.center, 'r',  'LineWidth', 1.5);
-        plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.surround, 'b', 'LineWidth', 1.5);
+        makeShadedPlot(ax,fittedNeuralSTFcomponents.sfSupport(2:end), fittedNeuralSTFcomponents.center(2:end), [222 173 182]/255, [222 173 182]/255*0.5, 0.5, 1.5);
+        makeShadedPlot(ax,fittedNeuralSTFcomponents.sfSupport(2:end), fittedNeuralSTFcomponents.surround(2:end), [195 231 249]/255, [195 231 249]/255*0.5, 0.5, 1.5);
+        
+        
+        plot(ax,fittedNeuralSTFcomponents.sfSupport(2:end), compositeNeuralSTF(2:end), 'k-', 'Color', [0.95 0.95 0.95], 'LineWidth', 4);
+        plot(ax,fittedNeuralSTFcomponents.sfSupport(2:end), compositeNeuralSTF(2:end), 'k--',  'LineWidth', 2);
+%         plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.center, '-',  'LineWidth', 4, 'Color', 0.5*[222 173 182]/255);
+%         plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.center, '-',  'LineWidth', 2, 'Color', [222 173 182]/255);
+%         plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.surround, '-', 'LineWidth', 4, 'Color', 0.5*[195 231 249]/255);
+%         plot(ax,fittedNeuralSTFcomponents.sfSupport, fittedNeuralSTFcomponents.surround, '-', 'LineWidth', 2, 'Color', [195 231 249]/255);
     end
 
 
@@ -143,14 +150,24 @@ function fittedSTF(hFig, ax, sfSupport, measuredSTF, measuredSTFSE, ...
 
     if (~isempty(cellIDstring))
         if (~isempty(fittedNeuralSTFcomponents))
-            text(ax, 4.5, -0.05, cellIDstring, 'FontSize', 12);
+            text(ax, 29.5, 0.95, cellIDstring, 'FontSize', 12);
         else
             text(ax, 4.5, 0.7, cellIDstring, 'FontSize', 12);
         end
     end
 
     if (~isempty(fittedNeuralSTFcomponents))
-        set(ax, 'YLim', [-0.1 1.01]);
+        set(ax, 'YLim', [0 1.01]);
     end
 
+end
+
+
+function makeShadedPlot(ax,x,y, faceColor, edgeColor, faceAlpha, lineWidth)
+    px = reshape(x, [1 numel(x)]);
+    py = reshape(y, [1 numel(y)]);
+    px = [px(1) px px(end)];
+    py = [1*eps py 2*eps];
+    pz = -10*eps*ones(size(py)); 
+    patch(ax,px,py,pz,'FaceColor',faceColor,'EdgeColor',edgeColor, 'FaceAlpha', faceAlpha, 'LineWidth', lineWidth);
 end

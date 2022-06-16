@@ -54,7 +54,8 @@ function [theOI, thePSFdata] = generate(monkeyID, opticsParams)
 
         case simulator.opticsTypes.M838
             % Load the Zernikes for the animal
-            ZernikesFileName = sprintf('%s_Polychromatic_PSF.mat', monkeyID);
+            filepath = fullfile(ISETmacaqueRootPath, 'animals/WilliamsLab');
+            ZernikesFileName = sprintf('%s/%s_Polychromatic_PSF.mat', filepath,monkeyID);
             load(ZernikesFileName, 'Z_coeff_M838', 'd_pupil');
             Zcoeffs = Z_coeff_M838;
 

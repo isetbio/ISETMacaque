@@ -37,21 +37,92 @@ function visHandles = coneMosaicSTFresponses(coneMosaicResponsesFileName, vararg
     % Compute activation range
     activationRange = [-1 1]; % max(abs(coneMosaicSpatiotemporalActivation(:)))*[-1 1];
 
-    % Setup figure layout
-    [d, hFig] = figureLayout();
-    
-    if (isempty(framesToVisualize))
-        % Visualize all frames
-        visualizedFrames = 1:size(coneMosaicSpatiotemporalActivation,2);
-    else
-        visualizedFrames = framesToVisualize;
-    end
-
     if (isempty(visualizedDomainRangeMicrons))
         domainVisualizationLimits = [];
     else
         domainVisualizationLimits = visualizedDomainRangeMicrons/2 * [-1 1 -1 1];
     end
+
+    if (isempty(framesToVisualize))
+        % Visualize all frames
+        visualizedFrames = 1:size(coneMosaicSpatiotemporalActivation,2);
+        visualizeDynamicResponses(theConeMosaic, visualizedFrames, ...
+            coneMosaicSpatiotemporalActivation, spatialFrequenciesExamined, ...
+            domainVisualizationLimits, visualizedDomainRangeMicrons, activationRange);
+        visHandles = [];
+    else
+        visualizedFrames = framesToVisualize;
+        visHandles = visualizeStaticResponses(theConeMosaic, visualizedFrames, ...
+            coneMosaicSpatiotemporalActivation, spatialFrequenciesExamined, ...
+            domainVisualizationLimits, visualizedDomainRangeMicrons, activationRange);
+    end
+
+end
+
+
+function visualizeDynamicResponses(theConeMosaic, visualizedFrames, ...
+            coneMosaicSpatiotemporalActivation, spatialFrequenciesExamined, ...
+            domainVisualizationLimits, visualizedDomainRangeMicrons, activationRange)
+
+     % Setup figure layout
+    hFig = figure();
+    set(hFig, 'Position', [10 10 450 450], 'Color', [1 1 1]);
+    ax = subplot('Position', [0.11 0.13 0.85 0.80]);
+    
+    % Ticks
+    ticksXY = struct('x', -100:20:100, 'y', -100:20:100);
+    ticksXonly = struct('x', -100:10:100, 'y', []);
+    ticksYonly = struct('x', [], 'y', -100:10:100);
+    ticksNone = struct('x', [], 'y', []);
+    ticks = ticksXY;
+    
+    p = getpref('ISETMacaque');
+    exportsDir = sprintf('%s/exports',p.generatedDataDir);
+    videoFileName = sprintf('%s/spatiotemporalConeMosaicResponse', exportsDir);
+
+    videoOBJ = VideoWriter(videoFileName, 'MPEG-4');
+    videoOBJ.FrameRate = 15;
+    videoOBJ.Quality = 100;
+    videoOBJ.open();
+
+    for iSF = 10:13 % :numel(spatialFrequenciesExamined)
+        for iFrame = 1:numel(visualizedFrames)
+            displayedFrameIndex = visualizedFrames(iFrame);
+
+            theMosaicActivation = squeeze(coneMosaicSpatiotemporalActivation(iSF,displayedFrameIndex,:));
+
+            theConeMosaic.visualize('figureHandle', hFig, ...
+                    'axesHandle', ax, ...
+                    'domain', 'microns', ...
+                    'domainVisualizationLimits', domainVisualizationLimits, ...
+                    'domainVisualizationTicks', ticks, ...
+                    'visualizedConeAperture', 'lightCollectingArea4sigma', ... %'geometricArea', ...
+                    'visualizedConeApertureThetaSamples', 60, ...
+                    'activation', theMosaicActivation,...
+                    'activationRange', activationRange, ...
+                    'backgroundColor', [0 0 0], ...
+                    'fontSize', 20, ...
+                    'noXLabel', ~true, ...
+                    'noYLabel', ~true, ...
+                    'plotTitle', ''sprintf('%2.1f c/deg', spatialFrequenciesExamined(iSF)));
+
+            drawnow;
+            videoOBJ.writeVideo(getframe(hFig));
+    
+        end
+    end
+    videoOBJ.close();
+    fprintf('Video saved to %s\n', videoFileName);
+
+end
+
+
+function visHandles = visualizeStaticResponses(theConeMosaic, visualizedFrames, ...
+    coneMosaicSpatiotemporalActivation, spatialFrequenciesExamined, ...
+    domainVisualizationLimits, visualizedDomainRangeMicrons, activationRange)
+
+    % Setup figure layout
+    [d, hFig] = figureLayout();
 
     % Ticks
     ticksXY = struct('x', -100:10:100, 'y', -100:10:100);

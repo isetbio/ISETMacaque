@@ -58,7 +58,10 @@ function generate(monkeyID, reCompute)
     
     
     % Contrast the measured and the model cone diameters
-    load('cone_data_M838_OD_2021.mat', 'cone_locxy_diameter_838OD');
+    filepath = fullfile(ISETmacaqueRootPath, 'animals/WilliamsLab');
+    coneDataFileName = sprintf('%s/cone_data_%s_OD_2021.mat', filepath,monkeyID);
+
+    load(coneDataFileName, 'cone_locxy_diameter_838OD');
     measuredConeDiameterData.horizontalEccMicrons = cone_locxy_diameter_838OD(:,1);
     measuredConeDiameterData.verticalEccMicrons = cone_locxy_diameter_838OD(:,2);
     measuredConeDiameterData.medianConeDiametersMicrons = cone_locxy_diameter_838OD(:,3);

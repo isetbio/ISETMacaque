@@ -275,22 +275,31 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
 
             % Visualize responses
             visualizedDomainRangeMicrons = 60;
+%             d = simulator.visualize.coneMosaicSTFresponses(coneMosaicResponsesFileName, ...
+%                 'visualizedDomainRangeMicrons', visualizedDomainRangeMicrons, ...
+%                 'framesToVisualize', [1]);
+
+            % Video
+            visualizedDomainRangeMicrons = 20;
             d = simulator.visualize.coneMosaicSTFresponses(coneMosaicResponsesFileName, ...
                 'visualizedDomainRangeMicrons', visualizedDomainRangeMicrons, ...
-                'framesToVisualize', [1]);
+                'framesToVisualize', []);
 
-            % Co-visualize the cone mosaic with the PSF
-            % Generate optics using the desired optics params
-            [~, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
+            if (~isempty(d))
+                % Co-visualize the cone mosaic with the PSF
+                % Generate optics using the desired optics params
+                [~, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
+    
+                % Import the cone mosaic
+                load(coneMosaicResponsesFileName, 'theConeMosaic');
+    
+                % Visualize the cone mosaic and the PSF
+                simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
+                    WilliamsLabData.constants.imagingPeakWavelengthNM, ...
+                    'figureHandle', d.hFig, ...
+                    'axesHandle', d.axPSF);
+            end
 
-            % Import the cone mosaic
-            load(coneMosaicResponsesFileName, 'theConeMosaic');
-
-            % Visualize the cone mosaic and the PSF
-            simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
-                WilliamsLabData.constants.imagingPeakWavelengthNM, ...
-                'figureHandle', d.hFig, ...
-                'axesHandle', d.axPSF);
 
         case simulator.operations.computeConeMosaicSTFresponses
             % Synthesize cone mosaic responses filename
@@ -303,11 +312,12 @@ function dataOut = performOperation(operation, operationOptions, monkeyID)
             [theOI, thePSFdata] = simulator.optics.generate(monkeyID, options.opticsParams);
     
             % Visualize mosaic and PSF
-            visualizedDomainRangeMicrons = 30;
+            visualizedDomainRangeMicrons = 50;
             simulator.visualize.mosaicAndPSF(theConeMosaic, thePSFdata, visualizedDomainRangeMicrons, ...
                 WilliamsLabData.constants.imagingPeakWavelengthNM, ...
-                'displayXYslices', false);
-        
+                'noConeMosaic', ~true, ...
+                'displayXYslices', true);
+            
             % Compute cone mosaic responses for the stimuli used to measure
             % the RGC spatial transfer functions (STFs)
             simulator.compute.coneMosaicSTF(options.stimulusParams, ...

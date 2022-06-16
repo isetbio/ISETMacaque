@@ -1,5 +1,5 @@
 function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
-    theConeMosaic, fittedRGCRF, noXLabel, noSurroundXLabel)
+    theConeMosaic, fittedRGCRF, cellIDstring, noXLabel, noYLabel, noSurroundXLabel)
 % Visualize a fitted RGC model 
 %
 % Syntax:
@@ -119,7 +119,7 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
     if (~isempty(axProfile))
         % Visualize the RFprofile
         xSupportMicrons = xSupportDegs* WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-        maxProfile = 1.05*max([max(centerProfile) max(surroundProfile)]);
+        maxProfile = 1.0*max([max(centerProfile) max(surroundProfile)]);
         centerProfile = centerProfile/maxProfile;
         surroundProfile = surroundProfile/maxProfile;
     
@@ -143,14 +143,25 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
         
         grid(axProfile, 'on');
         set(axProfile, 'XLim', xRangeMicrons, 'XTick', domainVisualizationTicks.x, ...
-            'YLim', [-1 1], 'YTick', -1:0.25:1, 'YTickLabel', {});
+            'YLim', [-1 1], 'YTick', -1:0.5:1, 'YTickLabel', sprintf('%2.1f\n', -1:0.5:1));
         set(axProfile, 'FontSize', 18);
-        if (noSurroundXLabel)
+        if (noXLabel)
             set(axProfile,'XTickLabel', {});
         else
             xlabel(axProfile, 'space (microns)');
         end
+
+        if (noYLabel)
+            set(axProfile,'YTickLabel', {});
+        else
+            ylabel(axProfile, 'sensitivity');
+        end
         xtickangle(axProfile, 0);
+
+        if (~isempty(cellIDstring))
+            text(axProfile, xRangeMicrons(2) - 0.25*(xRangeMicrons(2)-xRangeMicrons(1)), 0.9, cellIDstring, 'FontSize', 12);
+        end
+
     end
 
 
