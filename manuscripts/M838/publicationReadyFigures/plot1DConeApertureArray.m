@@ -67,8 +67,8 @@ function plot1DConeApertureArray()
             case cMosaic.SCONE_ID
                 coneColor = [0.6000 0.1000 1];
         end
-        coneRc = 0.204*sqrt(2.0)*theConeMosaic.coneRFspacingsMicrons(theConeIndex);
-        gaussianProfile = exp(-((xSupport-theConeMosaic.coneRFpositionsMicrons(theConeIndex,1))/coneRc).^2);
+
+        gaussianProfile = simulator.coneMosaic.Gaussian1DApertureForCone(theConeMosaic, theConeIndex, xSupport, 'microns');
         shadedAreaPlot(ax, xSupport, gaussianProfile, 0, ...
             coneColor, coneColor*0.5, 0.5, 1.5, '-'); 
     end

@@ -23,30 +23,36 @@ function plotRawFluorescenceTimeCourses()
     p = getpref('ISETMacaque');
     populationPDFsDir = sprintf('%s/exports/populationPDFs',p.generatedDataDir);
 
-    videoOBJ = VideoWriter(sprintf('%s/rawFluorescenceTraces/videoOverTime', populationPDFsDir), 'MPEG-4');
-    videoOBJ.FrameRate = 30;
-    videoOBJ.Quality = 100;
-    videoOBJ.open();
+    
 
     [~,iFreq] = min(abs(spatialFrequencySupport-25));
     spatialFrequencyCyclesPerDegree = spatialFrequencySupport(iFreq);
-    for iTime = 1:(57*4)
-        maxTimeSeconds = iTime/4;
-        hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, 1, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, maxTimeSeconds);
-        videoOBJ.writeVideo(getframe(hFig));
+
+    generateVideo = false;
+    if (generateVideo)
+        videoOBJ = VideoWriter(sprintf('%s/rawFluorescenceTraces/videoOverTime', populationPDFsDir), 'MPEG-4');
+        videoOBJ.FrameRate = 30;
+        videoOBJ.Quality = 100;
+        videoOBJ.open();
+        for iTime = 1:(57*4)
+            maxTimeSeconds = iTime/4;
+            hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, 1, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, maxTimeSeconds);
+            videoOBJ.writeVideo(getframe(hFig));
+        end
+    
+        videoOBJ.close();
     end
 
-    videoOBJ.close();
 
-
-    for whichSession = 1:sessionsNum
+    %for whichSession = 1:sessionsNum
+    whichSession = 1;
         for iSF = 1:numel(spatialFrequencySupport)
             spatialFrequencyCyclesPerDegree = spatialFrequencySupport(iSF);
             hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, whichSession, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, []);
             pdfFileName = sprintf('%s/rawFluorescenceTraces/session%d_sf%2.0f.pdf', populationPDFsDir, whichSession, round(spatialFrequencyCyclesPerDegree));
             NicePlot.exportFigToPDF(pdfFileName, hFig, 300);
         end
-    end
+    %end
 end
 
 function hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, whichSession, spatialFrequencyCyclesPerDegree, useOriginalCellLabeling, maxTimeSeconds)
@@ -54,7 +60,7 @@ function hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, which
 
     % All cells in same figure
     hFig = figure(1); clf;
-    set(hFig, 'Color', [0 0 0], 'Position', [10 10 1100 660]);  
+    set(hFig, 'Color', [1 1 1], 'Position', [10 10 1100 660]);  
 
     % Set-up figure
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
@@ -97,18 +103,24 @@ function hFig = plotAllCellData(monkeyID, centerConeTypes, coneRGCindices, which
             theResponseTraceProcessed = movmean(theResponseTrace, [windowLengthSamples 0], 'EndPoints', 'fill');
             temporalSupportSecondsProcessed = temporalSupportSeconds;
             yLabelString = 'fluorescence';
-            yLims = [0 10];
+            yLims = [0 6];
         end
 
 
         if (~isempty(maxTimeSeconds))
             idx = find(temporalSupportSeconds<=maxTimeSeconds);
+            if (isempty(idx))
+                continue;
+            end
             maxTimeBin = idx(end);
             
             temporalSupportSeconds = temporalSupportSeconds(1:maxTimeBin); 
             theResponseTrace = theResponseTrace(1:maxTimeBin);
 
             idx = find(temporalSupportSecondsProcessed<=maxTimeSeconds);
+            if (isempty(idx))
+                continue;
+            end
             maxTimeBin = idx(end);
             temporalSupportSecondsProcessed = temporalSupportSecondsProcessed(1:maxTimeBin); 
             theResponseTraceProcessed = theResponseTraceProcessed(1:maxTimeBin);

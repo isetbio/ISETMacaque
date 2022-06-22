@@ -33,32 +33,31 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
     centerConePositionDegs = mean(...
         theConeMosaic.coneRFpositionsDegs(fittedRGCRF.centerConeIndices,:), 1);
     xSupportDegs = centerConePositionDegs(1) + (-0.1:0.0005:0.1);
+    ySupportDegs = centerConePositionDegs(2) + (-0.1:0.0005:0.1);
 
     % Compute the RFcenter profile
     for iCone = 1:numel(fittedRGCRF.centerConeIndices)
         theConeIndex = fittedRGCRF.centerConeIndices(iCone);
-        xConePosDegs = theConeMosaic.coneRFpositionsDegs(theConeIndex,1);
-        coneRcDegs = sqrt(2) * 0.204 * theConeMosaic.coneRFspacingsDegs(theConeIndex);
-        coneProfile = exp(-((xSupportDegs-xConePosDegs)/coneRcDegs).^2);
+        cone2DProfile = simulator.coneMosaic.Gaussian2DApertureForCone(theConeMosaic, theConeIndex, xSupportDegs, ySupportDegs, 'degs');
+        centerCone1DProfiles(iCone,:) = fittedRGCRF.centerConeWeights(iCone) * sum(cone2DProfile,1);
         if (iCone == 1)
-             centerProfile = fittedRGCRF.centerConeWeights(iCone)*coneProfile;
+             center2DProfile = fittedRGCRF.centerConeWeights(iCone)*cone2DProfile;
         else
-             centerProfile = centerProfile + ...
-                             fittedRGCRF.centerConeWeights(iCone)*coneProfile; 
+             center2DProfile = center2DProfile + ...
+                             fittedRGCRF.centerConeWeights(iCone)*cone2DProfile; 
         end
     end % iCone
 
     % Compute the RFsurround profile
     for iCone = 1:numel(fittedRGCRF.surroundConeIndices)
         theConeIndex = fittedRGCRF.surroundConeIndices(iCone);
-        xConePosDegs = theConeMosaic.coneRFpositionsDegs(theConeIndex,1);
-        coneRcDegs = sqrt(2) * 0.204 * theConeMosaic.coneRFspacingsDegs(theConeIndex);
-        coneProfile = exp(-((xSupportDegs-xConePosDegs)/coneRcDegs).^2);
+        cone2DProfile = simulator.coneMosaic.Gaussian2DApertureForCone(theConeMosaic, theConeIndex, xSupportDegs, ySupportDegs, 'degs');
+        surroundCone1DProfiles(iCone,:) = fittedRGCRF.surroundConeWeights(iCone) * sum(cone2DProfile,1);
         if (iCone == 1)
-             surroundProfile = fittedRGCRF.surroundConeWeights(iCone)*coneProfile;
+             surround2DProfile = fittedRGCRF.surroundConeWeights(iCone)*cone2DProfile;
         else
-             surroundProfile = surroundProfile + ...
-                             fittedRGCRF.surroundConeWeights(iCone)*coneProfile; 
+             surround2DProfile = surround2DProfile + ...
+                             fittedRGCRF.surroundConeWeights(iCone)*cone2DProfile; 
         end
     end % iCone
 
@@ -68,8 +67,8 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
     % XY range
     centerConePositionMicrons = mean(...
         theConeMosaic.coneRFpositionsMicrons(fittedRGCRF.centerConeIndices,:), 1);
-    xRangeMicrons = centerConePositionMicrons(1) + 8*[-1 1];
-    yRangeMicrons = centerConePositionMicrons(2) + 8*[-1 1];
+    xRangeMicrons = centerConePositionMicrons(1) + 6*[-1 1];
+    yRangeMicrons = centerConePositionMicrons(2) + 6*[-1 1];
 
     domainVisualizationTicks = struct('x', -64:4:64, 'y', -64:4:64);
     domainVisualizationTicksNoY = struct('x', -64:4:64, 'y', []);
@@ -87,8 +86,8 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
             'activation', theCenterConeWeights, ...
             'activationRange', 1.2*maxActivationRange*[-1 1], ...
             'activationColorMap', brewermap(1024, '*RdBu'), ...
-            'noYLabel', noXLabel, ...
-            'noXLabel', noXLabel, ...
+            'noYLabel', true, ...
+            'noXLabel', noSurroundXLabel, ...
             'fontSize', 18, ...
             'plotTitle', ' '); 
     end
@@ -119,26 +118,41 @@ function fittedRGCRF(hFig, axCenter, axSurround, axProfile, ...
     if (~isempty(axProfile))
         % Visualize the RFprofile
         xSupportMicrons = xSupportDegs* WilliamsLabData.constants.micronsPerDegreeRetinalConversion;
-        maxProfile = 1.0*max([max(centerProfile) max(surroundProfile)]);
-        centerProfile = centerProfile/maxProfile;
-        surroundProfile = surroundProfile/maxProfile;
+
+        % To generate line weighting profile, sum over rows
+        centerLineWeightingFunction = sum(centerCone1DProfiles,1);
+        surroundLineWeightingFunction = sum(surroundCone1DProfiles,1);
+
+        maxProfile = 1.0*max([max(centerLineWeightingFunction(:)) max(surroundLineWeightingFunction(:))]);
+
+        centerLineWeightingFunction = centerLineWeightingFunction/maxProfile;
+        surroundLineWeightingFunction = surroundLineWeightingFunction/maxProfile;
     
         % RF center
         faceColor = 1.7*[100 0 30]/255;
-        edgeColor = faceColor; [0.7 0.2 0.2];
+        edgeColor = faceColor;
         faceAlpha = 0.4;
         lineWidth = 0.1;
         baseline = 0;
-        simulator.visualize.rfProfileArea(axProfile, xSupportMicrons, centerProfile, ...
-                 baseline, faceColor, edgeColor, faceAlpha, lineWidth);
         hold(axProfile, 'on');
+        for iCone = 1:size(centerCone1DProfiles,1)
+            simulator.visualize.rfProfileArea(axProfile, xSupportMicrons, centerCone1DProfiles(iCone,:)/maxProfile, ...
+                baseline, faceColor, edgeColor, faceAlpha, lineWidth);
+        end
+        %plot(axProfile, xSupportMicrons, centerLineWeightingFunction, 'r-', 'LineWidth', 1.5);
+
         
         % RF surround
         faceColor = [75 150 200]/255;
-        edgeColor = faceColor; %[0.3 0.3 0.7];
-        simulator.visualize.rfProfileArea(axProfile, xSupportMicrons, -surroundProfile, ...
+        edgeColor = faceColor;
+        for iCone = 1:size(surroundCone1DProfiles,1)
+            simulator.visualize.rfProfileArea(axProfile, xSupportMicrons, -surroundCone1DProfiles(iCone,:)/maxProfile, ...
                 baseline, faceColor, edgeColor, faceAlpha, lineWidth);
-        plot(axProfile, xSupportMicrons, centerProfile-surroundProfile, 'k-', 'LineWidth', 1.5);
+        end
+        %plot(axProfile, xSupportMicrons, -surroundLineWeightingFunction, 'b-', 'LineWidth', 1.5);
+
+        % The difference
+        plot(axProfile, xSupportMicrons, centerLineWeightingFunction-surroundLineWeightingFunction, 'k-', 'LineWidth', 1.5);
         axis(axProfile, 'square');
         
         grid(axProfile, 'on');

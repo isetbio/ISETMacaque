@@ -96,7 +96,7 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
 
 
     % One-shot bulding up
-    plotsToShow = [1 1 1 1 1 1];
+    %plotsToShow = [1 1 1 1 1 1];
 
     for gradualFigureBuildUpStep = 1:size(plotsToShow,1)
     
@@ -123,8 +123,10 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
                 'legend', anatomicalConeStudy) ...
             );
     
-%         pdfFileName = simulator.filename.populationRcRsPlots(dataOut{1}.coneMosaicResponsesFileName, sprintf('AOSLOoptics_BuildingUpStep%d',gradualFigureBuildUpStep));
-%         NicePlot.exportFigToPDF(pdfFileName, axesHandles.hFig, 300);
+        if (size(plotsToShow,1)>1)
+            pdfFileName = simulator.filename.populationRcRsPlots(dataOut{1}.coneMosaicResponsesFileName, sprintf('AOSLOoptics_BuildingUpStep%d',gradualFigureBuildUpStep));
+            NicePlot.exportFigToPDF(pdfFileName, axesHandles.hFig, 300);
+        end
 
         % Physiological-optics case
         switch (opticsParamsForBackingOutConeRc.opticsType)
@@ -158,8 +160,10 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
                 'values', backedOutConeRc, ...
                 'legend', anatomicalConeStudyBackedOut) ...
             );
-        %pdfFileName = simulator.filename.populationRcRsPlots(dataOut{1}.coneMosaicResponsesFileName, sprintf('BuildUpStep%d', gradualFigureBuildUpStep));
-        %NicePlot.exportFigToPDF(pdfFileName, axesHandles.hFig, 300);
+        if (size(plotsToShow,1)>1)
+            pdfFileName = simulator.filename.populationRcRsPlots(dataOut{1}.coneMosaicResponsesFileName, sprintf('BuildUpStep%d', gradualFigureBuildUpStep));
+            NicePlot.exportFigToPDF(pdfFileName, axesHandles.hFig, 300);
+        end
     end
 
     

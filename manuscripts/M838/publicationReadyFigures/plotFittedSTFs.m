@@ -15,13 +15,13 @@ function plotFittedSTFs()
     residualDefocusDioptersExamined = 0.067;
 
     % Optimal residual defocus for each cell
-    residualDefocusDioptersExamined = 0;
+    %residualDefocusDioptersExamined = 0;
 
     % Optimal residual defocus for each cell
     %residualDefocusDioptersExamined = -99;
 
     % RF center scenario : choose between 'single-cone' and 'multi-cone'
-    theRFcenterConePoolingScenario = 'multi-cone';
+    theRFcenterConePoolingScenario = 'single-cone';
 
     % Monochromatic stimulus
     operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
@@ -34,14 +34,19 @@ function plotFittedSTFs()
 
     % The STF as measured
     visualizedComponent = 'STF';
+    
 
     % The STF of the neuron (no optics)
     %visualizedComponent = 'NeuralSTF';
 
     % The neuron's RF profile
-    visualizedComponent = 'RFprofile';
+    %visualizedComponent = 'RFprofile';
 
+    % The 2D RF center
+    visualizedComponent = 'RFcenter';
 
+    % The 2D RF surround
+    %visualizedComponent = 'RFsurround';
 
     % Set the cone mosaic params
     options.cMosaicParams = struct(...
@@ -193,6 +198,38 @@ function plotFittedSTFs()
                         theConeMosaic, visualizedModelFits{bestConePosIdx}.fittedRGCRF, ...
                         cellIDString, ...
                         noXLabel, noYLabel, false);
+
+
+               case 'RFsurround'
+                    noXLabel = true;
+                    noYLabel = true;
+                    if (row == 3)
+                        noXLabel = false;
+                    end
+                    if (col == 1)
+                        noYLabel = false;
+                    end
+                    
+                    simulator.visualize.fittedRGCRF(hFig, [], axSTF, [], ...
+                        theConeMosaic, visualizedModelFits{bestConePosIdx}.fittedRGCRF, ...
+                        cellIDString, ...
+                        noXLabel, noYLabel, noXLabel);
+
+                case 'RFcenter'
+                    noXLabel = true;
+                    noYLabel = true;
+                    if (row == 3)
+                        noXLabel = false;
+                    end
+                    if (col == 1)
+                        noYLabel = false;
+                    end
+                    
+                    simulator.visualize.fittedRGCRF(hFig, axSTF, [], [], ...
+                        theConeMosaic, visualizedModelFits{bestConePosIdx}.fittedRGCRF, ...
+                        cellIDString, ...
+                        noXLabel, noYLabel, noXLabel);
+
 
             end% switch
 

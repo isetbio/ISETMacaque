@@ -41,18 +41,17 @@ function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, theResponseTrac
     
    
     plot(ax,temporalSupportSeconds, theResponseTrace, '-', ...
-                    'Color', [0 1 0], 'LineWidth', 1.0);
+                    'Color', [0.6 0.6 0.6], 'LineWidth', 1.0);
     hold(ax, 'on');
     plot(ax,temporalSupportSecondsMovingAverage, theResponseTraceMovingAverage, ...
-        'Color', [0 0 0], 'LineWidth', 4.0);
+        'Color', [0 0.3 0], 'LineWidth', 2.5);
     plot(ax,temporalSupportSecondsMovingAverage, theResponseTraceMovingAverage, ...
-        'Color', [1 0 0], 'LineWidth', 2.0);
-
+        'Color', [0 1 0], 'LineWidth', 1.5);
 
     xtickangle(ax, 0);
-    set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/8);
+    %set(ax,'TickDir','both', 'TickLength',[0.1, 0.01]/8);
 
-    set(ax, 'LineWidth', 1.0, 'XColor', [0.5 0.5 0.5], 'YTick', 0:2:10,  'YColor', [0.5 0.5 0.5], 'Color', [0 0 0], 'FontSize', 18);
+    set(ax, 'LineWidth', 1.0, 'XColor', [0.15 0.15 0.15], 'YTick', 0:2:10,  'YColor', [0.15 0.15 0.15], 'Color', [1 1 1], 'FontSize', 16);
 
     if (~isempty(xLims))
         set(ax, 'XLim', xLims);
@@ -67,21 +66,22 @@ function rawFluorescenceTraces(hFig, ax, temporalSupportSeconds, theResponseTrac
     end
 
     grid(ax, 'on');
+    box(ax, 'off')
 
-    if (~noXLabel) && (~isempty(xLabelString))
-        xlabel(ax, xLabelString);
-    else
-        set(ax, 'XTickLabel', {});
-    end
-
-    if (~noYLabel) && (~isempty(yLabelString))
-        ylabel(ax, yLabelString);
-    else
-        set(ax, 'YTickLabel', {});
-    end
+%     if (~noXLabel) && (~isempty(xLabelString))
+%         xlabel(ax, xLabelString);
+%     else
+%         set(ax, 'XTickLabel', {});
+%     end
+% 
+%     if (~noYLabel) && (~isempty(yLabelString))
+%         ylabel(ax, yLabelString);
+%     else
+%         set(ax, 'YTickLabel', {});
+%     end
 
     if (~isempty(cellIDstring))
-       text(ax, 1, 9, cellIDstring, 'FontSize', 12, 'Color', [0 1 0]);
+       text(ax, 1, 0.9*yLims(2), cellIDstring, 'FontSize', 12, 'Color', [0.3 0.3 0.3]);
     end
 end
 

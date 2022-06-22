@@ -185,20 +185,23 @@ function [integratedSurroundCenterRatios, axesHandles] = integratedSurroundCente
         
         % Median lines
         medianIntSurrCenterSensRatio = median(integratedSurroundCenterRatios.ratios);
-        medianExtraData1 = median(extraData1.values(:));
-        medianExtraData2 = median(extraData2.values(:));
-        fprintf('Mean RcRs - C&K: %f\n', medianIntSurrCenterSensRatio);
-        fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
-        fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
-
         plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
-        plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
-        plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 6);
-
         plot(medianIntSurrCenterSensRatio*[1 1], [0 maxY+1], 'w--', 'LineWidth', 6);
-        plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 6);
-        plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 6);
+        fprintf('Mean RcRs - C&K: %f\n', medianIntSurrCenterSensRatio);
 
+        if (~isempty(extraData1))
+            medianExtraData1 = median(extraData1.values(:));
+            fprintf('Mean RcRs - ExtraData1: %f\n', medianExtraData1);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k-', 'LineWidth', 6);
+            plot(medianExtraData1*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData1, 'LineWidth', 6);
+        end
+
+        if (~isempty(extraData2))
+            medianExtraData2 = median(extraData2.values(:));
+            fprintf('Mean RcRs - ExtraData2: %f\n', medianExtraData2);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k-',  'LineWidth', 6);
+            plot(medianExtraData2*[1 1], [0 maxY+1], 'k--', 'Color', colorExtraData2,'LineWidth', 6);
+        end
 
         [lgd, legendHandle] = legend(ax, legends, 'Location', 'NorthOutside', 'FontSize', 24);
         lgd.NumColumns = 1;
