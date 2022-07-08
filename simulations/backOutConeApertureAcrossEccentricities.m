@@ -75,12 +75,16 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits,
         set(hFigLeftEye, 'Color', [1 1 1], 'Position', [10 10 1600 400]);
 
         if (generateVideos)
-            videoOBJRightEye = VideoWriter(sprintf('%s_RE', dataFileName), 'MPEG-4');
+
+            p = getpref('ISETMacaque');
+            videoFName = fullfile(p.generatedDataDir, 'coneApertureBackingOut', dataFileName);
+    
+            videoOBJRightEye = VideoWriter(sprintf('%s_RE', videoFName), 'MPEG-4');
             videoOBJRightEye.FrameRate = 30;
             videoOBJRightEye.Quality = 100;
             videoOBJRightEye.open();
     
-            videoOBJLeftEye = VideoWriter(sprintf('%s_LE', dataFileName), 'MPEG-4');
+            videoOBJLeftEye = VideoWriter(sprintf('%s_LE', videoFName), 'MPEG-4');
             videoOBJLeftEye.FrameRate = 30;
             videoOBJLeftEye.FrameRate = 30;
             videoOBJLeftEye.Quality = 100;
