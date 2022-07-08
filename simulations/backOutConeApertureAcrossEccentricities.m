@@ -1,20 +1,21 @@
 function backOutConeApertureAcrossEccentricities
 
     zernikeDataBase = 'Artal2012';          % Choose between 'Polans2015' and 'Artal2012'
-    visualizeFits = ~true;
+    visualizeFits = true;
+    generateVideos = true;
 
     for subjectRankOrder = 1:54
         retinalQuadrant = 'nasal retina';       % Choose b/n {'temporal retina', 'nasal retina'}
-        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits);
+        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
     
         retinalQuadrant = 'temporal retina';       % Choose b/n {'temporal retina', 'nasal retina'}
-        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits);
+        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
     end
 
 
 end
 
-function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits)
+function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos)
 
     switch (zernikeDataBase)
         case 'Artal2012'
@@ -63,6 +64,9 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits)
     coneCharacteristicRadiusDegsLeftEye = conesNumRightEye;
     visualConeCharacteristicRadiusDegsLeftEye = conesNumRightEye;
 
+    dataFileName = sprintf('%s_SubjectRank%d_%s', ...
+            zernikeDataBase, subjectRankOrder, upper(strrep(retinalQuadrant, ' ', '_')));
+
     if (visualizeFits)
         hFigRightEye = figure(100); clf;
         set(hFigRightEye, 'Color', [1 1 1], 'Position', [10 10 1600 400]);
@@ -70,19 +74,21 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits)
         hFigLeftEye = figure(101); clf;
         set(hFigLeftEye, 'Color', [1 1 1], 'Position', [10 10 1600 400]);
 
-        pdfFileName = sprintf('%s_SubjectRank%d_%s', ...
-            zernikeDataBase, subjectRankOrder, upper(strrep(retinalQuadrant, ' ', '_')));
-
-        videoOBJRightEye = VideoWriter(sprintf('%s_RE', pdfFileName), 'MPEG-4');
-        videoOBJRightEye.FrameRate = 30;
-        videoOBJRightEye.Quality = 100;
-        videoOBJRightEye.open();
-
-        videoOBJLeftEye = VideoWriter(sprintf('%s_LE', pdfFileName), 'MPEG-4');
-        videoOBJLeftEye.FrameRate = 30;
-        videoOBJLeftEye.FrameRate = 30;
-        videoOBJLeftEye.Quality = 100;
-        videoOBJLeftEye.open();
+        if (generateVideos)
+            videoOBJRightEye = VideoWriter(sprintf('%s_RE', dataFileName), 'MPEG-4');
+            videoOBJRightEye.FrameRate = 30;
+            videoOBJRightEye.Quality = 100;
+            videoOBJRightEye.open();
+    
+            videoOBJLeftEye = VideoWriter(sprintf('%s_LE', dataFileName), 'MPEG-4');
+            videoOBJLeftEye.FrameRate = 30;
+            videoOBJLeftEye.FrameRate = 30;
+            videoOBJLeftEye.Quality = 100;
+            videoOBJLeftEye.open();
+        else
+            videoOBJRightEye = [];
+            videoOBJLeftEye = [];
+        end
 
     else
         hFigRightEye = [];
@@ -156,10 +162,13 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits)
     set(ax, 'FontSize', 16)
     drawnow;
     
-    NicePlot.exportFigToPDF(sprintf('%s.pdf', pdfFileName), hFig, 300);
+    p = getpref('ISETMacaque');
+    fName = fullfile(p.generatedDataDir, 'coneApertureBackingOut', sprintf('%s.pdf', dataFileName));
+    NicePlot.exportFigToPDF(fName, hFig, 300);
 
     % Export data
-    fName = sprintf('%s.mat', pdfFileName);
+    
+    fName = fullfile(p.generatedDataDir, 'coneApertureBackingOut', sprintf('%s.mat', dataFileName));
     fprintf('Exported data in %s\n', fName);
     save(fName, 'eccDegsForPlotting', ...
         'visualConeCharacteristicRadiusDegsRightEye', ...
@@ -228,7 +237,7 @@ function theVisuallyProjectedConeCharacteristicRadiusDegs =  analyzeEffectOfPSFo
                     'pupilDiameterMM', 3.0, ...
                     'zeroCenterPSF', true, ...
                     'subtractCentralRefraction', subtractCentralRefraction, ...
-                    'wavefrontSpatialSamples', 501, ...
+                    'wavefrontSpatialSamples', 701, ...
                     'warningInsteadOfErrorForBadZernikeCoeffs', true);
 
     if (isempty(oiEnsemble))
@@ -341,6 +350,13 @@ function [theCentroid, RcX, RcY, theRotationAngle] = estimatePSFgeometry(support
     % to serve as initial Gaussian parameter values
     xx = [round(theCentroid(1)-theMajorAxisLength*0.5) round(theCentroid(1)+theMajorAxisLength*0.5)];
     yy = [round(theCentroid(2)-theMinorAxisLength*0.5) round(theCentroid(2)+theMinorAxisLength*0.5)];
+
+    xx(1) = max([1 xx(1)]);
+    xx(2) = min([numel(supportX) xx(2)]);
+
+    yy(1) = max([1 yy(1)]);
+    yy(2) = min([numel(supportY) yy(2)]);
+
     RcY = (supportY(yy(2)) - supportY(yy(1)))/5.0;
     RcX = (supportX(xx(2)) - supportX(xx(1)))/5.0;
     theCentroid(1) = supportX(round(theCentroid(1)));
