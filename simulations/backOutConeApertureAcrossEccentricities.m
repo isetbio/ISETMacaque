@@ -4,59 +4,68 @@ function backOutConeApertureAcrossEccentricities
     visualizeFits = true;
     generateVideos = true;
 
+    summarizeAnalyzedData = true;
+
     for subjectRankOrder = 1:54
         retinalQuadrant = 'nasal retina';       % Choose b/n {'temporal retina', 'nasal retina'}
-        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
-    
+        if (summarizeAnalyzedData)
+            nasalRetinaDataStructs{subjectRankOrder} = retrieveAnalyzedOpticsData(retinalQuadrant, zernikeDataBase, subjectRankOrder);
+        else
+            analyzeOptics(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
+        end
+
         retinalQuadrant = 'temporal retina';       % Choose b/n {'temporal retina', 'nasal retina'}
-        doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
+        if (summarizeAnalyzedData)
+           temporalRetinaDataStructs{subjectRankOrder} = retrieveAnalyzedOpticsData(retinalQuadrant, zernikeDataBase, subjectRankOrder);
+        else
+            analyzeOptics(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos);
+        end
     end
 
+    size(nasalRetinaDataStructs)
+    size(temporalRetinaDataStructs)
+end
+
+
+
+function dStruct = retrieveAnalyzedOpticsData(retinalQuadrant, zernikeDataBase, subjectRankOrder)
+
+    % Assemble filename
+    dataFileName = sprintf('%s_SubjectRank%d_%s', ...
+            zernikeDataBase, subjectRankOrder, upper(strrep(retinalQuadrant, ' ', '_')));
+
+    % Import data
+    p = getpref('ISETMacaque');
+    fName = fullfile(p.generatedDataDir, 'coneApertureBackingOut', sprintf('%s.mat', dataFileName));
+    fprintf('Importing data from %s\n', fName);
+    load(fName, 'eccDegsForPlotting', ...
+        'visualConeCharacteristicRadiusDegsRightEye', ...
+        'visualConeCharacteristicRadiusDegsLeftEye', ...
+        'coneCharacteristicRadiusDegsRightEye', ...
+        'coneCharacteristicRadiusDegsLeftEye', ...
+        'conesNumRightEye', 'conesNumLeftEye');
+
+    % Assemble returned data into a struct
+    dStruct = struct(...
+        'eccDegsForPlotting', eccDegsForPlotting, ...
+        'visualConeCharacteristicRadiusDegsRightEye', visualConeCharacteristicRadiusDegsRightEye, ...
+        'visualConeCharacteristicRadiusDegsLeftEye', visualConeCharacteristicRadiusDegsLeftEye, ...
+        'coneCharacteristicRadiusDegsRightEye', coneCharacteristicRadiusDegsRightEye, ...
+        'coneCharacteristicRadiusDegsLeftEye', coneCharacteristicRadiusDegsLeftEye ...
+        );
 
 end
 
-function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos)
 
-    switch (zernikeDataBase)
-        case 'Artal2012'
-            rankedSujectIDs = ArtalOptics.constants.subjectRanking('right eye');
-            testSubjectID = rankedSujectIDs(subjectRankOrder);
-            if ( (contains(retinalQuadrant, 'inferior')) || ...
-                 (contains(retinalQuadrant, 'superior')) )
-                error('The Artal2012 measurements are only on the horizontal meridian.\n');
-            end
-        case 'Polans2015'
-            rankedSujectIDs = PolansOptics.constants.subjectRanking('right eye');
-            testSubjectID = rankedSujectIDs(subjectRankOrder);
 
-        otherwise
-            error('Unknown zernike database: ''%ss'.', zernikeDataBase)
-    end
+function analyzeOptics(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits, generateVideos)
 
+    % Obtain test subjectID with specific rank for the right eye
+    testSubjectID = subjectWithRankForRightEye(zernikeDataBase, subjectRankOrder);
+
+    % Obtain analyzed eccentricities
+    [horizontalEccDegs, verticalEccDegs, eccDegsForPlotting] = eccentricitiesForQuadrant(retinalQuadrant);
     
-
-    switch (retinalQuadrant)
-        case 'temporal retina'
-            horizontalEccDegs = 0:30;
-            verticalEccDegs = zeros(1,numel(horizontalEccDegs));
-            eccDegsForPlotting = abs(horizontalEccDegs);
-        case 'nasal retina'
-            horizontalEccDegs = -(0:30);
-            verticalEccDegs = zeros(1,numel(horizontalEccDegs));
-            eccDegsForPlotting = abs(horizontalEccDegs);
-        case 'inferior retina'
-            verticalEccDegs = -(0:30);
-            horizontalEccDegs = zeros(1,numel(verticalEccDegs));
-            eccDegsForPlotting = abs(verticalEccDegs);
-        case 'superior retina'
-            verticalEccDegs = (0:30);
-            horizontalEccDegs = zeros(1,numel(verticalEccDegs));
-            eccDegsForPlotting = abs(verticalEccDegs);
-        otherwise
-            error('Unknow retinal quadrant: ''%s''\n.', retinalQuadrant);
-    end
-
-
     conesNumRightEye = zeros(1, numel(horizontalEccDegs));
     conesNumLeftEye = conesNumRightEye;
     coneCharacteristicRadiusDegsRightEye = conesNumRightEye;
@@ -64,6 +73,7 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits,
     coneCharacteristicRadiusDegsLeftEye = conesNumRightEye;
     visualConeCharacteristicRadiusDegsLeftEye = conesNumRightEye;
 
+    % Assemble filename
     dataFileName = sprintf('%s_SubjectRank%d_%s', ...
             zernikeDataBase, subjectRankOrder, upper(strrep(retinalQuadrant, ' ', '_')));
 
@@ -171,7 +181,6 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits,
     NicePlot.exportFigToPDF(fName, hFig, 300);
 
     % Export data
-    
     fName = fullfile(p.generatedDataDir, 'coneApertureBackingOut', sprintf('%s.mat', dataFileName));
     fprintf('Exported data in %s\n', fName);
     save(fName, 'eccDegsForPlotting', ...
@@ -183,6 +192,49 @@ function doIt(retinalQuadrant, zernikeDataBase, subjectRankOrder, visualizeFits,
 
 end
 
+% Retrieve analyzed eccentricities 
+function [horizontalEccDegs, verticalEccDegs, eccDegsForPlotting] = eccentricitiesForQuadrant(retinalQuadrant)
+    switch (retinalQuadrant)
+        case 'temporal retina'
+            horizontalEccDegs = 0:30;
+            verticalEccDegs = zeros(1,numel(horizontalEccDegs));
+            eccDegsForPlotting = abs(horizontalEccDegs);
+        case 'nasal retina'
+            horizontalEccDegs = -(0:30);
+            verticalEccDegs = zeros(1,numel(horizontalEccDegs));
+            eccDegsForPlotting = abs(horizontalEccDegs);
+        case 'inferior retina'
+            verticalEccDegs = -(0:30);
+            horizontalEccDegs = zeros(1,numel(verticalEccDegs));
+            eccDegsForPlotting = abs(verticalEccDegs);
+        case 'superior retina'
+            verticalEccDegs = (0:30);
+            horizontalEccDegs = zeros(1,numel(verticalEccDegs));
+            eccDegsForPlotting = abs(verticalEccDegs);
+        otherwise
+            error('Unknow retinal quadrant: ''%s''\n.', retinalQuadrant);
+    end
+end
+
+
+% Retrieve subject with rank
+function testSubjectID = subjectWithRankForRightEye(zernikeDataBase, subjectRankOrder)
+    switch (zernikeDataBase)
+        case 'Artal2012'
+            rankedSujectIDs = ArtalOptics.constants.subjectRanking('right eye');
+            testSubjectID = rankedSujectIDs(subjectRankOrder);
+            if ( (contains(retinalQuadrant, 'inferior')) || ...
+                 (contains(retinalQuadrant, 'superior')) )
+                error('The Artal2012 measurements are only on the horizontal meridian.\n');
+            end
+        case 'Polans2015'
+            rankedSujectIDs = PolansOptics.constants.subjectRanking('right eye');
+            testSubjectID = rankedSujectIDs(subjectRankOrder);
+
+        otherwise
+            error('Unknown zernike database: ''%ss'.', zernikeDataBase)
+    end
+end
 
 
 function dStruct = estimateConeCharacteristicRadiusInVisualSpace(...
