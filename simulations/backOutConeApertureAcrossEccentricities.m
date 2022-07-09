@@ -22,8 +22,23 @@ function backOutConeApertureAcrossEccentricities
         end
     end
 
-    size(nasalRetinaDataStructs)
-    size(temporalRetinaDataStructs)
+    
+    for subjectRankOrder = 1:size(temporalRetinaDataStructs)
+        dStruct = temporalRetinaDataStructs{subjectRankOrder};
+
+        % Compute ratios of visual cone Rc to anatomical cone Rc
+        ratiosRightEye = dStruct.visualConeCharacteristicRadiusDegsRightEye ./ ...
+                         dStruct.coneCharacteristicRadiusDegsRightEye;
+        ratiosLeftEye = dStruct.visualConeCharacteristicRadiusDegsLeftEye ./ ...
+                         dStruct.coneCharacteristicRadiusDegsLeftEye;
+        lmeanRatiosAlSubjects(subjectRankOrder,:) = mean([ratiosRightEye(:) ratiosLeftEye(:)],2,'omitnan');
+
+        ratiosRightEyeAllSubjects(subjectRankOrder,:) = ratiosRightEye;
+        ratiosLeftEyeAllSubjects(subjectRankOrder,:) = ratiosLeftEye;
+    end
+
+    
+
 end
 
 
@@ -140,11 +155,12 @@ function analyzeOptics(retinalQuadrant, zernikeDataBase, subjectRankOrder, visua
         videoOBJRightEye.close();
     end
 
-    % Compute ratios
+    % Compute ratios of visual cone Rc to anatomical cone Rc
     ratiosRightEye = visualConeCharacteristicRadiusDegsRightEye ./ ...
                            coneCharacteristicRadiusDegsRightEye;
     ratiosLeftEye = visualConeCharacteristicRadiusDegsLeftEye ./ ...
                            coneCharacteristicRadiusDegsLeftEye;
+    meanRatios = mean([ratiosRightEye(:) ratiosLeftEye(:)],2,'omitnan');
 
 
     % Plot
@@ -163,7 +179,6 @@ function analyzeOptics(retinalQuadrant, zernikeDataBase, subjectRankOrder, visua
     set(ax, 'FontSize', 16)
 
     ax = subplot(1,2,2);
-    meanRatios = mean([ratiosRightEye(:) ratiosLeftEye(:)],2,'omitnan');
     plot(ax, eccDegsForPlotting, ratiosLeftEye, 'ro-', 'MarkerSize', 10, 'LineWidth', 1.5, 'MarkerFaceColor', [1 0.5 0.5]); hold on
     plot(ax, eccDegsForPlotting, ratiosRightEye, 'bo-', 'MarkerSize', 10, 'LineWidth', 1.5, 'MarkerFaceColor', [0.5 0.5 1]);
     plot(ax, eccDegsForPlotting, meanRatios, 'ko-', 'LineWidth', 1.5, 'MarkerSize', 12, 'MarkerFaceColor', [0.8 0.8 0.8]);
