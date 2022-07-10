@@ -30,7 +30,9 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
     operation = simulator.operations.computeSynthesizedRGCSTFresponses;
 
     %conditionToSimulate = 'AOSLO_residualDefocus';
-    conditionToSimulate = 'CRT_M838optics';
+    %conditionToSimulate = 'CRT_M838optics';
+    conditionToSimulate = 'AOSLO_residualDefocus_BackoutViaArtalTemporalMeridian';
+    %conditionToSimulate = 'AOSLO_residualDefocus_BackoutViaArtalNasalMeridian';
     %conditionToSimulate = 'CRT_Polans';
 
     switch (conditionToSimulate)
@@ -65,7 +67,29 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
                 'residualDefocusDiopters', [], ...
                 'PolansSubjectID', []);
 
-          
+        case 'AOSLO_residualDefocus_BackoutViaArtalTemporalMeridian'
+
+            % Here we are using the monochromati AOSLO stimulus
+            operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
+            %with diffraction limited optics
+            operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
+            operationOptions.residualDefocusDiopters = 0.0;
+
+            opticsParamsForBackingOutConeRc = struct(...
+                'eccVaryingMeridian', 'ArtalTemporalMeridian');
+
+        case 'AOSLO_residualDefocus_BackoutViaArtalNasalMeridian'
+
+            % Here we are using the monochromati AOSLO stimulus
+            operationOptions.stimulusType = simulator.stimTypes.monochromaticAO;
+            %with diffraction limited optics
+            operationOptions.opticsScenario = simulator.opticsScenarios.diffrLimitedOptics_residualDefocus;
+            operationOptions.residualDefocusDiopters = 0.0;
+
+            opticsParamsForBackingOutConeRc = struct(...
+                'eccVaryingMeridian', 'ArtalNasalMeridian');
+
+
         case 'CRT_Polans'
             % Here we are using an achromatic stimulus, matching a typical achromatic STF experiment
             operationOptions.stimulusType = simulator.stimTypes.achromaticLCD;
@@ -80,6 +104,7 @@ function runBatchComputeSyntheticRGCPhysiologicalOpticsSTFs()
                 'pupilSizeMM', operationOptions.pupilSizeMM, ...
                 'residualDefocusDiopters', [], ...
                 'PolansSubjectID', operationOptions.subjectID);
+
     end
 
     % Select the spatial sampling within the cone mosaic

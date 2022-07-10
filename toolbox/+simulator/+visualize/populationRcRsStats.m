@@ -64,12 +64,21 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
     end % switch
 
 
-    backOutConeRc = false;
+    backOutConeRc = true;
     if (backOutConeRc)
         anatomicalConeStudyBackedOut = sprintf('%s (backed out to visual space)', anatomicalConeStudy);
+
         % Backout (to the visual space) the cone mosaic Rc using the current optics
-        backedOutConeRc = simulator.optics.backOutAnatomicalConeRcThroughOptics(...
-            anatomicalConeEcc, anatomicalConeRc, opticsParamsForBackingOutConeRc);
+        if (isfield(opticsParamsForBackingOutConeRc,'eccVaryingMeridian'))
+            backedOutConeRc = simulator.optics.backOutAnatomicalConeRcThroughEccVaryingOptics(...
+                anatomicalConeEcc, anatomicalConeRc, opticsParamsForBackingOutConeRc);
+            RcDegsPhysiologicalOpticsAllCells = simulator.optics.backOutAnatomicalConeRcThroughEccVaryingOptics(...
+                   zeros(1,numel(RcDegsRetinalSingleConeRFcenterAllCells)), RcDegsRetinalSingleConeRFcenterAllCells, opticsParamsForBackingOutConeRc);
+
+        else
+            backedOutConeRc = simulator.optics.backOutAnatomicalConeRcThroughOptics(...
+                anatomicalConeEcc, anatomicalConeRc, opticsParamsForBackingOutConeRc);
+        end     
     else
         anatomicalConeStudyBackedOut = anatomicalConeStudy;
         backedOutConeRc = anatomicalConeRc;
@@ -129,14 +138,19 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
         end
 
         % Physiological-optics case
-        switch (opticsParamsForBackingOutConeRc.opticsType)
-            case simulator.opticsTypes.diffractionLimited
-                physioOpticsString = sprintf('diffr-limited, defocus:%2.3fD', opticsParamsForBackingOutConeRc.residualDefocusDiopters);
-            case simulator.opticsTypes.M838
-                physioOpticsString = sprintf('M3, pupil:%2.1fMM', opticsParamsForBackingOutConeRc.pupilSizeMM);
-            case simulator.opticsTypes.Polans
-                physioOpticsString = sprintf('Polans #%d, pupil:%2.1fMM', opticsParamsForBackingOutConeRc.PolansSubjectID, opticsParamsForBackingOutConeRc.pupilSizeMM);
+        if (isfield(opticsParamsForBackingOutConeRc, 'opticsType'))
+            switch (opticsParamsForBackingOutConeRc.opticsType)
+                case simulator.opticsTypes.diffractionLimited
+                    physioOpticsString = sprintf('diffr-limited, defocus:%2.3fD', opticsParamsForBackingOutConeRc.residualDefocusDiopters);
+                case simulator.opticsTypes.M838
+                    physioOpticsString = sprintf('M3, pupil:%2.1fMM', opticsParamsForBackingOutConeRc.pupilSizeMM);
+                case simulator.opticsTypes.Polans
+                    physioOpticsString = sprintf('Polans #%d, pupil:%2.1fMM', opticsParamsForBackingOutConeRc.PolansSubjectID, opticsParamsForBackingOutConeRc.pupilSizeMM);
+            end
+        elseif isfield(opticsParamsForBackingOutConeRc, 'eccVaryingMeridian')
+            physioOpticsString = opticsParamsForBackingOutConeRc.eccVaryingMeridian;
         end
+
 
         [~,~,~, axesHandles] = CronerKaplanData.RcRsVersusEccentricity(...
             squeeze(plotsToShow(gradualFigureBuildUpStep,:)), ...
@@ -160,6 +174,7 @@ function populationRcRsStats(dataOut, opticsParamsForBackingOutConeRc)
                 'values', backedOutConeRc, ...
                 'legend', anatomicalConeStudyBackedOut) ...
             );
+        drawnow;
         if (size(plotsToShow,1)>1)
             pdfFileName = simulator.filename.populationRcRsPlots(dataOut{1}.coneMosaicResponsesFileName, sprintf('BuildUpStep%d', gradualFigureBuildUpStep));
             NicePlot.exportFigToPDF(pdfFileName, axesHandles.hFig, 300);
