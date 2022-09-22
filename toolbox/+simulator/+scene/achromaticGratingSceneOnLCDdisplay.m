@@ -23,7 +23,7 @@ function theScene = achromaticGratingSceneOnLCDdisplay(stimParams, theDisplay)
     [X,Y] = meshgrid(spatialSupportDegs, spatialSupportDegs);
     
     % Quantize space based on stimParams.pixelSizeDegs
-    quantizedX = floor(X/stimParams.pixelSizeDegs)*stimParams.pixelSizeDegs;
+    quantizedX = sign(X) .* floor(abs(X)/stimParams.pixelSizeDegs)*stimParams.pixelSizeDegs;
 
     % Compute spatial modulation pattern
     spatialModulationPattern = 0.5*(1 + stimParams.contrast * sin(2*pi*stimParams.spatialFrequencyCPD * quantizedX + stimParams.spatialPhaseDegs/180*pi));
